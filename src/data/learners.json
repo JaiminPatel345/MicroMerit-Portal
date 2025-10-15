@@ -1,0 +1,203 @@
+[
+  {
+    "id": "L001",
+    "name": "Jaimin Detroja",
+    "email": "jaimin.detroja@gmail.com",
+    "avatar": "https://i.pravatar.cc/150?img=1",
+    "role": "learner",
+    "skills": [
+      { "name": "React.js", "level": "Advanced", "nsqfLevel": 7, "verified": true },
+      { "name": "TypeScript", "level": "Intermediate", "nsqfLevel": 6, "verified": true },
+      { "name": "Node.js", "level": "Intermediate", "nsqfLevel": 6, "verified": true },
+      { "name": "Data Analytics", "level": "Beginner", "nsqfLevel": 5, "verified": false }
+    ],
+    "credentials": [
+      {
+        "id": "C001",
+        "title": "Advanced React Development",
+        "issuer": "TechEd India",
+        "issuerLogo": "https://via.placeholder.com/50/3b82f6/ffffff?text=TE",
+        "issueDate": "2024-08-15",
+        "expiryDate": "2026-08-15",
+        "nsqfLevel": 7,
+        "status": "verified",
+        "blockchainHash": "0x1a2b3c4d5e6f7g8h9i0j",
+        "skills": ["React.js", "Redux", "React Hooks"],
+        "credentialUrl": "#"
+      },
+      {
+        "id": "C002",
+        "title": "TypeScript Fundamentals",
+        "issuer": "CodeMaster Academy",
+        "issuerLogo": "https://via.placeholder.com/50/10b981/ffffff?text=CM",
+        "issueDate": "2024-06-10",
+        "expiryDate": "2026-06-10",
+        "nsqfLevel": 6,
+        "status": "verified",
+        "blockchainHash": "0x2b3c4d5e6f7g8h9i0j1k",
+        "skills": ["TypeScript", "JavaScript", "Type Systems"],
+        "credentialUrl": "#"
+      },
+      {
+        "id": "C003",
+        "title": "Full Stack Web Development",
+        "issuer": "Web Wizards Institute",
+        "issuerLogo": "https://via.placeholder.com/50/f59e0b/ffffff?text=WW",
+        "issueDate": "2024-09-20",
+        "expiryDate": null,
+        "nsqfLevel": 7,
+        "status": "pending",
+        "blockchainHash": null,
+        "skills": ["Node.js", "Express", "MongoDB", "REST API"],
+        "credentialUrl": "#"
+      }
+    ],
+    "portfolio": [
+      {
+        "id": "P001",
+        "title": "E-Commerce Dashboard",
+        "description": "Built a comprehensive admin dashboard with real-time analytics",
+        "techStack": ["React", "TypeScript", "Recharts", "Tailwind CSS"],
+        "githubUrl": "https://github.com/example/ecommerce-dashboard",
+        "liveUrl": "https://demo.example.com",
+        "imageUrl": "https://via.placeholder.com/400x250/3b82f6/ffffff?text=Dashboard"
+      },
+      {
+        "id": "P002",
+        "title": "Task Management App",
+        "description": "A collaborative task management system with drag-and-drop",
+        "techStack": ["React", "Redux", "Firebase", "Material-UI"],
+        "githubUrl": "https://github.com/example/task-manager",
+        "liveUrl": "https://tasks.example.com",
+        "imageUrl": "https://via.placeholder.com/400x250/10b981/ffffff?text=Tasks"
+      }
+    ],
+    "learningPathways": [
+      {
+        "id": "LP001",
+        "pathway": "Full Stack Developer",
+        "progress": 65,
+        "totalSkills": 12,
+        "completedSkills": 8,
+        "nextMilestone": "Backend Mastery",
+        "estimatedCompletion": "2025-03-15"
+      }
+    ],
+    "publicProfileUrl": "https://micromerit.example.com/profile/L001"
+  },
+  {
+    "id": "L002",
+    "name": "Tarun Nagpal",
+    "email": "tarun.nagpal@example.com",
+    "avatar": "https://i.pravatar.cc/150?img=12",
+    "role": "learner",
+    "skills": [
+      { "name": "Python", "level": "Advanced", "nsqfLevel": 7, "verified": true },
+      { "name": "Machine Learning", "level": "Advanced", "nsqfLevel": 8, "verified": true },
+      { "name": "Data Science", "level": "Intermediate", "nsqfLevel": 7, "verified": true },
+      { "name": "Deep Learning", "level": "Intermediate", "nsqfLevel": 8, "verified": false }
+    ],
+    "credentials": [
+      {
+        "id": "C004",
+        "title": "Machine Learning Specialist",
+        "issuer": "AI Institute India",
+        "issuerLogo": "https://via.placeholder.com/50/8b5cf6/ffffff?text=AI",
+        "issueDate": "2024-07-22",
+        "expiryDate": "2026-07-22",
+        "nsqfLevel": 8,
+        "status": "verified",
+        "blockchainHash": "0x3c4d5e6f7g8h9i0j1k2l",
+        "skills": ["Python", "TensorFlow", "Scikit-learn", "Neural Networks"],
+        "credentialUrl": "#"
+      },
+      {
+        "id": "C005",
+        "title": "Data Science Professional",
+        "issuer": "DataCamp India",
+        "issuerLogo": "https://via.placeholder.com/50/ec4899/ffffff?text=DC",
+        "issueDate": "2024-05-18",
+        "expiryDate": "2026-05-18",
+        "nsqfLevel": 7,
+        "status": "verified",
+        "blockchainHash": "0x4d5e6f7g8h9i0j1k2l3m",
+        "skills": ["Python", "Pandas", "NumPy", "Data Visualization"],
+        "credentialUrl": "#"
+      }
+    ],
+    "portfolio": [
+      {
+        "id": "P003",
+        "title": "Predictive Analytics Platform",
+        "description": "ML-powered platform for sales forecasting and trend analysis",
+        "techStack": ["Python", "TensorFlow", "Flask", "React"],
+        "githubUrl": "https://github.com/example/predictive-analytics",
+        "liveUrl": "https://predict.example.com",
+        "imageUrl": "https://via.placeholder.com/400x250/8b5cf6/ffffff?text=Analytics"
+      }
+    ],
+    "learningPathways": [
+      {
+        "id": "LP002",
+        "pathway": "AI/ML Engineer",
+        "progress": 78,
+        "totalSkills": 10,
+        "completedSkills": 8,
+        "nextMilestone": "Deep Learning Mastery",
+        "estimatedCompletion": "2025-01-20"
+      }
+    ],
+    "publicProfileUrl": "https://micromerit.example.com/profile/L002"
+  },
+  {
+    "id": "L003",
+    "name": "Ananya Patel",
+    "email": "ananya.patel@example.com",
+    "avatar": "https://i.pravatar.cc/150?img=5",
+    "role": "learner",
+    "skills": [
+      { "name": "UI/UX Design", "level": "Advanced", "nsqfLevel": 7, "verified": true },
+      { "name": "Figma", "level": "Advanced", "nsqfLevel": 6, "verified": true },
+      { "name": "Adobe XD", "level": "Intermediate", "nsqfLevel": 6, "verified": true },
+      { "name": "User Research", "level": "Intermediate", "nsqfLevel": 7, "verified": true }
+    ],
+    "credentials": [
+      {
+        "id": "C006",
+        "title": "Advanced UI/UX Design",
+        "issuer": "Design School India",
+        "issuerLogo": "https://via.placeholder.com/50/06b6d4/ffffff?text=DS",
+        "issueDate": "2024-04-12",
+        "expiryDate": "2026-04-12",
+        "nsqfLevel": 7,
+        "status": "verified",
+        "blockchainHash": "0x5e6f7g8h9i0j1k2l3m4n",
+        "skills": ["UI Design", "UX Research", "Prototyping", "User Testing"],
+        "credentialUrl": "#"
+      }
+    ],
+    "portfolio": [
+      {
+        "id": "P004",
+        "title": "Healthcare App Redesign",
+        "description": "Complete UX overhaul of a healthcare booking platform",
+        "techStack": ["Figma", "Adobe XD", "Miro", "User Testing"],
+        "githubUrl": null,
+        "liveUrl": "https://behance.net/example",
+        "imageUrl": "https://via.placeholder.com/400x250/06b6d4/ffffff?text=Healthcare"
+      }
+    ],
+    "learningPathways": [
+      {
+        "id": "LP003",
+        "pathway": "Senior Product Designer",
+        "progress": 82,
+        "totalSkills": 8,
+        "completedSkills": 7,
+        "nextMilestone": "Design Systems",
+        "estimatedCompletion": "2024-12-30"
+      }
+    ],
+    "publicProfileUrl": "https://micromerit.example.com/profile/L003"
+  }
+]
