@@ -6,6 +6,7 @@ import { LoginPage } from './pages/LoginPage';
 import { LearnerDashboard } from './pages/LearnerDashboard';
 import { IssuerDashboard } from './pages/IssuerDashboard';
 import { EmployerDashboard } from './pages/EmployerDashboard';
+import { CredentialDetails } from './pages/CredentialDetails';
 import { Layout } from './components/Layout';
 
 function App() {
@@ -32,6 +33,14 @@ function App() {
             element={
               <Layout>
                 <LearnerDashboard />
+              </Layout>
+            }
+          />
+          <Route
+            path="/learner/credentials/:credentialId"
+            element={
+              <Layout>
+                <CredentialDetails />
               </Layout>
             }
           />

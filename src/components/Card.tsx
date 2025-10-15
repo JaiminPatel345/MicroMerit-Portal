@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 
+const issuerFallback = new URL('../assets/issuer-fallback.svg', import.meta.url).href;
+
 interface CardProps {
   children: ReactNode;
   className?: string;
@@ -55,7 +57,17 @@ export const CredentialCard = ({ credential, onClick }: CredentialCardProps) => 
       <div className="relative z-10">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            <img src={credential.issuerLogo} alt={credential.issuer} className="w-12 h-12 rounded-lg" />
+            <img
+              src={credential.issuerLogo || issuerFallback}
+              onError={(event) => {
+                const target = event.currentTarget;
+                if (target.src !== issuerFallback) {
+                  target.src = issuerFallback;
+                }
+              }}
+              alt={credential.issuer}
+              className="w-12 h-12 rounded-lg object-cover border border-slate-200"
+            />
             <div>
               <h3 className="font-bold text-lg text-gray-900">{credential.title}</h3>
               <p className="text-sm text-gray-600">{credential.issuer}</p>

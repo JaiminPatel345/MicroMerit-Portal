@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Upload,
@@ -18,12 +19,43 @@ import { fetchLearnerById } from '../features/learnerSlice';
 import { fetchRecommendations } from '../features/recommendationSlice';
 import toast from 'react-hot-toast';
 
+const ORGANIZATION_OPTIONS = ['Not listed', 'NPTEL', 'IBM', 'NASSCOM', 'Skill India', 'IIT Bombay'];
+
+type UploadFormState = {
+  title: string;
+  organization: string;
+  customOrganization: string;
+  contactEmail: string;
+  issueDate: string;
+  file: File | null;
+};
+
+const getInitialUploadForm = (): UploadFormState => ({
+  title: '',
+  organization: ORGANIZATION_OPTIONS[0],
+  customOrganization: '',
+  contactEmail: '',
+  issueDate: '',
+  file: null,
+});
+
+const formatFileSize = (bytes: number) => {
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const index = Math.floor(Math.log(bytes) / Math.log(1024));
+  const size = bytes / Math.pow(1024, index);
+  return `${size.toFixed(size > 10 || index === 0 ? 0 : 1)} ${units[index]}`;
+};
+
 export const LearnerDashboard = () => {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'credentials' | 'portfolio' | 'pathways'>('credentials');
+  const [uploadForm, setUploadForm] = useState<UploadFormState>(getInitialUploadForm);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const navigate = useNavigate();
   
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
@@ -36,16 +68,65 @@ export const LearnerDashboard = () => {
     }
   }, [dispatch, user?.id]);
 
+  const requiresCustomOrganization = uploadForm.organization === 'Not listed';
+
+  const resetUploadForm = () => {
+    setUploadForm(getInitialUploadForm());
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleUpload = async () => {
+    if (!uploadForm.file) {
+      toast.error('Please attach a credential file to proceed.');
+      return;
+    }
+
+    if (!uploadForm.title.trim()) {
+      toast.error('Add a certificate title before uploading.');
+      return;
+    }
+
+    if (!uploadForm.issueDate) {
+      toast.error('Choose the issued date for this credential.');
+      return;
+    }
+
+    if (requiresCustomOrganization && !uploadForm.customOrganization.trim()) {
+      toast.error('Provide the issuing organization name.');
+      return;
+    }
+
     setUploading(true);
     // Simulate upload and verification
     await new Promise((resolve) => setTimeout(resolve, 2500));
     setUploading(false);
+    resetUploadForm();
     setUploadModalOpen(false);
-    toast.success('Credential uploaded and verified successfully!', {
+    toast.success(`${uploadForm.title || 'Credential'} uploaded and verified successfully!`, {
       icon: '✅',
       duration: 4000,
     });
+  };
+
+  const handleCloseUploadModal = () => {
+    setUploadModalOpen(false);
+    resetUploadForm();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploadForm((prev) => ({ ...prev, file }));
+    }
+  };
+
+  const removeSelectedFile = () => {
+    setUploadForm((prev) => ({ ...prev, file: null }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleAIAnalysis = async () => {
@@ -115,18 +196,18 @@ export const LearnerDashboard = () => {
       {/* Stats Cards */}
       <div className="grid md:grid-cols-4 gap-6 mb-8">
         <Card glassmorphism className="relative overflow-hidden h-full">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-teal-400/20 rounded-full blur-2xl" />
+          <div className="absolute top-0 right-0 w-20 h-20 bg-blue-400/10 rounded-full blur-2xl" />
           <div className="relative">
-            <Award className="w-10 h-10 text-teal-600 mb-2" />
+            <Award className="w-10 h-10 text-blue-600 mb-2" />
             <p className="text-3xl font-bold text-gray-900">{currentLearner.credentials.length}</p>
             <p className="text-sm text-gray-600">Total Credentials</p>
           </div>
         </Card>
 
         <Card glassmorphism className="relative overflow-hidden h-full">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-400/20 rounded-full blur-2xl" />
+          <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-400/10 rounded-full blur-2xl" />
           <div className="relative">
-            <CheckCircle className="w-10 h-10 text-emerald-600 mb-2" />
+            <CheckCircle className="w-10 h-10 text-indigo-600 mb-2" />
             <p className="text-3xl font-bold text-gray-900">
               {currentLearner.credentials.filter((c) => c.status === 'verified').length}
             </p>
@@ -235,7 +316,7 @@ export const LearnerDashboard = () => {
             <CredentialCard
               key={credential.id}
               credential={credential}
-              onClick={() => toast('Credential details opened!')}
+              onClick={() => navigate(`/learner/credentials/${credential.id}`)}
             />
           ))}
         </div>
@@ -330,39 +411,155 @@ export const LearnerDashboard = () => {
       {/* Upload Modal */}
       <Modal
         isOpen={uploadModalOpen}
-        onClose={() => setUploadModalOpen(false)}
+        onClose={handleCloseUploadModal}
         title="Upload Certificate"
         size="md"
       >
         {uploading ? (
           <VerifyingAnimation />
         ) : (
-          <div className="space-y-4">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-blue-500 transition-all cursor-pointer">
-              <Upload className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <p className="text-lg font-semibold text-gray-700 mb-2">
-                Drop your certificate here or click to browse
-              </p>
-              <p className="text-sm text-gray-500">Supports PDF, JPG, PNG (Max 10MB)</p>
-              <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" />
+          <div className="space-y-6">
+            <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 transition-all">
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center">
+                  <Upload className="w-8 h-8 text-blue-500" />
+                </div>
+
+                {uploadForm.file ? (
+                  <div className="space-y-2">
+                    <p className="text-base font-semibold text-slate-900">{uploadForm.file.name}</p>
+                    <p className="text-sm text-slate-500">
+                      {uploadForm.file.type.toUpperCase()} · {formatFileSize(uploadForm.file.size)}
+                    </p>
+                    <div className="flex items-center justify-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
+                      >
+                        Change file
+                      </button>
+                      <span className="text-slate-300">•</span>
+                      <button
+                        type="button"
+                        onClick={removeSelectedFile}
+                        className="px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-slate-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-lg font-semibold text-slate-900">
+                      Drag & drop credential
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      PDF, JPG, PNG up to 10MB
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="mt-2 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Browse files
+                    </button>
+                  </div>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.webp"
+                className="hidden"
+                onChange={handleFileChange}
+              />
             </div>
 
-            <div className="space-y-3">
-              <input
-                type="text"
-                placeholder="Certificate Title"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              />
-              <input
-                type="text"
-                placeholder="Issuing Organization"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              />
-              <input
-                type="date"
-                placeholder="Issue Date"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              />
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-sm font-semibold text-slate-700">Certificate title</label>
+                <input
+                  type="text"
+                  value={uploadForm.title}
+                  onChange={(event) =>
+                    setUploadForm((prev) => ({ ...prev, title: event.target.value }))
+                  }
+                  placeholder="e.g., Advanced React Developer"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 transition"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-sm font-semibold text-slate-700">Issuing organization</label>
+                <select
+                  value={uploadForm.organization}
+                  onChange={(event) =>
+                    setUploadForm((prev) => ({ ...prev, organization: event.target.value }))
+                  }
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 transition bg-white"
+                >
+                  {ORGANIZATION_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {requiresCustomOrganization && (
+                <div className="space-y-3 md:col-span-2">
+                  <div className="space-y-1">
+                    <label className="text-sm font-semibold text-slate-700">
+                      Organization name
+                    </label>
+                    <input
+                      type="text"
+                      value={uploadForm.customOrganization}
+                      onChange={(event) =>
+                        setUploadForm((prev) => ({ ...prev, customOrganization: event.target.value }))
+                      }
+                      placeholder="Enter organization name"
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 transition"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-semibold text-slate-700">
+                      Contact email (optional)
+                    </label>
+                    <input
+                      type="email"
+                      value={uploadForm.contactEmail}
+                      onChange={(event) =>
+                        setUploadForm((prev) => ({ ...prev, contactEmail: event.target.value }))
+                      }
+                      placeholder="organization@email.com"
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 transition"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label className="text-sm font-semibold text-slate-700">Issued date</label>
+                <input
+                  type={uploadForm.issueDate ? 'date' : 'text'}
+                  onFocus={(event) => {
+                    event.currentTarget.type = 'date';
+                  }}
+                  onBlur={(event) => {
+                    if (!event.currentTarget.value) {
+                      event.currentTarget.type = 'text';
+                    }
+                  }}
+                  value={uploadForm.issueDate}
+                  onChange={(event) =>
+                    setUploadForm((prev) => ({ ...prev, issueDate: event.target.value }))
+                  }
+                  placeholder="Issued date"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 transition"
+                />
+              </div>
             </div>
 
             <button

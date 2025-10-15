@@ -32,12 +32,12 @@ export const Layout = ({ children }: LayoutProps) => {
         <div className="max-w-7xl mx-auto px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-teal-600 to-emerald-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-blue-500 rounded-lg flex items-center justify-center shadow-sm">
                 <Home className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">MicroMerit Portal</h1>
-                <p className="text-xs text-gray-600 capitalize">{role} Dashboard</p>
+              <div className="leading-tight">
+                <h1 className="text-xl font-semibold text-slate-900">MicroMerit Portal</h1>
+                <p className="text-xs text-slate-500 capitalize tracking-wide">{role} Dashboard</p>
               </div>
             </div>
 
@@ -55,7 +55,7 @@ export const Layout = ({ children }: LayoutProps) => {
               )}
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-all font-semibold"
+                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-all font-medium"
               >
                 <LogOut className="w-4 h-4" />
                 Logout

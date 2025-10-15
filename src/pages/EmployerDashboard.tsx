@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, CheckCircle, TrendingUp, Users } from 'lucide-react';
+import { Search, CheckCircle, TrendingUp, Users, BadgeCheck } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Modal } from '../components/Modal';
 import { VerifyingAnimation } from '../components/Loaders';
@@ -14,6 +14,7 @@ export const EmployerDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [verifyModalOpen, setVerifyModalOpen] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [verificationSuccess, setVerificationSuccess] = useState(false);
   const [selectedLearner, setSelectedLearner] = useState<any>(null);
   
   const dispatch = useAppDispatch();
@@ -27,10 +28,18 @@ export const EmployerDashboard = () => {
 
   const handleVerifyCredential = async () => {
     setVerifying(true);
+    setVerificationSuccess(false);
     await new Promise((resolve) => setTimeout(resolve, 1800));
     setVerifying(false);
-    setVerifyModalOpen(false);
+    setVerificationSuccess(true);
     toast.success('Credential verified on blockchain!', { icon: '✅' });
+  };
+
+  const handleCloseVerifyModal = () => {
+    setVerifyModalOpen(false);
+    setVerifying(false);
+    setVerificationSuccess(false);
+    setSelectedLearner(null);
   };
 
   const filteredLearners = learners.filter(
@@ -54,14 +63,14 @@ export const EmployerDashboard = () => {
       {analytics && (
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <Card glassmorphism className="h-full">
-            <Users className="w-10 h-10 text-teal-600 mb-2" />
+            <Users className="w-10 h-10 text-blue-600 mb-2" />
             <p className="text-3xl font-bold text-gray-900">
               {analytics.platformStats.totalLearners.toLocaleString()}
             </p>
             <p className="text-sm text-gray-600">Total Learners</p>
           </Card>
           <Card glassmorphism className="h-full">
-            <CheckCircle className="w-10 h-10 text-emerald-600 mb-2" />
+            <CheckCircle className="w-10 h-10 text-indigo-600 mb-2" />
             <p className="text-3xl font-bold text-gray-900">
               {analytics.verificationStats.verified.toLocaleString()}
             </p>
@@ -105,7 +114,7 @@ export const EmployerDashboard = () => {
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         {loading ? (
           <div className="col-span-2 text-center py-12">
-            <div className="w-12 h-12 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin mx-auto" />
+            <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto" />
             <p className="mt-4 text-gray-600">Loading learners...</p>
           </div>
         ) : (
@@ -119,6 +128,7 @@ export const EmployerDashboard = () => {
             >
               <Card hover onClick={() => {
                 setSelectedLearner(learner);
+                setVerificationSuccess(false);
                 setVerifyModalOpen(true);
               }} className="h-full flex flex-col">
                 <div className="flex items-start gap-4 flex-1">
@@ -129,7 +139,7 @@ export const EmployerDashboard = () => {
                     
                     <div className="flex flex-wrap gap-2 mb-3">
                       {learner.skills.slice(0, 3).map((skill: any, i: number) => (
-                        <span key={i} className="px-2 py-1 bg-teal-100 text-teal-800 text-xs font-semibold rounded">
+                        <span key={i} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">
                           {skill.name} - NSQF {skill.nsqfLevel}
                         </span>
                       ))}
@@ -142,7 +152,7 @@ export const EmployerDashboard = () => {
 
                     <div className="flex items-center gap-4 text-sm text-gray-600">
                       <span className="flex items-center gap-1">
-                        <CheckCircle className="w-4 h-4 text-emerald-600" />
+                        <CheckCircle className="w-4 h-4 text-blue-600" />
                         {learner.credentials.filter((c: any) => c.status === 'verified').length} verified
                       </span>
                       <span>{learner.credentials.length} total credentials</span>
@@ -198,12 +208,12 @@ export const EmployerDashboard = () => {
             {analytics.topEmployers.map((employer, idx) => (
               <div key={idx} className="p-4 bg-white rounded-lg border border-gray-200 h-full flex flex-col">
                 <h3 className="font-bold text-lg text-gray-900 mb-2">{employer.name}</h3>
-                <p className="text-2xl font-bold text-teal-600 mb-2">{employer.hirings}</p>
+                <p className="text-2xl font-bold text-blue-600 mb-2">{employer.hirings}</p>
                 <p className="text-sm text-gray-600 mb-2">hirings this year</p>
                 <p className="text-sm font-semibold text-gray-700">{employer.avgPackage}</p>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {employer.topSkills.slice(0, 2).map((skill, i) => (
-                    <span key={i} className="text-xs px-2 py-1 bg-teal-100 text-teal-700 rounded">
+                    <span key={i} className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
                       {skill}
                     </span>
                   ))}
@@ -217,12 +227,36 @@ export const EmployerDashboard = () => {
       {/* Verify Modal */}
       <Modal
         isOpen={verifyModalOpen}
-        onClose={() => setVerifyModalOpen(false)}
+        onClose={handleCloseVerifyModal}
         title="Learner Profile & Verification"
         size="lg"
       >
         {verifying ? (
           <VerifyingAnimation />
+        ) : verificationSuccess && selectedLearner ? (
+          <div className="py-8 flex flex-col items-center text-center gap-4">
+            <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-200">
+              <BadgeCheck className="w-12 h-12 text-emerald-600" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">Credential verified!</h3>
+            <p className="text-sm text-gray-600 max-w-sm">
+              {selectedLearner.name}'s credential has been permanently recorded on the blockchain. You can safely proceed with the hiring workflow.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3 mt-2">
+              <button
+                onClick={handleCloseVerifyModal}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => setVerificationSuccess(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:border-blue-400 transition"
+              >
+                Verify another credential
+              </button>
+            </div>
+          </div>
         ) : selectedLearner ? (
           <div className="space-y-6">
             <div className="flex items-start gap-6">
@@ -288,7 +322,7 @@ export const EmployerDashboard = () => {
 
             <button
               onClick={handleVerifyCredential}
-              className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-lg hover:shadow-xl transition-all"
+              className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg hover:shadow-xl transition-all"
             >
               Verify on Blockchain
             </button>
