@@ -22,7 +22,7 @@ export const Layout = ({ children }: LayoutProps) => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen flex flex-col bg-transparent">
       {/* Header */}
       <motion.header
         initial={{ y: -100 }}
@@ -70,12 +70,13 @@ export const Layout = ({ children }: LayoutProps) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
+        className="flex-1"
       >
         {children}
       </motion.main>
 
       {/* Footer */}
-      <footer className="glassmorphism border-t border-white/20 mt-12">
+      <footer className="glassmorphism border-t border-white/20 mt-auto">
         <div className="max-w-7xl mx-auto px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">

@@ -14,6 +14,15 @@ const statusStyles: Record<string, string> = {
   rejected: 'bg-red-100 text-red-800 border-red-300',
 };
 
+const issuerLogoMap: Record<string, string> = {
+  'TechEd India': new URL('../assets/issuers/teched.svg', import.meta.url).href,
+  'CodeMaster Academy': new URL('../assets/issuers/codemaster.svg', import.meta.url).href,
+  'Web Wizards Institute': new URL('../assets/issuers/webwizards.svg', import.meta.url).href,
+  'AI Institute India': new URL('../assets/issuers/ai-institute.svg', import.meta.url).href,
+  'DataCamp India': new URL('../assets/issuers/datacamp.svg', import.meta.url).href,
+  'Design School India': new URL('../assets/issuers/designschool.svg', import.meta.url).href,
+};
+
 export const CredentialDetails = () => {
   const navigate = useNavigate();
   const { credentialId } = useParams<{ credentialId: string }>();
@@ -82,7 +91,7 @@ export const CredentialDetails = () => {
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
             <div className="flex items-start gap-4">
               <img
-                src={credential.issuerLogo}
+                src={issuerLogoMap[credential.issuer] ?? credential.issuerLogo}
                 alt={credential.issuer}
                 className="w-20 h-20 rounded-xl object-cover border border-slate-200"
               />
