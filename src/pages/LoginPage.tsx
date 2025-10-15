@@ -38,20 +38,6 @@ export const LoginPage = () => {
     },
   ];
 
-  const fillDemoCredentials = () => {
-    if (selectedRole === 'learner') {
-      setEmail('rahul@example.com');
-      setPassword('demo123');
-    } else if (selectedRole === 'issuer') {
-      setEmail('admin@digilocker.com');
-      setPassword('demo123');
-    } else {
-      setEmail('hr@techcorp.com');
-      setPassword('demo123');
-    }
-    toast.success('Demo credentials filled');
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRole) {
@@ -130,7 +116,7 @@ export const LoginPage = () => {
               <div className="h-4 w-px bg-gray-300" />
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-slate-600" />
-                <span className="text-sm font-medium text-gray-700">125K+ Users</span>
+                <span className="text-sm font-medium text-gray-700">4+ Users</span>
               </div>
             </motion.div>
           </div>
@@ -185,7 +171,7 @@ export const LoginPage = () => {
                   className="flex items-center justify-center gap-3 px-10 py-4 bg-white hover:bg-slate-50 border-2 border-slate-200 font-semibold text-base rounded-lg shadow-md hover:shadow-xl transition-all duration-300"
                 >
                   <img
-                    src="https://www.digilocker.gov.in/assets/img/logo-digilocker.png"
+                    src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRolQFcVODXkRnYE8QVlGactD2W8HSUlgKKIg&s"
                     alt="DigiLocker"
                     className="h-8 w-auto"
                   />
@@ -210,7 +196,7 @@ export const LoginPage = () => {
                   { icon: '🏆', text: 'Industry Recognized' },
                   {
                     text: 'DigiLocker Ready',
-                    image: 'https://www.digilocker.gov.in/assets/img/logo-digilocker.png',
+                    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRolQFcVODXkRnYE8QVlGactD2W8HSUlgKKIg&s',
                   },
                 ].map((badge, idx) => (
                   <div key={idx} className="bg-white rounded-lg p-3 text-center border border-slate-200 shadow-sm">
@@ -287,14 +273,6 @@ export const LoginPage = () => {
                     className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? 'Signing in...' : 'Sign In'}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={fillDemoCredentials}
-                    className="w-full py-2 text-sm text-blue-600 hover:text-blue-700 font-medium hover:bg-blue-50/50 rounded-lg transition-all"
-                  >
-                    Use demo credentials
                   </button>
 
                   <div className="text-center pt-2 border-t border-gray-200">
