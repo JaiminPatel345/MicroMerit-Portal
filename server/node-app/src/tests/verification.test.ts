@@ -3,9 +3,15 @@ import { VerificationRepository } from '../modules/verification/repository';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 import crypto from 'crypto';
 
+// Mock pdf-parse module before imports
+jest.mock('pdf-parse', () => jest.fn());
+
 // Mock dependencies
 jest.mock('../modules/verification/repository');
 jest.mock('../utils/logger');
+
+// Get the mocked pdf-parse
+const pdfParse = require('pdf-parse') as jest.Mock;
 
 describe('Verification Service', () => {
   let service: VerificationService;
@@ -13,6 +19,13 @@ describe('Verification Service', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Setup pdf-parse mock to return the buffer content as text
+    pdfParse.mockImplementation((buffer: Buffer) => {
+      const text = buffer.toString('utf-8');
+      return Promise.resolve({ text });
+    });
+    
     mockRepository = mockDeep<VerificationRepository>();
     service = new VerificationService(mockRepository);
   });
