@@ -2,6 +2,13 @@ import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { sendError, sendValidationError, sendServerError } from '../utils/response';
 import { logger } from '../utils/logger';
+import {
+  AuthError,
+  ValidationError,
+  NotFoundError,
+  ForbiddenError,
+  ConflictError,
+} from '../utils/errors';
 
 /**
  * Global error handling middleware
@@ -18,6 +25,32 @@ export const errorHandler = (
     path: req.path,
     method: req.method,
   });
+
+  // Handle custom error classes
+  if (error instanceof AuthError) {
+    sendError(res, error.code, error.message, error.statusCode);
+    return;
+  }
+
+  if (error instanceof ValidationError) {
+    sendError(res, error.code, error.message, error.statusCode);
+    return;
+  }
+
+  if (error instanceof NotFoundError) {
+    sendError(res, error.code, error.message, error.statusCode);
+    return;
+  }
+
+  if (error instanceof ForbiddenError) {
+    sendError(res, error.code, error.message, error.statusCode);
+    return;
+  }
+
+  if (error instanceof ConflictError) {
+    sendError(res, error.code, error.message, error.statusCode);
+    return;
+  }
 
   // Handle Zod validation errors
   if (error instanceof ZodError) {

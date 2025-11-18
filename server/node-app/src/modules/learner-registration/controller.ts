@@ -8,6 +8,7 @@ import {
 } from './schema';
 import { sendSuccess, sendError } from '../../utils/response';
 import { verifyAccessToken } from '../../utils/jwt';
+import { AuthError } from '../../utils/errors';
 
 const repository = new RegistrationRepository();
 const service = new RegistrationService(repository);
@@ -59,7 +60,7 @@ export const completeRegistration = async (
     // Extract temp token from Authorization header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new Error('Temporary token required');
+      throw new AuthError('Temporary token required', 401, 'TOKEN_REQUIRED');
     }
 
     const tempToken = authHeader.substring(7);
@@ -67,12 +68,12 @@ export const completeRegistration = async (
 
     // Validate token type
     if ((decoded as any).type !== 'registration') {
-      throw new Error('Invalid token type');
+      throw new AuthError('Invalid token type', 401, 'INVALID_TOKEN_TYPE');
     }
 
     const sessionId = (decoded as any).sessionId;
     if (!sessionId) {
-      throw new Error('Invalid token payload');
+      throw new AuthError('Invalid token payload', 401, 'INVALID_TOKEN_PAYLOAD');
     }
 
     const result = await service.completeRegistration(sessionId, req.body);

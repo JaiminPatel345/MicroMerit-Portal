@@ -61,7 +61,7 @@ paths:
                     type: string
                     format: date-time
 
-  /issuer/register:
+  /auth/issuer/register:
     post:
       tags:
         - Issuer Auth
@@ -98,7 +98,7 @@ paths:
         '429':
           $ref: '#/components/responses/RateLimitError'
 
-  /issuer/login:
+  /auth/issuer/login:
     post:
       tags:
         - Issuer Auth
@@ -142,7 +142,7 @@ paths:
         '429':
           $ref: '#/components/responses/RateLimitError'
 
-  /issuer/refresh:
+  /auth/issuer/refresh:
     post:
       tags:
         - Issuer Auth
@@ -184,7 +184,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
-  /issuer/me:
+  /auth/issuer/me:
     get:
       tags:
         - Issuer Auth
@@ -245,7 +245,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
-  /issuer/api-key/create:
+  /auth/issuer/api-key/create:
     post:
       tags:
         - Issuer API Keys
@@ -313,7 +313,7 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
-  /issuer/api-key/list:
+  /auth/issuer/api-key/list:
     get:
       tags:
         - Issuer API Keys
@@ -342,7 +342,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
-  /issuer/api-key/revoke/{id}:
+  /auth/issuer/api-key/revoke/{id}:
     post:
       tags:
         - Issuer API Keys
@@ -376,7 +376,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
-  /issuer/api-key/{id}:
+  /auth/issuer/api-key/{id}:
     get:
       tags:
         - Issuer API Keys
@@ -412,14 +412,17 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
-  /learner/register:
+  /auth/learner/register:
     post:
       tags:
         - Learner Auth
-      summary: Register new learner
+      summary: Register new learner (Legacy)
       description: |
-        Register a new learner. Either email OR phone_number is required (at least one).
+        **DEPRECATED**: Use the three-step registration process instead (/auth/learner/start-register).
+        
+        Register a new learner. Either email OR phone is required (at least one).
         Status is set to 'active' by default.
+      deprecated: true
       requestBody:
         required: true
         content:
@@ -449,7 +452,7 @@ paths:
         '429':
           $ref: '#/components/responses/RateLimitError'
 
-  /learner/login:
+  /auth/learner/login:
     post:
       tags:
         - Learner Auth
@@ -491,7 +494,7 @@ paths:
         '429':
           $ref: '#/components/responses/RateLimitError'
 
-  /learner/refresh:
+  /auth/learner/refresh:
     post:
       tags:
         - Learner Auth
@@ -532,7 +535,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
-  /learner/me:
+  /auth/learner/me:
     get:
       tags:
         - Learner Auth
@@ -593,7 +596,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
-  /admin/login:
+  /auth/admin/login:
     post:
       tags:
         - Admin Auth
@@ -633,7 +636,7 @@ paths:
         '429':
           $ref: '#/components/responses/RateLimitError'
 
-  /admin/refresh:
+  /auth/admin/refresh:
     post:
       tags:
         - Admin Auth
@@ -674,7 +677,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
-  /admin/me:
+  /auth/admin/me:
     get:
       tags:
         - Admin Auth
@@ -701,7 +704,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
-  /admin/issuers:
+  /auth/admin/issuer/list:
     get:
       tags:
         - Admin Auth
@@ -738,7 +741,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
-  /admin/issuers/{id}/approve:
+  /auth/admin/issuer/approve/{id}:
     post:
       tags:
         - Admin Auth
@@ -775,7 +778,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
-  /admin/issuers/{id}/reject:
+  /auth/admin/issuer/reject/{id}:
     post:
       tags:
         - Admin Auth
@@ -828,7 +831,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
-  /admin/issuers/{id}/block:
+  /auth/admin/issuer/block/{id}:
     post:
       tags:
         - Admin Auth
@@ -881,7 +884,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
-  /admin/issuers/{id}/unblock:
+  /auth/admin/issuer/unblock/{id}:
     post:
       tags:
         - Admin Auth

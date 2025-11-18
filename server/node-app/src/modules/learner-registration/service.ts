@@ -8,6 +8,7 @@ import {
   VerifyOTPInput,
   CompleteRegistrationInput,
 } from './schema';
+import { ConflictError, NotFoundError, ValidationError } from '../../utils/errors';
 
 export class RegistrationService {
   private repository: RegistrationRepository;
@@ -30,14 +31,14 @@ export class RegistrationService {
     if (email) {
       const exists = await this.repository.isEmailRegistered(email);
       if (exists) {
-        throw new Error('Email already registered');
+        throw new ConflictError('Email already registered', 409, 'EMAIL_ALREADY_REGISTERED');
       }
     }
 
     if (phone) {
       const exists = await this.repository.isPhoneRegistered(phone);
       if (exists) {
-        throw new Error('Phone number already registered');
+        throw new ConflictError('Phone number already registered', 409, 'PHONE_ALREADY_REGISTERED');
       }
     }
 
@@ -74,23 +75,23 @@ export class RegistrationService {
     // Find session
     const session = await this.repository.findSessionById(sessionId);
     if (!session) {
-      throw new Error('Invalid session ID');
+      throw new NotFoundError('Invalid session ID', 404, 'SESSION_NOT_FOUND');
     }
 
     // Check if already verified
     if (session.is_verified) {
-      throw new Error('Session already verified');
+      throw new ValidationError('Session already verified', 400, 'SESSION_ALREADY_VERIFIED');
     }
 
     // Check if expired
     if (new Date() > session.expires_at) {
-      throw new Error('OTP expired');
+      throw new ValidationError('OTP expired', 400, 'OTP_EXPIRED');
     }
 
     // Verify OTP
     const isValid = await verifyOTP(otp, session.otp_hash);
     if (!isValid) {
-      throw new Error('Invalid OTP');
+      throw new ValidationError('Invalid OTP', 400, 'INVALID_OTP');
     }
 
     // Mark as verified
@@ -118,15 +119,15 @@ export class RegistrationService {
     // Find and validate session
     const session = await this.repository.findSessionById(sessionId);
     if (!session) {
-      throw new Error('Invalid session ID');
+      throw new NotFoundError('Invalid session ID', 404, 'SESSION_NOT_FOUND');
     }
 
     if (!session.is_verified) {
-      throw new Error('Session not verified');
+      throw new ValidationError('Session not verified', 400, 'SESSION_NOT_VERIFIED');
     }
 
     if (new Date() > session.expires_at) {
-      throw new Error('Session expired');
+      throw new ValidationError('Session expired', 400, 'SESSION_EXPIRED');
     }
 
     // Hash password if provided

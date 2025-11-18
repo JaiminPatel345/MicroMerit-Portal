@@ -45,6 +45,14 @@ const getTwilioClient = (): Twilio => {
  */
 export const sendOTPEmail = async (email: string, otp: string): Promise<void> => {
   try {
+    // TODO: Re-enable email sending when SMTP is properly configured
+    // Temporarily disabled - OTP is only logged for development/testing
+    
+    logger.warn(`[DEV MODE] OTP for ${email}: ${otp} (valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes)`);
+    logger.info(`OTP email would be sent to ${email} (currently disabled)`);
+    
+    // TEMPORARILY COMMENTED OUT - Uncomment when ready to send actual emails
+    /*
     const transporter = getEmailTransporter();
     
     const mailOptions = {
@@ -64,8 +72,9 @@ export const sendOTPEmail = async (email: string, otp: string): Promise<void> =>
     
     await transporter.sendMail(mailOptions);
     logger.info(`OTP email sent to ${email}`);
+    */
   } catch (error) {
-    logger.error('Error sending OTP email:', error);
+    logger.error('Error in sendOTPEmail:', error);
     throw new Error('Failed to send OTP email');
   }
 };
@@ -78,6 +87,14 @@ export const sendOTPEmail = async (email: string, otp: string): Promise<void> =>
  */
 export const sendOTPSMS = async (phone: string, otp: string): Promise<void> => {
   try {
+    // TODO: Re-enable Twilio SMS when ready for production
+    // Temporarily disabled - OTP is only logged for development/testing
+    
+    logger.warn(`[DEV MODE] OTP for ${phone}: ${otp} (valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes)`);
+    logger.info(`OTP SMS would be sent to ${phone} (currently disabled)`);
+    
+    // TEMPORARILY COMMENTED OUT - Uncomment when ready to send actual SMS
+    /*
     const client = getTwilioClient();
     const fromNumber = process.env.TWILIO_PHONE_NUMBER;
     
@@ -92,8 +109,9 @@ export const sendOTPSMS = async (phone: string, otp: string): Promise<void> => {
     });
     
     logger.info(`OTP SMS sent to ${phone}`);
+    */
   } catch (error) {
-    logger.error('Error sending OTP SMS:', error);
+    logger.error('Error in sendOTPSMS:', error);
     throw new Error('Failed to send OTP SMS');
   }
 };

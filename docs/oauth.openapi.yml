@@ -31,7 +31,7 @@ tags:
     description: DigiLocker OAuth authentication and certificate fetching
 
 paths:
-  /learner/oauth/google:
+  /auth/learner/oauth/google:
     get:
       tags:
         - Google OAuth
@@ -61,7 +61,7 @@ paths:
                         format: uri
                         example: https://accounts.google.com/o/oauth2/v2/auth?client_id=...
 
-  /learner/oauth/google/callback:
+  /auth/learner/oauth/google/callback:
     get:
       tags:
         - Google OAuth
@@ -116,7 +116,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /learner/oauth/digilocker:
+  /auth/learner/oauth/digilocker:
     get:
       tags:
         - DigiLocker OAuth
@@ -146,7 +146,7 @@ paths:
                         format: uri
                         example: https://digilocker.gov.in/public/oauth2/1/authorize?client_id=...
 
-  /learner/oauth/digilocker/callback:
+  /auth/learner/oauth/digilocker/callback:
     get:
       tags:
         - DigiLocker OAuth

@@ -30,7 +30,7 @@ tags:
     description: Three-step learner registration with OTP verification
 
 paths:
-  /learner/start-register:
+  /auth/learner/start-register:
     post:
       tags:
         - Registration
@@ -93,13 +93,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-              example:
-                success: false
-                message: Email already registered
+              examples:
+                email_exists:
+                  summary: Email already in use
+                  value:
+                    success: false
+                    message: Email already registered
+                    error: EMAIL_ALREADY_REGISTERED
+                    statusCode: 409
+                phone_exists:
+                  summary: Phone number already in use
+                  value:
+                    success: false
+                    message: Phone number already registered
+                    error: PHONE_ALREADY_REGISTERED
+                    statusCode: 409
         '429':
           $ref: '#/components/responses/RateLimitError'
 
-  /learner/verify-otp:
+  /auth/learner/verify-otp:
     post:
       tags:
         - Registration
@@ -150,7 +162,19 @@ paths:
                       tempToken:
                         type: string
                         example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-                        description: Temporary token valid for 15 minutes to complete registration
+                        description: |
+                          **Temporary registration token - IMPORTANT**
+                          
+                          Use this token for Step 3 (complete-register):
+                          - Valid for: 15 minutes
+                          - Usage: Add to Authorization header as `Bearer <token>`
+                          - Required for: POST /auth/learner/complete-register
+                          - Token type: Contains 'registration' type and sessionId
+                          
+                          Example usage:
+                          ```
+                          Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                          ```
         '400':
           description: Invalid OTP or session
           content:
@@ -159,21 +183,39 @@ paths:
                 $ref: '#/components/schemas/Error'
               examples:
                 invalid_otp:
+                  summary: Incorrect OTP code
                   value:
                     success: false
                     message: Invalid OTP
-                session_expired:
+                    error: INVALID_OTP
+                    statusCode: 400
+                otp_expired:
+                  summary: OTP expired (>10 minutes)
                   value:
                     success: false
                     message: OTP expired
+                    error: OTP_EXPIRED
+                    statusCode: 400
                 already_verified:
+                  summary: Session already verified
                   value:
                     success: false
                     message: Session already verified
+                    error: SESSION_ALREADY_VERIFIED
+                    statusCode: 400
         '404':
-          $ref: '#/components/responses/NotFoundError'
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Invalid session ID
+                error: SESSION_NOT_FOUND
+                statusCode: 404
 
-  /learner/complete-register:
+  /auth/learner/complete-register:
     post:
       tags:
         - Registration
@@ -182,8 +224,17 @@ paths:
         Complete the registration process after OTP verification.
         Creates the learner account and returns JWT tokens.
         
-        **Important**: Requires temporary token from step 2 in Authorization header.
-        **Note**: Password is optional for OAuth-based registrations.
+        **IMPORTANT - Authentication Required**: 
+        This endpoint requires a temporary token obtained from Step 2 (verify-otp).
+        The temporary token must be sent in the Authorization header as a Bearer token.
+        
+        **Token Details**:
+        - Obtained from: POST /auth/learner/verify-otp (Step 2)
+        - Valid for: 15 minutes
+        - Format: `Authorization: Bearer <tempToken>`
+        - Token type: Must be 'registration' type
+        
+        **Password Note**: Password is optional for OAuth-based registrations.
       security:
         - BearerAuth: []
       requestBody:
@@ -254,32 +305,75 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
               examples:
-                unverified_session:
+                session_not_verified:
+                  summary: OTP not verified yet
                   value:
                     success: false
                     message: Session not verified
-                expired_session:
+                    error: SESSION_NOT_VERIFIED
+                    statusCode: 400
+                session_expired:
+                  summary: Session expired (>10 minutes from OTP send)
                   value:
                     success: false
                     message: Session expired
+                    error: SESSION_EXPIRED
+                    statusCode: 400
                 validation_error:
+                  summary: Field validation failed
                   value:
                     success: false
                     message: Validation error
                     errors:
                       - field: name
                         message: Name is required
+                    statusCode: 400
         '401':
           description: Missing or invalid temporary token
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                missing_token:
+                  summary: No token provided
+                  value:
+                    success: false
+                    message: Temporary token required
+                    error: TOKEN_REQUIRED
+                    statusCode: 401
+                invalid_token_type:
+                  summary: Wrong token type
+                  value:
+                    success: false
+                    message: Invalid token type
+                    error: INVALID_TOKEN_TYPE
+                    statusCode: 401
+                expired_token:
+                  summary: Token expired (>15 minutes)
+                  value:
+                    success: false
+                    message: Authentication token has expired
+                    error: TOKEN_EXPIRED
+                    statusCode: 401
+                invalid_token:
+                  summary: Malformed or invalid token
+                  value:
+                    success: false
+                    message: Invalid authentication token
+                    error: INVALID_TOKEN
+                    statusCode: 401
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
               example:
                 success: false
-                message: Temporary token required
-        '404':
-          $ref: '#/components/responses/NotFoundError'
+                message: Invalid session ID
+                error: SESSION_NOT_FOUND
+                statusCode: 404
 
 components:
   securitySchemes:
