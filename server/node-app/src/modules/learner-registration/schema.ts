@@ -26,7 +26,6 @@ export const completeRegistrationSchema = z.object({
   body: z.object({
     name: z.string().min(1).max(255),
     profilePhotoUrl: z.string().url().optional(),
-    otherEmails: z.array(z.string().email()).optional().default([]),
     password: z.string().min(8).optional(),
   }),
 });

@@ -16,18 +16,21 @@ MicroMerit Portal is a comprehensive digital credential management system with s
 
 ### Core Authentication
 - **[Authentication API](./auth.openapi.yml)** - Core authentication for Issuer, Learner, and Admin roles
-  - Issuer registration, login, profile management
-  - Learner registration, login, profile management
-  - Admin login and issuer management (approve, reject, block, unblock)
+  - **Issuer**: Two-step registration with email OTP verification (start-register → verify-register), then admin approval required
+  - Issuer login, profile management
+  - **Learner**: Three-step registration (see Learner Registration Flow), login, profile management
+  - **Admin**: Login and issuer management (approve, reject, block, unblock)
   - API key management for issuers
   - JWT token-based authentication
+  - **Security**: Email verification mandatory for issuer registration before admin review
 
 ### Learner Registration Flow
 - **[Learner Registration API](./learner-registration.openapi.yml)** - Three-step registration with OTP
   - Step 1: Start registration with email or phone
   - Step 2: Verify OTP sent via email/SMS
-  - Step 3: Complete registration with profile details
+  - Step 3: Complete registration with name and password (other_emails removed - use add-email endpoints instead)
   - Session-based workflow with expiry
+  - **Email Management**: Two-step verified email addition (request OTP → verify OTP)
 
 ### OAuth Authentication
 - **[OAuth API](./oauth.openapi.yml)** - Social authentication and DigiLocker integration
@@ -260,14 +263,26 @@ For questions or issues:
 
 ## Version History
 
-- **v1.0.0** (Current)
-  - Authentication system (Issuer, Learner, Admin)
-  - Three-step learner registration with OTP
-  - OAuth integration (Google, DigiLocker)
-  - Credential management system
-  - PDF certificate generation with S3 storage
-  - API key management
-  - Comprehensive test coverage
+- **v1.0.0** (November 2025 - Current)
+  - **Breaking Changes**:
+    - Learner registration Step 3: Removed `other_emails` field from profile completion
+    - Issuer registration: Now requires 2-step OTP verification before admin approval
+  - **New Features**:
+    - Email management system: Learners can add verified emails one at a time
+    - Two endpoints: `/learner/add-email/request` and `/learner/add-email/verify`
+    - Issuer OTP verification: `/issuer/start-register` and `/issuer/verify-register`
+  - **Security Enhancements**:
+    - All email additions require OTP verification
+    - Issuer email verification before admin review
+    - Reduced spam and invalid registration requests
+  - Previous features:
+    - Authentication system (Issuer, Learner, Admin)
+    - Three-step learner registration with OTP
+    - OAuth integration (Google, DigiLocker)
+    - Credential management system
+    - PDF certificate generation with S3 storage
+    - API key management
+    - Comprehensive test coverage
 
 ## License
 

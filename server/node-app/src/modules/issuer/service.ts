@@ -2,8 +2,10 @@ import { issuerRepository } from './repository';
 import { hashPassword, comparePassword } from '../../utils/bcrypt';
 import { generateTokens, TokenResponse, verifyRefreshToken } from '../../utils/jwt';
 import { issuer } from '@prisma/client';
-import { IssuerRegistrationInput, IssuerLoginInput, UpdateIssuerProfileInput } from './schema';
+import { IssuerRegistrationInput, IssuerLoginInput, UpdateIssuerProfileInput, StartIssuerRegistrationInput, VerifyIssuerOTPInput } from './schema';
 import { logger } from '../../utils/logger';
+import { generateOTP, hashOTP, verifyOTP, getOTPExpiry } from '../../utils/otp';
+import { sendOTP } from '../../utils/notification';
 
 export interface IssuerResponse {
   id: number;
@@ -36,7 +38,126 @@ export class IssuerService {
   }
 
   /**
-   * Register a new issuer
+   * Start issuer registration (Step 1 - Send OTP)
+   */
+  async startRegistration(data: StartIssuerRegistrationInput): Promise<{ sessionId: string; message: string; expiresAt: Date }> {
+    // Check if issuer already exists
+    const existingIssuer = await issuerRepository.findByEmail(data.email);
+    if (existingIssuer) {
+      throw new Error('Issuer with this email already exists');
+    }
+
+    // Generate OTP
+    const otp = generateOTP(6);
+    const otpHash = await hashOTP(otp);
+    const expiresAt = getOTPExpiry();
+
+    // Store registration data temporarily (without password hash for now)
+    const registrationData = {
+      name: data.name,
+      official_domain: data.official_domain,
+      website_url: data.website_url,
+      type: data.type,
+      email: data.email,
+      phone: data.phone,
+      password: data.password, // Store plain password temporarily (will be hashed after OTP verification)
+      contact_person_name: data.contact_person_name,
+      contact_person_designation: data.contact_person_designation,
+      address: data.address,
+      kyc_document_url: data.kyc_document_url,
+      logo_url: data.logo_url,
+    };
+
+    // Create registration session
+    const session = await issuerRepository.createRegistrationSession({
+      email: data.email,
+      otpHash,
+      expiresAt,
+      registrationData,
+    });
+
+    // Send OTP to email
+    await sendOTP('email', data.email, otp);
+
+    logger.info('Issuer registration OTP sent', { email: data.email, sessionId: session.id });
+
+    return {
+      sessionId: session.id,
+      message: 'OTP sent to email',
+      expiresAt: session.expires_at,
+    };
+  }
+
+  /**
+   * Verify OTP and complete issuer registration (Step 2)
+   */
+  async verifyRegistrationOTP(input: VerifyIssuerOTPInput): Promise<{ issuer: IssuerResponse; tokens: TokenResponse }> {
+    const { sessionId, otp } = input;
+
+    // Find session
+    const session = await issuerRepository.findRegistrationSessionById(sessionId);
+    if (!session) {
+      throw new Error('Invalid session ID');
+    }
+
+    // Check if already verified
+    if (session.is_verified) {
+      throw new Error('Session already verified');
+    }
+
+    // Check if expired
+    if (new Date() > session.expires_at) {
+      throw new Error('OTP expired');
+    }
+
+    // Verify OTP
+    const isValid = await verifyOTP(otp, session.otp_hash);
+    if (!isValid) {
+      throw new Error('Invalid OTP');
+    }
+
+    // Mark session as verified
+    await issuerRepository.markRegistrationSessionAsVerified(sessionId);
+
+    // Extract registration data
+    const registrationData = session.registration_data as any;
+
+    // Hash password
+    const password_hash = await hashPassword(registrationData.password);
+
+    // Create issuer
+    const issuer = await issuerRepository.create({
+      name: registrationData.name,
+      official_domain: registrationData.official_domain,
+      website_url: registrationData.website_url,
+      type: registrationData.type,
+      email: registrationData.email,
+      phone: registrationData.phone,
+      password_hash,
+      contact_person_name: registrationData.contact_person_name,
+      contact_person_designation: registrationData.contact_person_designation,
+      address: registrationData.address,
+      kyc_document_url: registrationData.kyc_document_url,
+      logo_url: registrationData.logo_url,
+    });
+
+    logger.info('Issuer registered successfully', { issuerId: issuer.id, email: issuer.email });
+
+    // Generate tokens
+    const tokens = generateTokens({
+      id: issuer.id,
+      email: issuer.email,
+      role: 'issuer',
+    });
+
+    return {
+      issuer: this.sanitizeIssuer(issuer),
+      tokens,
+    };
+  }
+
+  /**
+   * Register a new issuer (Legacy - without OTP)
    */
   async register(data: IssuerRegistrationInput): Promise<{ issuer: IssuerResponse; tokens: TokenResponse }> {
     // Check if issuer already exists

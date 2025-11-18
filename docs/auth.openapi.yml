@@ -61,14 +61,190 @@ paths:
                     type: string
                     format: date-time
 
+  /auth/issuer/start-register:
+    post:
+      tags:
+        - Issuer Auth
+      summary: Start issuer registration (Step 1 - Send OTP)
+      description: |
+        **NEW TWO-STEP REGISTRATION PROCESS**
+        
+        Start issuer registration by providing all required information.
+        An OTP will be sent to the provided email address for verification.
+        
+        ## Registration Flow:
+        1. **Step 1**: Submit registration details → OTP sent to email
+        2. **Step 2**: Verify OTP → Issuer account created with 'pending' status
+        3. **Admin Review**: Admin approves or rejects the issuer
+        
+        **Why OTP Verification?**
+        - Ensures email ownership before submitting to admin review
+        - Reduces spam and invalid registration requests
+        - Admin only reviews verified issuer applications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartIssuerRegistration'
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: OTP sent successfully
+                  data:
+                    type: object
+                    properties:
+                      sessionId:
+                        type: string
+                        format: uuid
+                        example: 123e4567-e89b-12d3-a456-426614174005
+                        description: Session ID for OTP verification (Step 2)
+                      message:
+                        type: string
+                        example: OTP sent to email
+                      expiresAt:
+                        type: string
+                        format: date-time
+                        description: OTP expiration time (10 minutes)
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Issuer with this email already exists
+                statusCode: 409
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /auth/issuer/verify-register:
+    post:
+      tags:
+        - Issuer Auth
+      summary: Verify OTP and complete registration (Step 2)
+      description: |
+        Verify the OTP sent to email and complete issuer registration.
+        
+        **After Successful Verification:**
+        - Issuer account is created with status 'pending'
+        - JWT tokens are provided for immediate login
+        - Account awaits admin approval before full platform access
+        
+        **Note**: While pending approval, issuer can login but cannot:
+        - Create API keys
+        - Issue credentials
+        - Access full platform features
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sessionId
+                - otp
+              properties:
+                sessionId:
+                  type: string
+                  format: uuid
+                  example: 123e4567-e89b-12d3-a456-426614174005
+                  description: Session ID from Step 1
+                otp:
+                  type: string
+                  length: 6
+                  pattern: '^\d{6}$'
+                  example: '123456'
+      responses:
+        '201':
+          description: Issuer registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Issuer registered successfully. Account pending approval.
+                  data:
+                    type: object
+                    properties:
+                      issuer:
+                        $ref: '#/components/schemas/IssuerProfile'
+                      tokens:
+                        type: object
+                        properties:
+                          accessToken:
+                            type: string
+                            example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                          refreshToken:
+                            type: string
+                            example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '400':
+          description: Invalid OTP or session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_otp:
+                  summary: Incorrect OTP code
+                  value:
+                    success: false
+                    message: Invalid OTP
+                    statusCode: 400
+                otp_expired:
+                  summary: OTP expired (>10 minutes)
+                  value:
+                    success: false
+                    message: OTP expired
+                    statusCode: 400
+                already_verified:
+                  summary: Session already verified
+                  value:
+                    success: false
+                    message: Session already verified
+                    statusCode: 400
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Invalid session ID
+                statusCode: 404
+
   /auth/issuer/register:
     post:
       tags:
         - Issuer Auth
-      summary: Register new issuer
+      summary: Register new issuer (Legacy - DEPRECATED)
       description: |
+        **DEPRECATED**: Use the two-step registration process instead:
+        1. POST /auth/issuer/start-register (Send OTP)
+        2. POST /auth/issuer/verify-register (Verify OTP & Complete)
+        
         Register a new issuer organization. Status is set to 'pending' by default.
         Admin approval required before issuer can use the platform.
+      deprecated: true
       requestBody:
         required: true
         content:
@@ -936,6 +1112,85 @@ components:
       description: API key for programmatic issuer access
 
   schemas:
+    StartIssuerRegistration:
+      type: object
+      required:
+        - name
+        - email
+        - password
+        - type
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 255
+          example: Tech University
+          description: Organization name
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          example: admin@techuniversity.edu
+          description: Organization email (OTP will be sent here)
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+          example: SecurePass123!
+        type:
+          type: string
+          enum: [university, edtech, company, training_provider]
+          example: university
+          description: Organization type
+        official_domain:
+          type: string
+          format: uri
+          maxLength: 255
+          example: https://techuniversity.edu
+          description: Official domain URL (optional)
+        website_url:
+          type: string
+          format: uri
+          maxLength: 255
+          example: https://www.techuniversity.edu
+          description: Website URL (optional)
+        phone:
+          type: string
+          pattern: '^\+?[1-9]\d{1,14}$'
+          maxLength: 15
+          example: '+1234567890'
+          description: Phone number (optional)
+        contact_person_name:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: John Doe
+          description: Contact person name (optional)
+        contact_person_designation:
+          type: string
+          minLength: 2
+          maxLength: 255
+          example: Director
+          description: Contact person designation (optional)
+        address:
+          type: string
+          minLength: 10
+          maxLength: 1000
+          example: 123 University Ave, City, State 12345
+          description: Organization address (optional)
+        kyc_document_url:
+          type: string
+          format: uri
+          maxLength: 500
+          example: https://cdn.techuniversity.edu/kyc.pdf
+          description: KYC document URL (optional)
+        logo_url:
+          type: string
+          format: uri
+          maxLength: 500
+          example: https://cdn.techuniversity.edu/logo.png
+          description: Organization logo URL (optional)
+
     IssuerRegistration:
       type: object
       required:

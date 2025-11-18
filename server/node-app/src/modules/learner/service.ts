@@ -183,6 +183,102 @@ export class LearnerService {
     logger.info('Learner profile updated', { learnerId });
     return this.sanitizeLearner(learner);
   }
+
+  /**
+   * Request to add email (Step 1)
+   */
+  async requestAddEmail(learnerId: number, email: string): Promise<{ sessionId: string; message: string; expiresAt: Date }> {
+    // Check if learner exists
+    const learner = await learnerRepository.findById(learnerId);
+    if (!learner) {
+      throw new Error('Learner not found');
+    }
+
+    // Check if email is already registered as primary email for any user
+    const existingLearner = await learnerRepository.findByEmail(email);
+    if (existingLearner) {
+      throw new Error('Email is already registered');
+    }
+
+    // Check if email is already in learner's other_emails
+    const isAlreadyAdded = await learnerRepository.isEmailAlreadyAdded(learnerId, email);
+    if (isAlreadyAdded) {
+      throw new Error('Email is already added to your account');
+    }
+
+    // Generate OTP
+    const { generateOTP, hashOTP, getOTPExpiry } = require('../../utils/otp');
+    const { sendOTP } = require('../../utils/notification');
+    
+    const otp = generateOTP(6);
+    const otpHash = await hashOTP(otp);
+    const expiresAt = getOTPExpiry();
+
+    // Create email verification session
+    const session = await learnerRepository.createEmailVerificationSession({
+      learnerId,
+      email,
+      otpHash,
+      expiresAt,
+    });
+
+    // Send OTP to email
+    await sendOTP('email', email, otp);
+
+    logger.info('Email addition OTP sent', { learnerId, email, sessionId: session.id });
+
+    return {
+      sessionId: session.id,
+      message: 'OTP sent to email',
+      expiresAt: session.expires_at,
+    };
+  }
+
+  /**
+   * Verify email OTP and add to other_emails (Step 2)
+   */
+  async verifyEmailOTP(learnerId: number, sessionId: string, otp: string): Promise<{ email: string; message: string }> {
+    // Find session
+    const session = await learnerRepository.findEmailVerificationSessionById(sessionId);
+    if (!session) {
+      throw new Error('Invalid session ID');
+    }
+
+    // Verify session belongs to learner
+    if (session.learner_id !== learnerId) {
+      throw new Error('Unauthorized access to session');
+    }
+
+    // Check if already verified
+    if (session.is_verified) {
+      throw new Error('Session already verified');
+    }
+
+    // Check if expired
+    if (new Date() > session.expires_at) {
+      throw new Error('OTP expired');
+    }
+
+    // Verify OTP
+    const { verifyOTP: verifyOTPUtil } = require('../../utils/otp');
+    const isValid = await verifyOTPUtil(otp, session.otp_hash);
+    if (!isValid) {
+      throw new Error('Invalid OTP');
+    }
+
+    // Mark session as verified
+    await learnerRepository.markEmailVerificationSessionAsVerified(sessionId);
+
+    // Add email to other_emails
+    await learnerRepository.addEmailToOtherEmails(learnerId, session.email);
+
+    logger.info('Email added to learner account', { learnerId, email: session.email });
+
+    return {
+      email: session.email,
+      message: 'Email added successfully',
+    };
+  }
 }
 
 export const learnerService = new LearnerService();

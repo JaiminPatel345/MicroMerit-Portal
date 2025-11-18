@@ -106,6 +106,41 @@ export class IssuerRepository {
       orderBy: { created_at: 'desc' },
     });
   }
+
+  /**
+   * Issuer registration session methods
+   */
+  async createRegistrationSession(data: {
+    email: string;
+    otpHash: string;
+    expiresAt: Date;
+    registrationData: any;
+  }) {
+    return prisma.issuer_registration_session.create({
+      data: {
+        email: data.email,
+        otp_hash: data.otpHash,
+        expires_at: data.expiresAt,
+        registration_data: data.registrationData,
+      },
+    });
+  }
+
+  async findRegistrationSessionById(sessionId: string) {
+    return prisma.issuer_registration_session.findUnique({
+      where: { id: sessionId },
+    });
+  }
+
+  async markRegistrationSessionAsVerified(sessionId: string) {
+    return prisma.issuer_registration_session.update({
+      where: { id: sessionId },
+      data: {
+        is_verified: true,
+        verified_at: new Date(),
+      },
+    });
+  }
 }
 
 export const issuerRepository = new IssuerRepository();

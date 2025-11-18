@@ -28,6 +28,8 @@ servers:
 tags:
   - name: Registration
     description: Three-step learner registration with OTP verification
+  - name: Email Management
+    description: Add and verify additional emails to learner account
 
 paths:
   /auth/learner/start-register:
@@ -262,14 +264,6 @@ paths:
                   format: uri
                   example: https://example.com/photo.jpg
                   description: Profile photo URL (optional)
-                otherEmails:
-                  type: array
-                  items:
-                    type: string
-                    format: email
-                  default: []
-                  example: ["alternate@example.com"]
-                  description: Additional email addresses (optional)
       responses:
         '201':
           description: Registration completed successfully
@@ -375,13 +369,197 @@ paths:
                 error: SESSION_NOT_FOUND
                 statusCode: 404
 
+  /auth/learner/add-email/request:
+    post:
+      tags:
+        - Email Management
+      summary: Request to add email (Step 1)
+      description: |
+        Send OTP to add a new email address to learner's other_emails list.
+        
+        **IMPORTANT - Authentication Required**: 
+        This endpoint requires authentication. The learner must be logged in.
+        
+        **Requirements**:
+        - Email must not already be registered as primary email for any user
+        - Email must not already be in learner's other_emails list
+        - One email can be added at a time
+        - Each addition requires OTP verification
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: alternate@example.com
+                  description: New email address to add
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: OTP sent successfully
+                  data:
+                    type: object
+                    properties:
+                      sessionId:
+                        type: string
+                        format: uuid
+                        example: 123e4567-e89b-12d3-a456-426614174001
+                      message:
+                        type: string
+                        example: OTP sent to email
+                      expiresAt:
+                        type: string
+                        format: date-time
+        '400':
+          description: Invalid request or email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                email_registered:
+                  summary: Email already registered
+                  value:
+                    success: false
+                    message: Email is already registered
+                    statusCode: 400
+                email_already_added:
+                  summary: Email already in other_emails
+                  value:
+                    success: false
+                    message: Email is already added to your account
+                    statusCode: 400
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /auth/learner/add-email/verify:
+    post:
+      tags:
+        - Email Management
+      summary: Verify OTP and add email (Step 2)
+      description: |
+        Verify the OTP sent to email and add it to learner's other_emails list.
+        
+        **IMPORTANT - Authentication Required**: 
+        This endpoint requires authentication. The learner must be logged in.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sessionId
+                - otp
+              properties:
+                sessionId:
+                  type: string
+                  format: uuid
+                  example: 123e4567-e89b-12d3-a456-426614174001
+                otp:
+                  type: string
+                  length: 6
+                  pattern: '^\d{6}$'
+                  example: '123456'
+      responses:
+        '200':
+          description: Email added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Email added successfully
+                  data:
+                    type: object
+                    properties:
+                      email:
+                        type: string
+                        format: email
+                        example: alternate@example.com
+                      message:
+                        type: string
+                        example: Email added successfully
+        '400':
+          description: Invalid OTP or session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_otp:
+                  summary: Incorrect OTP code
+                  value:
+                    success: false
+                    message: Invalid OTP
+                    statusCode: 400
+                otp_expired:
+                  summary: OTP expired (>10 minutes)
+                  value:
+                    success: false
+                    message: OTP expired
+                    statusCode: 400
+                already_verified:
+                  summary: Session already verified
+                  value:
+                    success: false
+                    message: Session already verified
+                    statusCode: 400
+                unauthorized_session:
+                  summary: Session doesn't belong to learner
+                  value:
+                    success: false
+                    message: Unauthorized access to session
+                    statusCode: 400
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Invalid session ID
+                statusCode: 404
+
 components:
   securitySchemes:
     BearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Temporary JWT token from verify-otp step (valid for 15 minutes)
+      description: |
+        - For step 3 (complete-register): Temporary JWT token from verify-otp step (valid for 15 minutes)
+        - For email management: Standard JWT access token from login
 
   schemas:
     LearnerProfile:
@@ -452,6 +630,17 @@ components:
             errors:
               - field: email
                 message: Invalid email format
+
+    UnauthorizedError:
+      description: Authentication failed or token required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: User not authenticated
+            statusCode: 401
 
     NotFoundError:
       description: Resource not found

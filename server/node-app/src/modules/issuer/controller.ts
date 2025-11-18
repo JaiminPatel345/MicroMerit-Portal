@@ -5,13 +5,47 @@ import {
   issuerLoginSchema,
   refreshTokenSchema,
   updateIssuerProfileSchema,
+  startIssuerRegistrationSchema,
+  verifyIssuerOTPSchema,
 } from './schema';
 import { sendSuccess, sendError } from '../../utils/response';
 import { logger } from '../../utils/logger';
 
 export class IssuerController {
   /**
-   * Register a new issuer
+   * Start issuer registration (Step 1 - Send OTP)
+   * POST /auth/issuer/start-register
+   */
+  async startRegistration(req: Request, res: Response): Promise<void> {
+    try {
+      const validatedData = startIssuerRegistrationSchema.parse(req.body);
+      const result = await issuerService.startRegistration(validatedData);
+      
+      sendSuccess(res, result, 'OTP sent successfully', 200);
+    } catch (error: any) {
+      logger.error('Issuer start registration failed', { error: error.message });
+      sendError(res, error.message, 'Registration failed', 400);
+    }
+  }
+
+  /**
+   * Verify OTP and complete registration (Step 2)
+   * POST /auth/issuer/verify-register
+   */
+  async verifyRegistration(req: Request, res: Response): Promise<void> {
+    try {
+      const validatedData = verifyIssuerOTPSchema.parse(req.body);
+      const result = await issuerService.verifyRegistrationOTP(validatedData);
+      
+      sendSuccess(res, result, 'Issuer registered successfully. Account pending approval.', 201);
+    } catch (error: any) {
+      logger.error('Issuer verify registration failed', { error: error.message });
+      sendError(res, error.message, 'Verification failed', 400);
+    }
+  }
+
+  /**
+   * Register a new issuer (Legacy - without OTP)
    * POST /auth/issuer/register
    */
   async register(req: Request, res: Response): Promise<void> {

@@ -67,6 +67,68 @@ export class LearnerRepository {
       orderBy: { created_at: 'desc' },
     });
   }
+
+  /**
+   * Email verification session methods
+   */
+  async createEmailVerificationSession(data: {
+    learnerId: number;
+    email: string;
+    otpHash: string;
+    expiresAt: Date;
+  }) {
+    return prisma.email_verification_session.create({
+      data: {
+        learner_id: data.learnerId,
+        email: data.email,
+        otp_hash: data.otpHash,
+        expires_at: data.expiresAt,
+      },
+    });
+  }
+
+  async findEmailVerificationSessionById(sessionId: string) {
+    return prisma.email_verification_session.findUnique({
+      where: { id: sessionId },
+    });
+  }
+
+  async markEmailVerificationSessionAsVerified(sessionId: string) {
+    return prisma.email_verification_session.update({
+      where: { id: sessionId },
+      data: {
+        is_verified: true,
+        verified_at: new Date(),
+      },
+    });
+  }
+
+  async isEmailAlreadyAdded(learnerId: number, email: string): Promise<boolean> {
+    const learner = await this.findById(learnerId);
+    if (!learner) return false;
+    
+    // Check if email is primary email
+    if (learner.email === email) return true;
+    
+    // Check if email is in other_emails array
+    return learner.other_emails.includes(email);
+  }
+
+  async addEmailToOtherEmails(learnerId: number, email: string): Promise<learner> {
+    const learner = await this.findById(learnerId);
+    if (!learner) {
+      throw new Error('Learner not found');
+    }
+
+    const updatedEmails = [...learner.other_emails, email];
+    
+    return prisma.learner.update({
+      where: { id: learnerId },
+      data: {
+        other_emails: updatedEmails,
+      },
+    });
+  }
 }
 
 export const learnerRepository = new LearnerRepository();

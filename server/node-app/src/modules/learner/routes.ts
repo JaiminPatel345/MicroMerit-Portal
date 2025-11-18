@@ -41,4 +41,20 @@ router.put(
   asyncHandler(learnerController.updateMe.bind(learnerController))
 );
 
+// Email management routes
+router.post(
+  '/add-email/request',
+  authenticateToken,
+  requireLearner,
+  authRateLimiter,
+  asyncHandler(learnerController.requestAddEmail.bind(learnerController))
+);
+
+router.post(
+  '/add-email/verify',
+  authenticateToken,
+  requireLearner,
+  asyncHandler(learnerController.verifyAddEmail.bind(learnerController))
+);
+
 export default router;

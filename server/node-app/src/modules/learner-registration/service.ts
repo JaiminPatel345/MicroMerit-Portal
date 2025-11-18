@@ -142,7 +142,7 @@ export class RegistrationService {
       phone: session.phone || undefined,
       hashedPassword,
       profileUrl: input.profilePhotoUrl,
-      otherEmails: input.otherEmails,
+      otherEmails: [], // Initialize with empty array
     });
 
     // Generate tokens

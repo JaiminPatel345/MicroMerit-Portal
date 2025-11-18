@@ -97,6 +97,50 @@ export class LearnerController {
       sendError(res, error.message, 'Failed to update profile', 400);
     }
   }
+
+  /**
+   * Request to add email
+   * POST /auth/learner/add-email/request
+   */
+  async requestAddEmail(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        sendError(res, 'User not authenticated', 'Authentication required', 401);
+        return;
+      }
+
+      const { requestAddEmailSchema } = require('./schema');
+      const validatedData = requestAddEmailSchema.parse(req.body);
+      const result = await learnerService.requestAddEmail(req.user.id, validatedData.email);
+      
+      sendSuccess(res, result, 'OTP sent successfully', 200);
+    } catch (error: any) {
+      logger.error('Request add email failed', { error: error.message });
+      sendError(res, error.message, 'Failed to send OTP', 400);
+    }
+  }
+
+  /**
+   * Verify email OTP and add email
+   * POST /auth/learner/add-email/verify
+   */
+  async verifyAddEmail(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        sendError(res, 'User not authenticated', 'Authentication required', 401);
+        return;
+      }
+
+      const { verifyEmailOTPSchema } = require('./schema');
+      const validatedData = verifyEmailOTPSchema.parse(req.body);
+      const result = await learnerService.verifyEmailOTP(req.user.id, validatedData.sessionId, validatedData.otp);
+      
+      sendSuccess(res, result, 'Email added successfully', 200);
+    } catch (error: any) {
+      logger.error('Verify add email failed', { error: error.message });
+      sendError(res, error.message, 'Failed to verify OTP', 400);
+    }
+  }
 }
 
 export const learnerController = new LearnerController();

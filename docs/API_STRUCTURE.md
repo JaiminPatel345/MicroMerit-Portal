@@ -29,7 +29,8 @@ docs/
 ### By User Role
 
 #### Issuer Endpoints
-- Authentication: `POST /issuer/register`, `POST /issuer/login`
+- Authentication (2-step with OTP): `POST /issuer/start-register`, `POST /issuer/verify-register`, `POST /issuer/login`
+- Authentication (Legacy): `POST /issuer/register` (deprecated)
 - Profile: `GET /issuer/me`, `PATCH /issuer/me`
 - API Keys: `GET /issuer/api-keys`, `POST /issuer/api-keys`, `DELETE /issuer/api-keys/{id}`
 - Credentials: `POST /credential/issue`, `GET /credential/issuer/list`, `PATCH /credential/revoke/{uid}`
@@ -37,8 +38,10 @@ docs/
 - Stats: `GET /credential/issuer/stats`
 
 #### Learner Endpoints
-- Authentication: `POST /learner/register`, `POST /learner/login`
-- Registration: `POST /learner/registration/start`, `POST /learner/registration/verify-otp`, `POST /learner/registration/complete`
+- Authentication: `POST /learner/login`
+- Registration (3-step with OTP): `POST /learner/start-register`, `POST /learner/verify-otp`, `POST /learner/complete-register`
+- Registration (Legacy): `POST /learner/register` (deprecated)
+- Email Management: `POST /learner/add-email/request`, `POST /learner/add-email/verify`
 - OAuth: `GET /learner/oauth/google`, `GET /learner/oauth/digilocker`
 - Profile: `GET /learner/me`, `PATCH /learner/me`
 - Credentials: `POST /credential/claim`, `GET /credential/learner/list`
@@ -61,7 +64,10 @@ docs/
 - **JWT Tokens**: 15min access, 7 days refresh
 - **API Keys**: Custom rate limits per key
 - **OAuth**: Google & DigiLocker
-- **OTP**: Email/SMS verification
+- **OTP**: Email/SMS verification (6-digit code, 10-minute expiry)
+  - **Learner Registration**: 3-step process with OTP verification
+  - **Issuer Registration**: 2-step process with email OTP verification before admin approval
+  - **Email Addition**: Learners can add verified additional emails one at a time
 
 #### Credential Management
 - **Issue**: Issuer creates credential for learner
@@ -160,9 +166,80 @@ curl -H "X-API-Key: mmk_123456..." \
 
 ## Testing APIs
 
-### cURL
+### Learner Registration (3-Step with OTP)
 ```bash
-# Register issuer
+# Step 1: Start registration
+curl -X POST http://localhost:3000/api/auth/learner/start-register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "learner@example.com"
+  }'
+
+# Step 2: Verify OTP
+curl -X POST http://localhost:3000/api/auth/learner/verify-otp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sessionId": "123e4567-e89b-12d3-a456-426614174000",
+    "otp": "123456"
+  }'
+
+# Step 3: Complete registration (use tempToken from Step 2)
+curl -X POST http://localhost:3000/api/auth/learner/complete-register \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <tempToken>" \
+  -d '{
+    "name": "John Doe",
+    "password": "SecurePass123!"
+  }'
+```
+
+### Issuer Registration (2-Step with OTP)
+```bash
+# Step 1: Start registration (send OTP)
+curl -X POST http://localhost:3000/api/auth/issuer/start-register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Tech University",
+    "email": "admin@techuni.edu",
+    "password": "SecurePass123!",
+    "type": "university",
+    "contact_person_name": "John Doe",
+    "phone": "+1234567890"
+  }'
+
+# Step 2: Verify OTP and complete registration
+curl -X POST http://localhost:3000/api/auth/issuer/verify-register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sessionId": "123e4567-e89b-12d3-a456-426614174005",
+    "otp": "123456"
+  }'
+```
+
+### Add Email to Learner Account
+```bash
+# Step 1: Request to add email (send OTP)
+curl -X POST http://localhost:3000/api/auth/learner/add-email/request \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <accessToken>" \
+  -d '{
+    "email": "alternate@example.com"
+  }'
+
+# Step 2: Verify OTP and add email
+curl -X POST http://localhost:3000/api/auth/learner/add-email/verify \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <accessToken>" \
+  -d '{
+    "sessionId": "123e4567-e89b-12d3-a456-426614174001",
+    "otp": "123456"
+  }'
+```
+
+### cURL
+### cURL (Legacy Examples)
+```bash
+# Register issuer (deprecated - use 2-step process instead)
 curl -X POST http://localhost:3000/api/issuer/register \
   -H "Content-Type: application/json" \
   -d '{
@@ -249,8 +326,15 @@ const data = await response.json();
 
 Documentation is versioned alongside the API:
 - **Current Version**: v1.0.0
-- **Last Updated**: November 18, 2024
+- **Last Updated**: November 18, 2025
 - **Next Update**: When new features are added
+
+### Recent Changes (v1.0.0 - November 2025)
+1. **Learner Registration**: Removed `other_emails` field from Step 3 (profile completion)
+2. **Email Management**: Added two-step OTP verification for adding emails (`/learner/add-email/request` and `/learner/add-email/verify`)
+3. **Issuer Registration**: Added mandatory 2-step OTP verification before admin approval (`/issuer/start-register` and `/issuer/verify-register`)
+4. **Security Enhancement**: All email additions now require OTP verification to ensure email ownership
+5. **Admin Workflow**: Issuers must verify their email via OTP before their application reaches admin for approval
 
 ## Contributing
 

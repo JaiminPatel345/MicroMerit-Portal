@@ -8,7 +8,19 @@ import { authRateLimiter, registrationRateLimiter, apiKeyRateLimiter } from '../
 
 const router = Router();
 
-// Public routes
+// Public routes - Two-step registration with OTP
+router.post(
+  '/start-register',
+  registrationRateLimiter,
+  asyncHandler(issuerController.startRegistration.bind(issuerController))
+);
+
+router.post(
+  '/verify-register',
+  asyncHandler(issuerController.verifyRegistration.bind(issuerController))
+);
+
+// Public routes - Legacy registration (deprecated)
 router.post(
   '/register',
   registrationRateLimiter,

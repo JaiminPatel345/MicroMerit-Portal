@@ -83,9 +83,18 @@ yarn prisma:migrate
 yarn prisma:studio
 ```
 
-### Seed Admin User (Optional)
+### Seed Default Admin User
 
-You can manually create an admin user in the database or use Prisma Studio.
+```bash
+# Automatically seeds default admin user
+npx prisma db seed
+```
+
+**Default Admin Credentials:**
+- Email: `admin@micromerit.com`
+- Password: `admin123`
+
+⚠️ **Important**: Change these credentials in production!
 
 ---
 
@@ -149,9 +158,9 @@ GET /health
 
 ## Issuer Endpoints
 
-### 1. Register Issuer
+### 1. Start Issuer Registration (Step 1 - Send OTP)
 ```http
-POST /auth/issuer/register
+POST /auth/issuer/start-register
 Content-Type: application/json
 
 {
@@ -167,6 +176,31 @@ Content-Type: application/json
   "address": "123 University Ave, Tech City",
   "kyc_document_url": "https://example.com/kyc.pdf",
   "logo_url": "https://example.com/logo.png"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "OTP sent successfully",
+  "data": {
+    "sessionId": "123e4567-e89b-12d3-a456-426614174005",
+    "message": "OTP sent to email",
+    "expiresAt": "2025-11-18T07:10:00.000Z"
+  },
+  "statusCode": 200
+}
+```
+
+### 2. Verify OTP and Complete Registration (Step 2)
+```http
+POST /auth/issuer/verify-register
+Content-Type: application/json
+
+{
+  "sessionId": "123e4567-e89b-12d3-a456-426614174005",
+  "otp": "123456"
 }
 ```
 
@@ -193,7 +227,53 @@ Content-Type: application/json
 }
 ```
 
-### 2. Login Issuer
+### 3. Register Issuer (Legacy - Deprecated)
+```http
+POST /auth/issuer/register
+Content-Type: application/json
+
+{
+  "name": "Tech University",
+  "type": "university",
+  "email": "admin@techuniversity.edu",
+  "password": "SecurePass123!",
+  "phone": "+1234567890",
+  "official_domain": "techuniversity.edu",
+  "website_url": "https://techuniversity.edu",
+  "contact_person_name": "John Doe",
+  "contact_person_designation": "Administrator",
+  "address": "123 University Ave, Tech City",
+  "kyc_document_url": "https://example.com/kyc.pdf",
+  "logo_url": "https://example.com/logo.png"
+}
+```
+
+**Note:** This endpoint is deprecated. Use the 2-step registration process above.
+
+**Response (201):**
+```json
+{
+  "success": true,
+  "message": "Issuer registered successfully. Account pending approval.",
+  "data": {
+    "issuer": {
+      "id": 1,
+      "name": "Tech University",
+      "email": "admin@techuniversity.edu",
+      "status": "pending",
+      "is_blocked": false,
+      "created_at": "2025-11-18T07:00:00.000Z"
+    },
+    "tokens": {
+      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+  },
+  "statusCode": 201
+}
+```
+
+### 4. Login Issuer
 ```http
 POST /auth/issuer/login
 Content-Type: application/json

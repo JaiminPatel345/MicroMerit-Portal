@@ -45,3 +45,22 @@ export const updateLearnerProfileSchema = z.object({
 });
 
 export type UpdateLearnerProfileInput = z.infer<typeof updateLearnerProfileSchema>;
+
+/**
+ * Request to add email schema (Step 1)
+ */
+export const requestAddEmailSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
+
+export type RequestAddEmailInput = z.infer<typeof requestAddEmailSchema>;
+
+/**
+ * Verify email OTP schema (Step 2)
+ */
+export const verifyEmailOTPSchema = z.object({
+  sessionId: z.string().uuid(),
+  otp: z.string().length(6).regex(/^\d{6}$/),
+});
+
+export type VerifyEmailOTPInput = z.infer<typeof verifyEmailOTPSchema>;
