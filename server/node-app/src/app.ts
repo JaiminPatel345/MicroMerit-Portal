@@ -9,6 +9,7 @@ import issuerRoutes from './modules/issuer/routes';
 import learnerRoutes from './modules/learner/routes';
 import adminRoutes from './modules/admin/routes';
 import credentialRoutes from './modules/credential/routes';
+import pdfRoutes from './modules/pdf/routes';
 
 // Load environment variables
 dotenv.config();
@@ -18,6 +19,8 @@ const app: Application = express();
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Note: Static file serving for certificates is not needed as we use Amazon S3 for storage
 
 // Apply rate limiting
 app.use(generalRateLimiter);
@@ -57,6 +60,7 @@ app.use('/auth/issuer', issuerRoutes);
 app.use('/auth/learner', learnerRoutes);
 app.use('/auth/admin', adminRoutes);
 app.use('/credentials', credentialRoutes);
+app.use('/pdf', pdfRoutes);
 
 // Root route
 app.get('/', (req, res) => {
