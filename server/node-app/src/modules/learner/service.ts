@@ -4,6 +4,7 @@ import { generateTokens, TokenResponse, verifyRefreshToken } from '../../utils/j
 import { learner } from '@prisma/client';
 import { LearnerRegistrationInput, LearnerLoginInput, UpdateLearnerProfileInput } from './schema';
 import { logger } from '../../utils/logger';
+import { handleProfilePhotoUpload } from '../../utils/imageUpload';
 
 export interface LearnerResponse {
   id: number;
@@ -179,7 +180,25 @@ export class LearnerService {
       }
     }
 
-    const learner = await learnerRepository.update(learnerId, data);
+    // Handle profile photo upload (base64 or URL)
+    let profileUrl = data.profileUrl;
+    if (data.profileUrl) {
+      try {
+        profileUrl = await handleProfilePhotoUpload(data.profileUrl, learnerId);
+        logger.info('Profile photo updated', { learnerId, hasPhoto: !!profileUrl });
+      } catch (error: any) {
+        logger.error('Profile photo upload failed during update', { learnerId, error: error.message });
+        throw new Error(`Profile photo upload failed: ${error.message}`);
+      }
+    }
+
+    // Update learner with processed profile URL
+    const updateData = {
+      ...data,
+      profileUrl,
+    };
+
+    const learner = await learnerRepository.update(learnerId, updateData);
     logger.info('Learner profile updated', { learnerId });
     return this.sanitizeLearner(learner);
   }

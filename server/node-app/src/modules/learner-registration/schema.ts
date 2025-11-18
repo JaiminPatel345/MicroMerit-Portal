@@ -25,7 +25,7 @@ export const verifyOTPSchema = z.object({
 export const completeRegistrationSchema = z.object({
   body: z.object({
     name: z.string().min(1).max(255),
-    profilePhotoUrl: z.string().url().optional(),
+    profilePhotoUrl: z.string().optional(), // Accept base64 or URL
     password: z.string().min(8).optional(),
   }),
 });

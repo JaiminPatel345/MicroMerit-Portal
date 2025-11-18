@@ -3,7 +3,7 @@ import { learnerController } from './controller';
 import { authenticateToken } from '../../middleware/auth';
 import { requireLearner } from '../../middleware/role';
 import { asyncHandler } from '../../middleware/error';
-import { authRateLimiter, registrationRateLimiter } from '../../middleware/rateLimit';
+import { authRateLimiter } from '../../middleware/rateLimit';
 import registrationRoutes from '../learner-registration/routes';
 import oauthRoutes from '../learner-oauth/routes';
 

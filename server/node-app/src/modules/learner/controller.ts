@@ -11,22 +11,6 @@ import { logger } from '../../utils/logger';
 
 export class LearnerController {
   /**
-   * Register a new learner
-   * POST /auth/learner/register
-   */
-  async register(req: Request, res: Response): Promise<void> {
-    try {
-      const validatedData = learnerRegistrationSchema.parse(req.body);
-      const result = await learnerService.register(validatedData);
-      
-      sendSuccess(res, result, 'Learner registered successfully', 201);
-    } catch (error: any) {
-      logger.error('Learner registration failed', { error: error.message });
-      sendError(res, error.message, 'Registration failed', 400);
-    }
-  }
-
-  /**
    * Login a learner
    * POST /auth/learner/login
    */

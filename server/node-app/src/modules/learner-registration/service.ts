@@ -9,6 +9,8 @@ import {
   CompleteRegistrationInput,
 } from './schema';
 import { ConflictError, NotFoundError, ValidationError } from '../../utils/errors';
+import { handleProfilePhotoUpload } from '../../utils/imageUpload';
+import { logger } from '../../utils/logger';
 
 export class RegistrationService {
   private repository: RegistrationRepository;
@@ -136,13 +138,41 @@ export class RegistrationService {
       hashedPassword = await hashPassword(input.password);
     }
 
+    // Handle profile photo upload (base64 or URL)
+    let profilePhotoUrl: string | undefined;
+    if (input.profilePhotoUrl) {
+      try {
+        // Generate temporary learner ID for folder structure
+        const tempLearnerId = `temp-${sessionId.substring(0, 8)}`;
+        profilePhotoUrl = await handleProfilePhotoUpload(
+          input.profilePhotoUrl,
+          tempLearnerId
+        );
+        logger.info('Profile photo processed', { sessionId, hasPhoto: !!profilePhotoUrl });
+      } catch (error: any) {
+        logger.error('Profile photo upload failed', { error: error.message });
+        throw new ValidationError(
+          `Profile photo upload failed: ${error.message}`,
+          400,
+          'PROFILE_PHOTO_UPLOAD_FAILED'
+        );
+      }
+    }
+
     // Create learner
     const learner = await this.repository.createLearner({
       email: session.email || undefined,
       phone: session.phone || undefined,
       hashedPassword,
-      profileUrl: input.profilePhotoUrl,
+      profileUrl: profilePhotoUrl,
       otherEmails: [], // Initialize with empty array
+    });
+
+    logger.info('Learner registration completed', { 
+      learnerId: learner.id, 
+      email: learner.email,
+      phone: learner.phone,
+      hasProfilePhoto: !!profilePhotoUrl
     });
 
     // Generate tokens
