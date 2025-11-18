@@ -65,4 +65,16 @@ export class PdfRepository {
 
     return credential?.pdf_certificate || null;
   }
+
+  /**
+   * Update credential metadata with PDF hash
+   */
+  async updateCredentialMetadata(credentialId: number, metadata: any) {
+    return prisma.credential.update({
+      where: { id: credentialId },
+      data: {
+        metadata,
+      },
+    });
+  }
 }

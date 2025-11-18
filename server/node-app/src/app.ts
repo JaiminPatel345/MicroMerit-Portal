@@ -10,6 +10,7 @@ import learnerRoutes from './modules/learner/routes';
 import adminRoutes from './modules/admin/routes';
 import credentialRoutes from './modules/credential/routes';
 import pdfRoutes from './modules/pdf/routes';
+import verificationRoutes from './modules/verification/routes';
 
 // Load environment variables
 dotenv.config();
@@ -61,6 +62,7 @@ app.use('/auth/learner', learnerRoutes);
 app.use('/auth/admin', adminRoutes);
 app.use('/credentials', credentialRoutes);
 app.use('/pdf', pdfRoutes);
+app.use('/verify', verificationRoutes);
 
 // Root route
 app.get('/', (req, res) => {

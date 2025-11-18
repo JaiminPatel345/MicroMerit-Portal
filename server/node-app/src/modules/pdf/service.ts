@@ -4,6 +4,7 @@ import { PdfRepository } from './repository';
 import { GeneratePdfInput } from './schema';
 import { logger } from '../../utils/logger';
 import { s3Service } from '../../utils/s3';
+import crypto from 'crypto';
 
 export class PdfService {
   private repository: PdfRepository;
@@ -232,6 +233,13 @@ export class PdfService {
   }
 
   /**
+   * Compute SHA256 hash of buffer
+   */
+  private computeHash(buffer: Buffer): string {
+    return crypto.createHash('sha256').update(buffer).digest('hex');
+  }
+
+  /**
    * Save file to S3
    */
   private async saveFile(buffer: Buffer, filename: string, contentType: string): Promise<string> {
@@ -277,6 +285,10 @@ export class PdfService {
       templateType || 'standard'
     );
 
+    // Compute SHA256 hash of PDF
+    const pdfHash = this.computeHash(pdfBuffer);
+    logger.info(`PDF hash computed for credential ${credentialUid}: ${pdfHash}`);
+
     // Save PDF
     const pdfFilename = `${credentialUid}-certificate.pdf`;
     const pdfUrl = await this.saveFile(pdfBuffer, pdfFilename, 'application/pdf');
@@ -299,6 +311,27 @@ export class PdfService {
         qrCodeUrl,
       });
     }
+
+    // Update credential metadata with PDF hash
+    const existingMetadata = credential.metadata && typeof credential.metadata === 'object' 
+      ? credential.metadata as any 
+      : {};
+    
+    const existingPdfMeta = existingMetadata.pdf && typeof existingMetadata.pdf === 'object'
+      ? existingMetadata.pdf
+      : {};
+    
+    const updatedMetadata = {
+      ...existingMetadata,
+      pdf: {
+        ...existingPdfMeta,
+        hash: pdfHash,
+        generatedAt: new Date().toISOString(),
+        filename: pdfFilename,
+      },
+    };
+
+    await this.repository.updateCredentialMetadata(credential.id, updatedMetadata);
 
     logger.info(`PDF certificate generated for credential: ${credentialUid}`);
 
