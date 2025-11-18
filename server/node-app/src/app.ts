@@ -8,6 +8,7 @@ import { logger } from './utils/logger';
 import issuerRoutes from './modules/issuer/routes';
 import learnerRoutes from './modules/learner/routes';
 import adminRoutes from './modules/admin/routes';
+import credentialRoutes from './modules/credential/routes';
 
 // Load environment variables
 dotenv.config();
@@ -55,6 +56,7 @@ app.get('/health', (req, res) => {
 app.use('/auth/issuer', issuerRoutes);
 app.use('/auth/learner', learnerRoutes);
 app.use('/auth/admin', adminRoutes);
+app.use('/credentials', credentialRoutes);
 
 // Root route
 app.get('/', (req, res) => {

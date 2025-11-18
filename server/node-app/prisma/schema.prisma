@@ -32,6 +32,7 @@ model issuer {
   created_at                  DateTime  @default(now())
 
   apiKeys                     issuer_api_key[]
+  credentials                 credential[]
 }
 
 model issuer_api_key {
@@ -62,6 +63,8 @@ model learner {
   status                 String    @default("active")
   other_emails           String[]
   created_at             DateTime  @default(now())
+
+  credentials            credential[]
 }
 
 model admin {
@@ -86,3 +89,48 @@ model registration_session {
   @@index([phone])
   @@index([expires_at])
 }
+
+model credential {
+  id              Int       @id @default(autoincrement())
+  issuer_id       Int
+  learner_id      Int?
+  credential_uid  String    @unique
+  metadata        Json
+  status          String    @default("issued") // issued, claimed, revoked
+  issued_at       DateTime  @default(now())
+  claimed_at      DateTime?
+
+  issuer          issuer    @relation(fields: [issuer_id], references: [id])
+  learner         learner?  @relation(fields: [learner_id], references: [id])
+  
+  blockchain_record  blockchain_record?
+  pdf_certificate    pdf_certificate?
+
+  @@index([issuer_id])
+  @@index([learner_id])
+  @@index([credential_uid])
+  @@index([status])
+}
+
+model blockchain_record {
+  id                 Int       @id @default(autoincrement())
+  credential_id      Int       @unique
+  blockchain_tx_id   String
+  hash_value         String
+  stored_at          DateTime  @default(now())
+
+  credential         credential @relation(fields: [credential_id], references: [id])
+
+  @@index([blockchain_tx_id])
+}
+
+model pdf_certificate {
+  id             Int       @id @default(autoincrement())
+  credential_id  Int       @unique
+  pdf_url        String
+  qr_code_url    String?
+  created_at     DateTime  @default(now())
+
+  credential     credential @relation(fields: [credential_id], references: [id])
+}
+
