@@ -76,10 +76,10 @@ paths:
                   description: Unique credential identifier
                 templateType:
                   type: string
-                  enum: [standard, advanced]
+                  enum: [standard, achievement, course]
                   default: standard
                   example: standard
-                  description: Certificate template design
+                  description: Certificate template design (optional)
       responses:
         '201':
           description: Certificate generated successfully
@@ -138,7 +138,7 @@ paths:
                 success: false
                 message: Credential not found
 
-  /pdf/{credential_uid}:
+  /pdf/{credentialUid}:
     get:
       tags:
         - Certificate Access
@@ -147,7 +147,7 @@ paths:
         Get PDF certificate details by credential UID. Public endpoint, no authentication required.
         Returns URLs for both PDF and QR code.
       parameters:
-        - name: credential_uid
+        - name: credentialUid
           in: path
           required: true
           schema:
@@ -179,7 +179,7 @@ paths:
                 success: false
                 message: PDF certificate not found for this credential
 
-  /pdf/{credential_uid}/download:
+  /pdf/{credentialUid}/download:
     get:
       tags:
         - Certificate Access
@@ -188,7 +188,7 @@ paths:
         Download the PDF certificate file. Public endpoint, no authentication required.
         File is downloaded from Amazon S3 and streamed to the client.
       parameters:
-        - name: credential_uid
+        - name: credentialUid
           in: path
           required: true
           schema:

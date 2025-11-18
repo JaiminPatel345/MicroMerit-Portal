@@ -9,18 +9,11 @@ import oauthRoutes from '../learner-oauth/routes';
 
 const router = Router();
 
-// Three-step registration routes (new)
+// Three-step registration routes
 router.use('/', registrationRoutes);
 
-// OAuth routes (new)
+// OAuth routes
 router.use('/oauth', oauthRoutes);
-
-// Public routes (legacy/additional)
-router.post(
-  '/register',
-  registrationRateLimiter,
-  asyncHandler(learnerController.register.bind(learnerController))
-);
 
 router.post(
   '/login',

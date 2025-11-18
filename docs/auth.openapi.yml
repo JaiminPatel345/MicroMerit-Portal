@@ -211,7 +211,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
     
-    patch:
+    put:
       tags:
         - Issuer Auth
       summary: Update issuer profile
@@ -245,35 +245,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 
-  /issuer/api-keys:
-    get:
-      tags:
-        - Issuer API Keys
-      summary: List all API keys
-      description: Get all API keys for the authenticated issuer
-      security:
-        - BearerAuth: []
-      responses:
-        '200':
-          description: API keys retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: API keys retrieved successfully
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ApiKey'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-    
+  /issuer/api-key/create:
     post:
       tags:
         - Issuer API Keys
@@ -303,6 +275,14 @@ paths:
                   maximum: 1000
                   default: 60
                   example: 100
+                expires_at:
+                  type: string
+                  format: date-time
+                  description: Optional expiry date for the API key
+                allowed_ips:
+                  type: string
+                  description: Optional comma-separated list of allowed IP addresses
+                  example: "192.168.1.1,10.0.0.1"
       responses:
         '201':
           description: API key created successfully
@@ -325,7 +305,7 @@ paths:
                           api_key:
                             type: string
                             description: Full API key (only shown once)
-                            example: mmk_1234567890abcdef1234567890abcdef
+                            example: mk_1234567890abcdef1234567890abcdef
         '400':
           $ref: '#/components/responses/ValidationError'
         '401':
@@ -333,8 +313,37 @@ paths:
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
-  /issuer/api-keys/{id}:
-    delete:
+  /issuer/api-key/list:
+    get:
+      tags:
+        - Issuer API Keys
+      summary: List all API keys
+      description: Get all API keys for the authenticated issuer
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: API keys retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: API keys retrieved successfully
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApiKey'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /issuer/api-key/revoke/{id}:
+    post:
       tags:
         - Issuer API Keys
       summary: Revoke API key
@@ -346,8 +355,7 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            format: uuid
+            type: integer
           description: API key ID
       responses:
         '200':
@@ -363,6 +371,42 @@ paths:
                   message:
                     type: string
                     example: API key revoked successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /issuer/api-key/{id}:
+    get:
+      tags:
+        - Issuer API Keys
+      summary: Get API key details
+      description: Get details of a specific API key (masked key for security)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: API key ID
+      responses:
+        '200':
+          description: API key details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: API key details retrieved
+                  data:
+                    $ref: '#/components/schemas/ApiKey'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':
@@ -515,7 +559,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
     
-    patch:
+    put:
       tags:
         - Learner Auth
       summary: Update learner profile
@@ -892,26 +936,45 @@ components:
     IssuerRegistration:
       type: object
       required:
-        - organization_name
+        - name
         - email
         - password
-        - contact_person_name
-        - phone_number
+        - type
       properties:
-        organization_name:
+        name:
           type: string
-          minLength: 1
-          maxLength: 200
+          minLength: 3
+          maxLength: 255
           example: Tech University
-        organization_type:
+          description: Organization name
+        official_domain:
           type: string
-          maxLength: 100
-          example: Educational Institution
+          format: uri
+          maxLength: 255
+          example: https://techuniversity.edu
+          description: Official domain URL (optional)
+        website_url:
+          type: string
+          format: uri
+          maxLength: 255
+          example: https://www.techuniversity.edu
+          description: Website URL (optional)
+        type:
+          type: string
+          enum: [university, edtech, company, training_provider]
+          example: university
+          description: Organization type
         email:
           type: string
           format: email
           maxLength: 255
           example: admin@techuniversity.edu
+        phone:
+          type: string
+          pattern: '^\+?[1-9]\d{1,14}$'
+          maxLength: 15
+          example: '+1234567890'
+          description: Phone number (optional)
         password:
           type: string
           minLength: 8
@@ -919,28 +982,34 @@ components:
           example: SecurePass123!
         contact_person_name:
           type: string
-          minLength: 1
-          maxLength: 100
+          minLength: 2
+          maxLength: 255
           example: John Doe
-        phone_number:
+          description: Contact person name (optional)
+        contact_person_designation:
           type: string
-          minLength: 10
-          maxLength: 15
-          example: '+1234567890'
+          minLength: 2
+          maxLength: 255
+          example: Director
+          description: Contact person designation (optional)
         address:
           type: string
-          maxLength: 500
+          minLength: 10
+          maxLength: 1000
           example: 123 University Ave, City, State 12345
-        website:
+          description: Organization address (optional)
+        kyc_document_url:
           type: string
           format: uri
-          maxLength: 255
-          example: https://www.techuniversity.edu
+          maxLength: 500
+          example: https://cdn.techuniversity.edu/kyc.pdf
+          description: KYC document URL (optional)
         logo_url:
           type: string
           format: uri
           maxLength: 500
           example: https://cdn.techuniversity.edu/logo.png
+          description: Organization logo URL (optional)
 
     IssuerLogin:
       type: object
@@ -963,31 +1032,46 @@ components:
           type: string
           format: uuid
           example: 123e4567-e89b-12d3-a456-426614174000
-        organization_name:
+        name:
           type: string
           example: Tech University
-        organization_type:
+          description: Organization name
+        official_domain:
           type: string
           nullable: true
-          example: Educational Institution
+          example: https://techuniversity.edu
+        website_url:
+          type: string
+          nullable: true
+          example: https://www.techuniversity.edu
+        type:
+          type: string
+          enum: [university, edtech, company, training_provider]
+          example: university
         email:
           type: string
           format: email
           example: admin@techuniversity.edu
+        phone:
+          type: string
+          nullable: true
+          example: '+1234567890'
         contact_person_name:
           type: string
+          nullable: true
           example: John Doe
-        phone_number:
+        contact_person_designation:
           type: string
-          example: '+1234567890'
+          nullable: true
+          example: Director
         address:
           type: string
           nullable: true
           example: 123 University Ave, City, State 12345
-        website:
+        kyc_document_url:
           type: string
           nullable: true
-          example: https://www.techuniversity.edu
+          example: https://cdn.techuniversity.edu/kyc.pdf
         logo_url:
           type: string
           nullable: true
@@ -999,6 +1083,9 @@ components:
         rejection_reason:
           type: string
           nullable: true
+        is_blocked:
+          type: boolean
+          example: false
         blocked_reason:
           type: string
           nullable: true
@@ -1024,50 +1111,70 @@ components:
     IssuerProfileUpdate:
       type: object
       properties:
-        organization_name:
+        name:
           type: string
-          minLength: 1
-          maxLength: 200
-        organization_type:
-          type: string
-          maxLength: 100
-        contact_person_name:
-          type: string
-          minLength: 1
-          maxLength: 100
-        phone_number:
-          type: string
-          minLength: 10
-          maxLength: 15
-        address:
-          type: string
-          maxLength: 500
-        website:
+          minLength: 3
+          maxLength: 255
+          description: Organization name (optional)
+        official_domain:
           type: string
           format: uri
+          description: Official domain URL (optional)
+        website_url:
+          type: string
+          format: uri
+          description: Website URL (optional)
+        type:
+          type: string
+          enum: [university, edtech, company, training_provider]
+          description: Organization type (optional)
+        phone:
+          type: string
+          pattern: '^\+?[1-9]\d{1,14}$'
+          description: Phone number (optional)
+        contact_person_name:
+          type: string
+          minLength: 2
           maxLength: 255
+          description: Contact person name (optional)
+        contact_person_designation:
+          type: string
+          minLength: 2
+          maxLength: 255
+          description: Contact person designation (optional)
+        address:
+          type: string
+          minLength: 10
+          maxLength: 1000
+          description: Organization address (optional)
+        kyc_document_url:
+          type: string
+          format: uri
+          description: KYC document URL (optional)
         logo_url:
           type: string
           format: uri
-          maxLength: 500
+          description: Organization logo URL (optional)
 
     ApiKey:
       type: object
       properties:
         id:
-          type: string
-          format: uuid
-          example: 123e4567-e89b-12d3-a456-426614174001
+          type: integer
+          example: 1
         issuer_id:
-          type: string
-          format: uuid
+          type: integer
+          example: 1
         name:
           type: string
           example: Production API Key
-        key_prefix:
+        api_key:
           type: string
-          example: mmk_1234
-          description: First 8 characters of the API key for identification
+          example: mk_1234...abcd
+          description: Masked API key (only first 7 and last 4 characters shown). Full key only shown once during creation.
+        active:
+          type: boolean
+          example: true
         rate_limit_per_minute:
           type: integer
           example: 60
@@ -1082,44 +1189,56 @@ components:
           type: string
           format: date-time
           nullable: true
-        is_active:
-          type: boolean
-          example: true
+        allowed_ips:
+          type: string
+          nullable: true
+          example: "192.168.1.1,10.0.0.1"
+        revoked_reason:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
-        revoked_at:
-          type: string
-          format: date-time
-          nullable: true
 
     LearnerRegistration:
       type: object
       required:
-        - name
         - password
       properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 100
-          example: Jane Smith
         email:
           type: string
           format: email
           maxLength: 255
           example: jane.smith@example.com
-        phone_number:
+          description: Email address (optional, but either email or phone is required)
+        phone:
           type: string
-          minLength: 10
+          pattern: '^\+?[1-9]\d{1,14}$'
           maxLength: 15
           example: '+9876543210'
+          description: Phone number (optional, but either email or phone is required)
         password:
           type: string
           minLength: 8
           maxLength: 100
           example: SecurePass123!
-      description: Either email or phone_number must be provided
+        profileFolder:
+          type: string
+          description: Profile folder path (optional)
+        profileUrl:
+          type: string
+          format: uri
+          description: Profile photo URL (optional)
+        external_digilocker_id:
+          type: string
+          description: DigiLocker ID (optional)
+        other_emails:
+          type: array
+          items:
+            type: string
+            format: email
+          description: Additional email addresses (optional)
+      description: Either email or phone must be provided
 
     LearnerLogin:
       type: object
@@ -1130,13 +1249,16 @@ components:
           type: string
           format: email
           example: jane.smith@example.com
-        phone_number:
+          description: Email address (optional, but either email or phone is required)
+        phone:
           type: string
+          pattern: '^\+?[1-9]\d{1,14}$'
           example: '+9876543210'
+          description: Phone number (optional, but either email or phone is required)
         password:
           type: string
           example: SecurePass123!
-      description: Either email or phone_number must be provided
+      description: Either email or phone must be provided
 
     LearnerProfile:
       type: object
@@ -1145,18 +1267,29 @@ components:
           type: string
           format: uuid
           example: 123e4567-e89b-12d3-a456-426614174002
-        name:
-          type: string
-          example: Jane Smith
         email:
           type: string
           format: email
           nullable: true
           example: jane.smith@example.com
-        phone_number:
+        phone:
           type: string
           nullable: true
           example: '+9876543210'
+        profileFolder:
+          type: string
+          nullable: true
+        profileUrl:
+          type: string
+          nullable: true
+        external_digilocker_id:
+          type: string
+          nullable: true
+        other_emails:
+          type: array
+          items:
+            type: string
+            format: email
         status:
           type: string
           enum: [active, suspended]
@@ -1171,28 +1304,43 @@ components:
     LearnerProfileUpdate:
       type: object
       properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 100
         email:
           type: string
           format: email
           maxLength: 255
-        phone_number:
+          description: Email address (optional)
+        phone:
           type: string
-          minLength: 10
+          pattern: '^\+?[1-9]\d{1,14}$'
           maxLength: 15
+          description: Phone number (optional)
+        profileFolder:
+          type: string
+          description: Profile folder path (optional)
+        profileUrl:
+          type: string
+          format: uri
+          description: Profile photo URL (optional)
+        external_digilocker_id:
+          type: string
+          description: DigiLocker ID (optional)
+        other_emails:
+          type: array
+          items:
+            type: string
+            format: email
+          description: Additional email addresses (optional)
 
     AdminLogin:
       type: object
       required:
-        - username
+        - email
         - password
       properties:
-        username:
+        email:
           type: string
-          example: admin
+          format: email
+          example: admin@micromerit.com
         password:
           type: string
           example: AdminPass123!

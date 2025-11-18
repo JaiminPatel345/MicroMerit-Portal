@@ -30,7 +30,7 @@ tags:
     description: Three-step learner registration with OTP verification
 
 paths:
-  /learner/registration/start:
+  /learner/start-register:
     post:
       tags:
         - Registration
@@ -50,12 +50,14 @@ paths:
                   format: email
                   maxLength: 255
                   example: learner@example.com
-                phone_number:
+                  description: Email address (optional, but either email or phone is required)
+                phone:
                   type: string
-                  minLength: 10
+                  pattern: '^\+?[1-9]\d{1,14}$'
                   maxLength: 15
                   example: '+1234567890'
-              description: Either email OR phone_number is required
+                  description: Phone number (optional, but either email or phone is required)
+              description: Either email OR phone is required
       responses:
         '200':
           description: OTP sent successfully
@@ -73,14 +75,14 @@ paths:
                   data:
                     type: object
                     properties:
-                      session_id:
+                      sessionId:
                         type: string
                         format: uuid
                         example: 123e4567-e89b-12d3-a456-426614174000
-                      contact:
+                      message:
                         type: string
-                        example: learner@example.com
-                      expires_at:
+                        example: OTP sent to email
+                      expiresAt:
                         type: string
                         format: date-time
         '400':
@@ -97,7 +99,7 @@ paths:
         '429':
           $ref: '#/components/responses/RateLimitError'
 
-  /learner/registration/verify-otp:
+  /learner/verify-otp:
     post:
       tags:
         - Registration
@@ -105,6 +107,7 @@ paths:
       description: |
         Verify the OTP sent to email or phone number.
         The session must be verified before completing registration.
+        Returns a temporary token for step 3.
       requestBody:
         required: true
         content:
@@ -112,17 +115,17 @@ paths:
             schema:
               type: object
               required:
-                - session_id
+                - sessionId
                 - otp
               properties:
-                session_id:
+                sessionId:
                   type: string
                   format: uuid
                   example: 123e4567-e89b-12d3-a456-426614174000
                 otp:
                   type: string
-                  minLength: 6
-                  maxLength: 6
+                  length: 6
+                  pattern: '^\d{6}$'
                   example: '123456'
       responses:
         '200':
@@ -141,12 +144,13 @@ paths:
                   data:
                     type: object
                     properties:
-                      session_id:
+                      message:
                         type: string
-                        format: uuid
-                      verified:
-                        type: boolean
-                        example: true
+                        example: OTP verified successfully
+                      tempToken:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                        description: Temporary token valid for 15 minutes to complete registration
         '400':
           description: Invalid OTP or session
           content:
@@ -161,7 +165,7 @@ paths:
                 session_expired:
                   value:
                     success: false
-                    message: Registration session has expired
+                    message: OTP expired
                 already_verified:
                   value:
                     success: false
@@ -169,7 +173,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
-  /learner/registration/complete:
+  /learner/complete-register:
     post:
       tags:
         - Registration
@@ -178,7 +182,10 @@ paths:
         Complete the registration process after OTP verification.
         Creates the learner account and returns JWT tokens.
         
+        **Important**: Requires temporary token from step 2 in Authorization header.
         **Note**: Password is optional for OAuth-based registrations.
+      security:
+        - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -186,17 +193,12 @@ paths:
             schema:
               type: object
               required:
-                - session_id
                 - name
               properties:
-                session_id:
-                  type: string
-                  format: uuid
-                  example: 123e4567-e89b-12d3-a456-426614174000
                 name:
                   type: string
                   minLength: 1
-                  maxLength: 100
+                  maxLength: 255
                   example: John Doe
                 password:
                   type: string
@@ -204,14 +206,19 @@ paths:
                   maxLength: 100
                   example: SecurePass123!
                   description: Optional for OAuth registrations
-                google_id:
+                profilePhotoUrl:
                   type: string
-                  maxLength: 255
-                  description: Google OAuth ID (if applicable)
-                digilocker_id:
-                  type: string
-                  maxLength: 255
-                  description: DigiLocker ID (if applicable)
+                  format: uri
+                  example: https://example.com/photo.jpg
+                  description: Profile photo URL (optional)
+                otherEmails:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                  default: []
+                  example: ["alternate@example.com"]
+                  description: Additional email addresses (optional)
       responses:
         '201':
           description: Registration completed successfully
@@ -229,6 +236,9 @@ paths:
                   data:
                     type: object
                     properties:
+                      message:
+                        type: string
+                        example: Registration completed successfully
                       learner:
                         $ref: '#/components/schemas/LearnerProfile'
                       accessToken:
@@ -247,22 +257,38 @@ paths:
                 unverified_session:
                   value:
                     success: false
-                    message: Session not verified. Please verify OTP first.
+                    message: Session not verified
                 expired_session:
                   value:
                     success: false
-                    message: Registration session has expired
+                    message: Session expired
                 validation_error:
                   value:
                     success: false
                     message: Validation error
                     errors:
-                      - field: password
-                        message: Password must be at least 8 characters
+                      - field: name
+                        message: Name is required
+        '401':
+          description: Missing or invalid temporary token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Temporary token required
         '404':
           $ref: '#/components/responses/NotFoundError'
 
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Temporary JWT token from verify-otp step (valid for 15 minutes)
+
   schemas:
     LearnerProfile:
       type: object
@@ -271,24 +297,24 @@ components:
           type: string
           format: uuid
           example: 123e4567-e89b-12d3-a456-426614174002
-        name:
-          type: string
-          example: John Doe
         email:
           type: string
           format: email
           nullable: true
           example: learner@example.com
-        phone_number:
+        phone:
           type: string
           nullable: true
           example: '+1234567890'
-        google_id:
+        profileUrl:
           type: string
           nullable: true
-        digilocker_id:
-          type: string
-          nullable: true
+          format: uri
+        otherEmails:
+          type: array
+          items:
+            type: string
+            format: email
         status:
           type: string
           enum: [active, suspended]
