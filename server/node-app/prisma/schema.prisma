@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model issuer {
+  id                          Int       @id @default(autoincrement())
+  name                        String
+  official_domain             String?
+  website_url                 String?
+  type                        String    // enum: university, edtech, company, training_provider
+  email                       String    @unique
+  phone                       String?
+  password_hash               String?
+  contact_person_name         String?
+  contact_person_designation  String?
+  address                     String?
+  kyc_document_url            String?
+  logo_url                    String?
+  status                      String    @default("pending") // pending, approved, rejected
+  approved_at                 DateTime?
+  rejected_reason             String?
+  is_blocked                  Boolean   @default(false)
+  blocked_reason              String?
+  created_at                  DateTime  @default(now())
+
+  apiKeys                     issuer_api_key[]
+}
+
+model issuer_api_key {
+  id                     Int      @id @default(autoincrement())
+  issuer_id              Int
+  name                   String
+  api_key                String   @unique
+  active                 Boolean  @default(true)
+  revoked_reason         String?
+  expires_at             DateTime?
+  last_used_at           DateTime?
+  usage_count            Int      @default(0)
+  rate_limit_per_minute  Int      @default(60)
+  allowed_ips            String?
+  created_at             DateTime @default(now())
+
+  issuer                 issuer   @relation(fields: [issuer_id], references: [id])
+}
+
+model learner {
+  id                     Int       @id @default(autoincrement())
+  email                  String?   @unique
+  phone                  String?   @unique
+  hashed_password        String?
+  profileFolder          String?
+  profileUrl             String?
+  external_digilocker_id String?
+  status                 String    @default("active")
+  other_emails           String[]
+  created_at             DateTime  @default(now())
+}
+
+model admin {
+  id             Int      @id @default(autoincrement())
+  email          String   @unique
+  password_hash  String
+  created_at     DateTime @default(now())
+}
