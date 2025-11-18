@@ -4,10 +4,14 @@ import { authenticateToken } from '../../middleware/auth';
 import { requireLearner } from '../../middleware/role';
 import { asyncHandler } from '../../middleware/error';
 import { authRateLimiter, registrationRateLimiter } from '../../middleware/rateLimit';
+import registrationRoutes from '../learner-registration/routes';
 
 const router = Router();
 
-// Public routes
+// Three-step registration routes (new)
+router.use('/', registrationRoutes);
+
+// Public routes (legacy/additional)
 router.post(
   '/register',
   registrationRateLimiter,

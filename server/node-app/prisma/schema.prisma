@@ -70,3 +70,19 @@ model admin {
   password_hash  String
   created_at     DateTime @default(now())
 }
+
+model registration_session {
+  id                  String    @id @default(uuid())
+  email               String?
+  phone               String?
+  otp_hash            String
+  is_verified         Boolean   @default(false)
+  verification_method String    // 'email' or 'phone'
+  expires_at          DateTime
+  verified_at         DateTime?
+  created_at          DateTime  @default(now())
+
+  @@index([email])
+  @@index([phone])
+  @@index([expires_at])
+}

@@ -32,6 +32,24 @@ export const generateTokens = (payload: JWTPayload): TokenResponse => {
 };
 
 /**
+ * Generate access token with custom payload and expiry
+ */
+export const generateAccessToken = (payload: any, expiresIn?: string): string => {
+  return jwt.sign(payload, JWT_SECRET, {
+    expiresIn: expiresIn || JWT_ACCESS_TOKEN_EXPIRY,
+  } as SignOptions);
+};
+
+/**
+ * Generate refresh token with custom payload and expiry
+ */
+export const generateRefreshToken = (payload: any, expiresIn?: string): string => {
+  return jwt.sign(payload, JWT_REFRESH_SECRET, {
+    expiresIn: expiresIn || JWT_REFRESH_TOKEN_EXPIRY,
+  } as SignOptions);
+};
+
+/**
  * Verify access token
  */
 export const verifyAccessToken = (token: string): JWTPayload => {
