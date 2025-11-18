@@ -551,6 +551,365 @@ paths:
                 message: Invalid session ID
                 statusCode: 404
 
+  /auth/learner/add-primary-email/request:
+    post:
+      tags:
+        - Email Management
+      summary: Request to add primary email (for phone-registered users)
+      description: |
+        Allows learners who registered with phone number to add their primary email.
+        An OTP will be sent to the provided email for verification.
+        
+        **Use Case**: For learners who registered with only a phone number.
+        After registration, they can add their primary email using this endpoint.
+        
+        **IMPORTANT - Authentication Required**: 
+        This endpoint requires authentication. The learner must be logged in.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 255
+                  example: primary@example.com
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: OTP sent successfully
+                  data:
+                    type: object
+                    properties:
+                      sessionId:
+                        type: string
+                        format: uuid
+                        example: 123e4567-e89b-12d3-a456-426614174002
+                      message:
+                        type: string
+                        example: OTP sent to email
+                      expiresAt:
+                        type: string
+                        format: date-time
+        '400':
+          description: Validation error or duplicate email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                already_has_email:
+                  summary: Learner already has primary email
+                  value:
+                    success: false
+                    message: Primary email already exists. Use add-email endpoint to add additional emails.
+                    statusCode: 400
+                email_registered:
+                  summary: Email already registered to another user
+                  value:
+                    success: false
+                    message: Email is already registered
+                    statusCode: 400
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /auth/learner/add-primary-email/verify:
+    post:
+      tags:
+        - Email Management
+      summary: Verify OTP and add primary email
+      description: |
+        Verify the OTP sent to email and add it as the learner's primary email.
+        
+        **IMPORTANT - Authentication Required**: 
+        This endpoint requires authentication. The learner must be logged in.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sessionId
+                - otp
+              properties:
+                sessionId:
+                  type: string
+                  format: uuid
+                  example: 123e4567-e89b-12d3-a456-426614174002
+                otp:
+                  type: string
+                  length: 6
+                  pattern: '^\d{6}$'
+                  example: '123456'
+      responses:
+        '200':
+          description: Primary email added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Primary email added successfully
+                  data:
+                    type: object
+                    properties:
+                      email:
+                        type: string
+                        format: email
+                        example: primary@example.com
+                      message:
+                        type: string
+                        example: Primary email added successfully
+        '400':
+          description: Invalid OTP or session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_otp:
+                  summary: Incorrect OTP code
+                  value:
+                    success: false
+                    message: Invalid OTP
+                    statusCode: 400
+                otp_expired:
+                  summary: OTP expired (>10 minutes)
+                  value:
+                    success: false
+                    message: OTP expired
+                    statusCode: 400
+                already_verified:
+                  summary: Session already verified
+                  value:
+                    success: false
+                    message: Session already verified
+                    statusCode: 400
+                wrong_type:
+                  summary: Session is not for email verification
+                  value:
+                    success: false
+                    message: Invalid session type
+                    statusCode: 400
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Invalid session ID
+                statusCode: 404
+
+  /auth/learner/add-primary-phone/request:
+    post:
+      tags:
+        - Email Management
+      summary: Request to add primary phone (for email-registered users)
+      description: |
+        Allows learners who registered with email to add their primary phone number.
+        An OTP will be sent to the provided phone via SMS for verification.
+        
+        **Use Case**: For learners who registered with only an email.
+        After registration, they can add their primary phone number using this endpoint.
+        
+        **IMPORTANT - Authentication Required**: 
+        This endpoint requires authentication. The learner must be logged in.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - phone
+              properties:
+                phone:
+                  type: string
+                  pattern: '^\+?[1-9]\d{1,14}$'
+                  maxLength: 15
+                  example: '+1234567890'
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: OTP sent successfully
+                  data:
+                    type: object
+                    properties:
+                      sessionId:
+                        type: string
+                        format: uuid
+                        example: 123e4567-e89b-12d3-a456-426614174003
+                      message:
+                        type: string
+                        example: OTP sent to phone
+                      expiresAt:
+                        type: string
+                        format: date-time
+        '400':
+          description: Validation error or duplicate phone
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                already_has_phone:
+                  summary: Learner already has primary phone
+                  value:
+                    success: false
+                    message: Primary phone already exists.
+                    statusCode: 400
+                phone_registered:
+                  summary: Phone already registered to another user
+                  value:
+                    success: false
+                    message: Phone is already registered
+                    statusCode: 400
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /auth/learner/add-primary-phone/verify:
+    post:
+      tags:
+        - Email Management
+      summary: Verify OTP and add primary phone
+      description: |
+        Verify the OTP sent via SMS and add it as the learner's primary phone.
+        
+        **IMPORTANT - Authentication Required**: 
+        This endpoint requires authentication. The learner must be logged in.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sessionId
+                - otp
+              properties:
+                sessionId:
+                  type: string
+                  format: uuid
+                  example: 123e4567-e89b-12d3-a456-426614174003
+                otp:
+                  type: string
+                  length: 6
+                  pattern: '^\d{6}$'
+                  example: '123456'
+      responses:
+        '200':
+          description: Primary phone added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Primary phone added successfully
+                  data:
+                    type: object
+                    properties:
+                      phone:
+                        type: string
+                        example: '+1234567890'
+                      message:
+                        type: string
+                        example: Primary phone added successfully
+        '400':
+          description: Invalid OTP or session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_otp:
+                  summary: Incorrect OTP code
+                  value:
+                    success: false
+                    message: Invalid OTP
+                    statusCode: 400
+                otp_expired:
+                  summary: OTP expired (>10 minutes)
+                  value:
+                    success: false
+                    message: OTP expired
+                    statusCode: 400
+                already_verified:
+                  summary: Session already verified
+                  value:
+                    success: false
+                    message: Session already verified
+                    statusCode: 400
+                wrong_type:
+                  summary: Session is not for phone verification
+                  value:
+                    success: false
+                    message: Invalid session type
+                    statusCode: 400
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Invalid session ID
+                statusCode: 404
+
 components:
   securitySchemes:
     BearerAuth:

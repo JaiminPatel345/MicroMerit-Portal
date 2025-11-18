@@ -129,6 +129,57 @@ export class LearnerRepository {
       },
     });
   }
+
+  /**
+   * Primary contact verification session methods
+   */
+  async createPrimaryContactVerificationSession(data: {
+    learnerId: number;
+    contactType: 'email' | 'phone';
+    contactValue: string;
+    otpHash: string;
+    expiresAt: Date;
+  }) {
+    return prisma.primary_contact_verification_session.create({
+      data: {
+        learner_id: data.learnerId,
+        contact_type: data.contactType,
+        contact_value: data.contactValue,
+        otp_hash: data.otpHash,
+        expires_at: data.expiresAt,
+      },
+    });
+  }
+
+  async findPrimaryContactVerificationSessionById(sessionId: string) {
+    return prisma.primary_contact_verification_session.findUnique({
+      where: { id: sessionId },
+    });
+  }
+
+  async markPrimaryContactVerificationSessionAsVerified(sessionId: string) {
+    return prisma.primary_contact_verification_session.update({
+      where: { id: sessionId },
+      data: {
+        is_verified: true,
+        verified_at: new Date(),
+      },
+    });
+  }
+
+  async updateLearnerPrimaryEmail(learnerId: number, email: string): Promise<learner> {
+    return prisma.learner.update({
+      where: { id: learnerId },
+      data: { email },
+    });
+  }
+
+  async updateLearnerPrimaryPhone(learnerId: number, phone: string): Promise<learner> {
+    return prisma.learner.update({
+      where: { id: learnerId },
+      data: { phone },
+    });
+  }
 }
 
 export const learnerRepository = new LearnerRepository();

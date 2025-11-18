@@ -57,4 +57,35 @@ router.post(
   asyncHandler(learnerController.verifyAddEmail.bind(learnerController))
 );
 
+// Primary contact management routes
+router.post(
+  '/add-primary-email/request',
+  authenticateToken,
+  requireLearner,
+  authRateLimiter,
+  asyncHandler(learnerController.requestAddPrimaryEmail.bind(learnerController))
+);
+
+router.post(
+  '/add-primary-email/verify',
+  authenticateToken,
+  requireLearner,
+  asyncHandler(learnerController.verifyPrimaryEmail.bind(learnerController))
+);
+
+router.post(
+  '/add-primary-phone/request',
+  authenticateToken,
+  requireLearner,
+  authRateLimiter,
+  asyncHandler(learnerController.requestAddPrimaryPhone.bind(learnerController))
+);
+
+router.post(
+  '/add-primary-phone/verify',
+  authenticateToken,
+  requireLearner,
+  asyncHandler(learnerController.verifyPrimaryPhone.bind(learnerController))
+);
+
 export default router;

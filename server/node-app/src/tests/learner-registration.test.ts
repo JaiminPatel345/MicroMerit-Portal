@@ -199,7 +199,6 @@ describe('RegistrationService', () => {
       const input = {
         name: 'John Doe',
         profilePhotoUrl: 'https://example.com/photo.jpg',
-        otherEmails: ['john@gmail.com'],
         password: 'SecurePass123',
       };
       const mockSession = {
@@ -219,7 +218,7 @@ describe('RegistrationService', () => {
         phone: null,
         hashed_password: 'hashed-password',
         profileUrl: 'https://example.com/photo.jpg',
-        other_emails: ['john@gmail.com'],
+        other_emails: [],
         status: 'active',
         created_at: new Date(),
       };
@@ -239,7 +238,7 @@ describe('RegistrationService', () => {
         phone: undefined,
         hashedPassword: 'hashed-password',
         profileUrl: 'https://example.com/photo.jpg',
-        otherEmails: ['john@gmail.com'],
+        otherEmails: [],
       });
       expect(result.learner.id).toBe(1);
       expect(result.accessToken).toBe('access-token');
@@ -251,7 +250,6 @@ describe('RegistrationService', () => {
       const input = {
         name: 'Jane Doe',
         profilePhotoUrl: 'https://example.com/jane.jpg',
-        otherEmails: [],
       };
       const mockSession = {
         id: 'session-456',
@@ -291,7 +289,6 @@ describe('RegistrationService', () => {
       const input = {
         name: 'Test User',
         password: 'password123',
-        otherEmails: [],
       };
 
       mockRepository.findSessionById = jest.fn().mockResolvedValue(null);
@@ -304,7 +301,6 @@ describe('RegistrationService', () => {
       const input = {
         name: 'Test User',
         password: 'password123',
-        otherEmails: [],
       };
       const mockSession = {
         id: 'session-123',
@@ -328,7 +324,6 @@ describe('RegistrationService', () => {
       const input = {
         name: 'Test User',
         password: 'password123',
-        otherEmails: [],
       };
       const mockSession = {
         id: 'session-123',

@@ -64,3 +64,41 @@ export const verifyEmailOTPSchema = z.object({
 });
 
 export type VerifyEmailOTPInput = z.infer<typeof verifyEmailOTPSchema>;
+
+/**
+ * Request to add primary email schema (for phone-registered users)
+ */
+export const requestAddPrimaryEmailSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
+
+export type RequestAddPrimaryEmailInput = z.infer<typeof requestAddPrimaryEmailSchema>;
+
+/**
+ * Verify and set primary email OTP schema
+ */
+export const verifyPrimaryEmailOTPSchema = z.object({
+  sessionId: z.string().uuid(),
+  otp: z.string().length(6).regex(/^\d{6}$/),
+});
+
+export type VerifyPrimaryEmailOTPInput = z.infer<typeof verifyPrimaryEmailOTPSchema>;
+
+/**
+ * Request to add primary phone schema (for email-registered users)
+ */
+export const requestAddPrimaryPhoneSchema = z.object({
+  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number'),
+});
+
+export type RequestAddPrimaryPhoneInput = z.infer<typeof requestAddPrimaryPhoneSchema>;
+
+/**
+ * Verify and set primary phone OTP schema
+ */
+export const verifyPrimaryPhoneOTPSchema = z.object({
+  sessionId: z.string().uuid(),
+  otp: z.string().length(6).regex(/^\d{6}$/),
+});
+
+export type VerifyPrimaryPhoneOTPInput = z.infer<typeof verifyPrimaryPhoneOTPSchema>;

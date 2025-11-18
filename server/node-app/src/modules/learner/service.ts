@@ -279,6 +279,208 @@ export class LearnerService {
       message: 'Email added successfully',
     };
   }
+
+  /**
+   * Request to add primary email (for learners who registered with phone)
+   */
+  async requestAddPrimaryEmail(learnerId: number, email: string): Promise<{ sessionId: string; message: string; expiresAt: Date }> {
+    // Check if learner exists
+    const learner = await learnerRepository.findById(learnerId);
+    if (!learner) {
+      throw new Error('Learner not found');
+    }
+
+    // Check if learner already has primary email
+    if (learner.email) {
+      throw new Error('Primary email already exists. Use add-email endpoint to add additional emails.');
+    }
+
+    // Check if email is already registered
+    const existingLearner = await learnerRepository.findByEmail(email);
+    if (existingLearner) {
+      throw new Error('Email is already registered');
+    }
+
+    // Generate OTP
+    const { generateOTP, hashOTP, getOTPExpiry } = require('../../utils/otp');
+    const { sendOTP } = require('../../utils/notification');
+    
+    const otp = generateOTP(6);
+    const otpHash = await hashOTP(otp);
+    const expiresAt = getOTPExpiry();
+
+    // Create verification session
+    const session = await learnerRepository.createPrimaryContactVerificationSession({
+      learnerId,
+      contactType: 'email',
+      contactValue: email,
+      otpHash,
+      expiresAt,
+    });
+
+    // Send OTP to email
+    await sendOTP('email', email, otp);
+
+    logger.info('Primary email addition OTP sent', { learnerId, email, sessionId: session.id });
+
+    return {
+      sessionId: session.id,
+      message: 'OTP sent to email',
+      expiresAt: session.expires_at,
+    };
+  }
+
+  /**
+   * Verify primary email OTP
+   */
+  async verifyPrimaryEmailOTP(learnerId: number, sessionId: string, otp: string): Promise<{ email: string; message: string }> {
+    // Find session
+    const session = await learnerRepository.findPrimaryContactVerificationSessionById(sessionId);
+    if (!session) {
+      throw new Error('Invalid session ID');
+    }
+
+    // Verify session belongs to learner
+    if (session.learner_id !== learnerId) {
+      throw new Error('Unauthorized access to session');
+    }
+
+    // Verify contact type
+    if (session.contact_type !== 'email') {
+      throw new Error('Invalid session type');
+    }
+
+    // Check if already verified
+    if (session.is_verified) {
+      throw new Error('Session already verified');
+    }
+
+    // Check if expired
+    if (new Date() > session.expires_at) {
+      throw new Error('OTP expired');
+    }
+
+    // Verify OTP
+    const { verifyOTP: verifyOTPUtil } = require('../../utils/otp');
+    const isValid = await verifyOTPUtil(otp, session.otp_hash);
+    if (!isValid) {
+      throw new Error('Invalid OTP');
+    }
+
+    // Mark session as verified
+    await learnerRepository.markPrimaryContactVerificationSessionAsVerified(sessionId);
+
+    // Update learner's primary email
+    await learnerRepository.updateLearnerPrimaryEmail(learnerId, session.contact_value);
+
+    logger.info('Primary email added to learner account', { learnerId, email: session.contact_value });
+
+    return {
+      email: session.contact_value,
+      message: 'Primary email added successfully',
+    };
+  }
+
+  /**
+   * Request to add primary phone (for learners who registered with email)
+   */
+  async requestAddPrimaryPhone(learnerId: number, phone: string): Promise<{ sessionId: string; message: string; expiresAt: Date }> {
+    // Check if learner exists
+    const learner = await learnerRepository.findById(learnerId);
+    if (!learner) {
+      throw new Error('Learner not found');
+    }
+
+    // Check if learner already has primary phone
+    if (learner.phone) {
+      throw new Error('Primary phone already exists.');
+    }
+
+    // Check if phone is already registered
+    const existingLearner = await learnerRepository.findByPhone(phone);
+    if (existingLearner) {
+      throw new Error('Phone is already registered');
+    }
+
+    // Generate OTP
+    const { generateOTP, hashOTP, getOTPExpiry } = require('../../utils/otp');
+    const { sendOTP } = require('../../utils/notification');
+    
+    const otp = generateOTP(6);
+    const otpHash = await hashOTP(otp);
+    const expiresAt = getOTPExpiry();
+
+    // Create verification session
+    const session = await learnerRepository.createPrimaryContactVerificationSession({
+      learnerId,
+      contactType: 'phone',
+      contactValue: phone,
+      otpHash,
+      expiresAt,
+    });
+
+    // Send OTP to phone
+    await sendOTP('sms', phone, otp);
+
+    logger.info('Primary phone addition OTP sent', { learnerId, phone, sessionId: session.id });
+
+    return {
+      sessionId: session.id,
+      message: 'OTP sent to phone',
+      expiresAt: session.expires_at,
+    };
+  }
+
+  /**
+   * Verify primary phone OTP
+   */
+  async verifyPrimaryPhoneOTP(learnerId: number, sessionId: string, otp: string): Promise<{ phone: string; message: string }> {
+    // Find session
+    const session = await learnerRepository.findPrimaryContactVerificationSessionById(sessionId);
+    if (!session) {
+      throw new Error('Invalid session ID');
+    }
+
+    // Verify session belongs to learner
+    if (session.learner_id !== learnerId) {
+      throw new Error('Unauthorized access to session');
+    }
+
+    // Verify contact type
+    if (session.contact_type !== 'phone') {
+      throw new Error('Invalid session type');
+    }
+
+    // Check if already verified
+    if (session.is_verified) {
+      throw new Error('Session already verified');
+    }
+
+    // Check if expired
+    if (new Date() > session.expires_at) {
+      throw new Error('OTP expired');
+    }
+
+    // Verify OTP
+    const { verifyOTP: verifyOTPUtil } = require('../../utils/otp');
+    const isValid = await verifyOTPUtil(otp, session.otp_hash);
+    if (!isValid) {
+      throw new Error('Invalid OTP');
+    }
+
+    // Mark session as verified
+    await learnerRepository.markPrimaryContactVerificationSessionAsVerified(sessionId);
+
+    // Update learner's primary phone
+    await learnerRepository.updateLearnerPrimaryPhone(learnerId, session.contact_value);
+
+    logger.info('Primary phone added to learner account', { learnerId, phone: session.contact_value });
+
+    return {
+      phone: session.contact_value,
+      message: 'Primary phone added successfully',
+    };
+  }
 }
 
 export const learnerService = new LearnerService();
