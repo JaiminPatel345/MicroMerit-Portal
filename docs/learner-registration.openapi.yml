@@ -1,0 +1,354 @@
+openapi: 3.0.3
+info:
+  title: MicroMerit Portal - Learner Registration API
+  description: |
+    Three-step learner registration module with OTP verification via email or SMS.
+    
+    ## Registration Flow
+    1. **Start Registration**: Initiate registration with email OR phone number
+    2. **Verify OTP**: Verify the OTP sent via email/SMS
+    3. **Complete Registration**: Finalize registration with password and profile details
+    
+    ## Features
+    - OTP verification via email (Nodemailer) or SMS (Twilio)
+    - Session-based registration with expiry (10 minutes default)
+    - Duplicate email/phone prevention
+    - Support for OAuth registration (password optional)
+  version: 1.0.0
+  contact:
+    name: MicroMerit Portal Team
+    email: support@micromerit.com
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://api.micromerit.com/api
+    description: Production server
+
+tags:
+  - name: Registration
+    description: Three-step learner registration with OTP verification
+
+paths:
+  /learner/registration/start:
+    post:
+      tags:
+        - Registration
+      summary: Start registration (Step 1)
+      description: |
+        Initiate the registration process by providing email OR phone number.
+        An OTP will be sent to the provided contact method.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 255
+                  example: learner@example.com
+                phone_number:
+                  type: string
+                  minLength: 10
+                  maxLength: 15
+                  example: '+1234567890'
+              description: Either email OR phone_number is required
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: OTP sent to your email
+                  data:
+                    type: object
+                    properties:
+                      session_id:
+                        type: string
+                        format: uuid
+                        example: 123e4567-e89b-12d3-a456-426614174000
+                      contact:
+                        type: string
+                        example: learner@example.com
+                      expires_at:
+                        type: string
+                        format: date-time
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Email or phone already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Email already registered
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /learner/registration/verify-otp:
+    post:
+      tags:
+        - Registration
+      summary: Verify OTP (Step 2)
+      description: |
+        Verify the OTP sent to email or phone number.
+        The session must be verified before completing registration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - session_id
+                - otp
+              properties:
+                session_id:
+                  type: string
+                  format: uuid
+                  example: 123e4567-e89b-12d3-a456-426614174000
+                otp:
+                  type: string
+                  minLength: 6
+                  maxLength: 6
+                  example: '123456'
+      responses:
+        '200':
+          description: OTP verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: OTP verified successfully
+                  data:
+                    type: object
+                    properties:
+                      session_id:
+                        type: string
+                        format: uuid
+                      verified:
+                        type: boolean
+                        example: true
+        '400':
+          description: Invalid OTP or session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_otp:
+                  value:
+                    success: false
+                    message: Invalid OTP
+                session_expired:
+                  value:
+                    success: false
+                    message: Registration session has expired
+                already_verified:
+                  value:
+                    success: false
+                    message: Session already verified
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /learner/registration/complete:
+    post:
+      tags:
+        - Registration
+      summary: Complete registration (Step 3)
+      description: |
+        Complete the registration process after OTP verification.
+        Creates the learner account and returns JWT tokens.
+        
+        **Note**: Password is optional for OAuth-based registrations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - session_id
+                - name
+              properties:
+                session_id:
+                  type: string
+                  format: uuid
+                  example: 123e4567-e89b-12d3-a456-426614174000
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: John Doe
+                password:
+                  type: string
+                  minLength: 8
+                  maxLength: 100
+                  example: SecurePass123!
+                  description: Optional for OAuth registrations
+                google_id:
+                  type: string
+                  maxLength: 255
+                  description: Google OAuth ID (if applicable)
+                digilocker_id:
+                  type: string
+                  maxLength: 255
+                  description: DigiLocker ID (if applicable)
+      responses:
+        '201':
+          description: Registration completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Registration completed successfully
+                  data:
+                    type: object
+                    properties:
+                      learner:
+                        $ref: '#/components/schemas/LearnerProfile'
+                      accessToken:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                      refreshToken:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '400':
+          description: Invalid session or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                unverified_session:
+                  value:
+                    success: false
+                    message: Session not verified. Please verify OTP first.
+                expired_session:
+                  value:
+                    success: false
+                    message: Registration session has expired
+                validation_error:
+                  value:
+                    success: false
+                    message: Validation error
+                    errors:
+                      - field: password
+                        message: Password must be at least 8 characters
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+components:
+  schemas:
+    LearnerProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174002
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          nullable: true
+          example: learner@example.com
+        phone_number:
+          type: string
+          nullable: true
+          example: '+1234567890'
+        google_id:
+          type: string
+          nullable: true
+        digilocker_id:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, suspended]
+          example: active
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: An error occurred
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Validation error
+            errors:
+              - field: email
+                message: Invalid email format
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Registration session not found
+
+    RateLimitError:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Too many requests. Please try again later.

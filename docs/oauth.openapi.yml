@@ -1,0 +1,301 @@
+openapi: 3.0.3
+info:
+  title: MicroMerit Portal - OAuth Authentication API
+  description: |
+    OAuth 2.0 authentication module supporting Google and DigiLocker.
+    
+    ## Supported OAuth Providers
+    - **Google OAuth 2.0**: Sign in with Google account
+    - **DigiLocker**: Authenticate with DigiLocker and fetch certificates
+    
+    ## Features
+    - Automatic learner account creation for new OAuth users
+    - Existing account linking by email/phone
+    - DigiLocker certificate fetching (without AI processing)
+    - JWT token generation for authenticated sessions
+  version: 1.0.0
+  contact:
+    name: MicroMerit Portal Team
+    email: support@micromerit.com
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://api.micromerit.com/api
+    description: Production server
+
+tags:
+  - name: Google OAuth
+    description: Google OAuth 2.0 authentication
+  - name: DigiLocker OAuth
+    description: DigiLocker OAuth authentication and certificate fetching
+
+paths:
+  /learner/oauth/google:
+    get:
+      tags:
+        - Google OAuth
+      summary: Get Google OAuth URL
+      description: |
+        Returns the Google OAuth authorization URL to redirect the user.
+        The user will be redirected back to the callback URL after authentication.
+      responses:
+        '200':
+          description: Google OAuth URL generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Google OAuth URL generated
+                  data:
+                    type: object
+                    properties:
+                      authUrl:
+                        type: string
+                        format: uri
+                        example: https://accounts.google.com/o/oauth2/v2/auth?client_id=...
+
+  /learner/oauth/google/callback:
+    get:
+      tags:
+        - Google OAuth
+      summary: Google OAuth callback
+      description: |
+        Callback endpoint for Google OAuth. Google redirects here after user authorization.
+        Creates new learner account or logs in existing user, then returns JWT tokens.
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Authorization code from Google
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+          description: State parameter for CSRF protection
+      responses:
+        '200':
+          description: OAuth authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Google OAuth successful
+                  data:
+                    type: object
+                    properties:
+                      learner:
+                        $ref: '#/components/schemas/LearnerProfile'
+                      accessToken:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                      refreshToken:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                      isNewUser:
+                        type: boolean
+                        example: true
+                        description: True if this is a new learner account
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /learner/oauth/digilocker:
+    get:
+      tags:
+        - DigiLocker OAuth
+      summary: Get DigiLocker OAuth URL
+      description: |
+        Returns the DigiLocker OAuth authorization URL to redirect the user.
+        The user will be redirected back to the callback URL after authentication.
+      responses:
+        '200':
+          description: DigiLocker OAuth URL generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: DigiLocker OAuth URL generated
+                  data:
+                    type: object
+                    properties:
+                      authUrl:
+                        type: string
+                        format: uri
+                        example: https://digilocker.gov.in/public/oauth2/1/authorize?client_id=...
+
+  /learner/oauth/digilocker/callback:
+    get:
+      tags:
+        - DigiLocker OAuth
+      summary: DigiLocker OAuth callback
+      description: |
+        Callback endpoint for DigiLocker OAuth. DigiLocker redirects here after user authorization.
+        
+        **Process**:
+        1. Exchange authorization code for access token
+        2. Fetch user's certificates from DigiLocker
+        3. Create new learner account OR link existing account by email/phone
+        4. Return JWT tokens
+        
+        **Note**: Certificates are fetched but NOT sent to AI service as per requirements.
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Authorization code from DigiLocker
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+          description: State parameter for CSRF protection
+      responses:
+        '200':
+          description: OAuth authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: DigiLocker OAuth successful
+                  data:
+                    type: object
+                    properties:
+                      learner:
+                        $ref: '#/components/schemas/LearnerProfile'
+                      accessToken:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                      refreshToken:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                      isNewUser:
+                        type: boolean
+                        example: false
+                        description: True if this is a new learner account
+                      certificateCount:
+                        type: integer
+                        example: 5
+                        description: Number of certificates fetched from DigiLocker
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    LearnerProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174002
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          nullable: true
+          example: learner@example.com
+        phone_number:
+          type: string
+          nullable: true
+          example: '+1234567890'
+        google_id:
+          type: string
+          nullable: true
+          example: '123456789012345678901'
+          description: Google user ID (set after Google OAuth)
+        digilocker_id:
+          type: string
+          nullable: true
+          example: DL123456789
+          description: DigiLocker ID (set after DigiLocker OAuth)
+        status:
+          type: string
+          enum: [active, suspended]
+          example: active
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: An error occurred
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+  responses:
+    BadRequestError:
+      description: Bad request or OAuth error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            missing_code:
+              value:
+                success: false
+                message: Authorization code is required
+            oauth_failed:
+              value:
+                success: false
+                message: Google OAuth failed
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Internal server error

@@ -1,0 +1,315 @@
+openapi: 3.0.3
+info:
+  title: MicroMerit Portal - PDF Certificate API
+  description: |
+    PDF certificate generation and management with QR code embedding and Amazon S3 storage.
+    
+    ## Features
+    - **Generate PDF Certificates**: Create professional PDF certificates with embedded QR codes
+    - **Cloud Storage**: All files stored on Amazon S3 for scalability
+    - **QR Code Verification**: QR codes link to public verification page
+    - **Public Access**: Anyone can view and download certificates
+    
+    ## Certificate Design
+    - Professional layout with borders and styling
+    - Issuer organization name and logo
+    - Credential details (ID, issue date, status)
+    - Embedded QR code for quick verification
+    - Unique credential UID watermark
+    
+    ## Storage
+    - Files stored in Amazon S3 bucket
+    - Public URLs for direct access
+    - Automatic file naming: `certificates/{UID}-certificate.pdf`
+  version: 1.0.0
+  contact:
+    name: MicroMerit Portal Team
+    email: support@micromerit.com
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://api.micromerit.com/api
+    description: Production server
+
+tags:
+  - name: Certificate Generation
+    description: Generate PDF certificates (issuer only)
+  - name: Certificate Access
+    description: View and download certificates (public)
+
+paths:
+  /pdf/generate:
+    post:
+      tags:
+        - Certificate Generation
+      summary: Generate PDF certificate
+      description: |
+        Generate a PDF certificate for a claimed credential.
+        
+        **Requirements**:
+        - Issuer must be authenticated
+        - Credential must be in 'claimed' status (not issued or revoked)
+        - Credential must belong to the authenticated issuer
+        
+        **Process**:
+        1. Generate QR code with verification URL
+        2. Create PDF with credential details and QR code
+        3. Upload both QR code PNG and PDF to Amazon S3
+        4. Save S3 URLs to database
+        
+        If a certificate already exists, it will be regenerated.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - credentialUid
+              properties:
+                credentialUid:
+                  type: string
+                  example: CRED-550e8400-e29b-41d4-a716-446655440000
+                  description: Unique credential identifier
+                templateType:
+                  type: string
+                  enum: [standard, advanced]
+                  default: standard
+                  example: standard
+                  description: Certificate template design
+      responses:
+        '201':
+          description: Certificate generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: PDF certificate generated successfully
+                  data:
+                    $ref: '#/components/schemas/PdfCertificate'
+        '200':
+          description: Certificate regenerated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: PDF certificate regenerated
+                  data:
+                    $ref: '#/components/schemas/PdfCertificate'
+        '400':
+          description: Cannot generate certificate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_claimed:
+                  value:
+                    success: false
+                    message: Cannot generate PDF for unclaimed credential
+                revoked:
+                  value:
+                    success: false
+                    message: Cannot generate PDF for revoked credential
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Credential not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Credential not found
+
+  /pdf/{credential_uid}:
+    get:
+      tags:
+        - Certificate Access
+      summary: Get certificate details
+      description: |
+        Get PDF certificate details by credential UID. Public endpoint, no authentication required.
+        Returns URLs for both PDF and QR code.
+      parameters:
+        - name: credential_uid
+          in: path
+          required: true
+          schema:
+            type: string
+          example: CRED-550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Certificate details retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: PDF certificate details retrieved
+                  data:
+                    $ref: '#/components/schemas/PdfCertificate'
+        '404':
+          description: Certificate not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: PDF certificate not found for this credential
+
+  /pdf/{credential_uid}/download:
+    get:
+      tags:
+        - Certificate Access
+      summary: Download certificate PDF
+      description: |
+        Download the PDF certificate file. Public endpoint, no authentication required.
+        File is downloaded from Amazon S3 and streamed to the client.
+      parameters:
+        - name: credential_uid
+          in: path
+          required: true
+          schema:
+            type: string
+          example: CRED-550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: PDF file download
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: attachment; filename="CRED-550e8400-certificate.pdf"
+            Content-Type:
+              schema:
+                type: string
+                example: application/pdf
+        '404':
+          description: Certificate not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_record:
+                  value:
+                    success: false
+                    message: PDF certificate not found
+                no_file:
+                  value:
+                    success: false
+                    message: PDF file not found on S3
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token for issuer authentication
+
+  schemas:
+    PdfCertificate:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        credentialUid:
+          type: string
+          example: CRED-550e8400-e29b-41d4-a716-446655440000
+        pdfUrl:
+          type: string
+          format: uri
+          example: https://micromerit-certificates.s3.us-east-1.amazonaws.com/certificates/CRED-550e8400-certificate.pdf
+          description: Public S3 URL for the PDF certificate
+        qrCodeUrl:
+          type: string
+          format: uri
+          example: https://micromerit-certificates.s3.us-east-1.amazonaws.com/certificates/CRED-550e8400-qr.png
+          description: Public S3 URL for the QR code image
+        createdAt:
+          type: string
+          format: date-time
+          example: '2024-01-15T10:30:00Z'
+        credential:
+          type: object
+          description: Associated credential details
+          properties:
+            credential_uid:
+              type: string
+            credential_type:
+              type: string
+              example: Course Completion Certificate
+            status:
+              type: string
+              enum: [claimed, revoked]
+            issued_at:
+              type: string
+              format: date-time
+            issuer:
+              type: object
+              properties:
+                organization_name:
+                  type: string
+                  example: Tech University
+                logo_url:
+                  type: string
+                  nullable: true
+            learner:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: John Doe
+                email:
+                  type: string
+                  nullable: true
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: An error occurred
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Authentication required
