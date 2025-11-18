@@ -5,11 +5,15 @@ import { requireLearner } from '../../middleware/role';
 import { asyncHandler } from '../../middleware/error';
 import { authRateLimiter, registrationRateLimiter } from '../../middleware/rateLimit';
 import registrationRoutes from '../learner-registration/routes';
+import oauthRoutes from '../learner-oauth/routes';
 
 const router = Router();
 
 // Three-step registration routes (new)
 router.use('/', registrationRoutes);
+
+// OAuth routes (new)
+router.use('/oauth', oauthRoutes);
 
 // Public routes (legacy/additional)
 router.post(
