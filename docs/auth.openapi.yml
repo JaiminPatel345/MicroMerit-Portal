@@ -1,0 +1,1295 @@
+openapi: 3.0.3
+info:
+  title: MicroMerit Portal - Authentication API
+  description: |
+    Complete authentication module for MicroMerit Portal with support for three user roles:
+    - **Issuer**: Organizations that issue certificates
+    - **Learner**: Individual learners who receive certificates
+    - **Admin**: Platform administrators who manage issuers
+    
+    ## Authentication Methods
+    - **JWT Tokens**: Access tokens (15min) and refresh tokens (7 days)
+    - **API Keys**: For issuer programmatic access with rate limiting
+    
+    ## Security Features
+    - Password hashing with bcrypt
+    - Role-based access control (RBAC)
+    - Rate limiting on sensitive endpoints
+    - API key management with usage tracking
+  version: 1.0.0
+  contact:
+    name: MicroMerit Portal Team
+    email: support@micromerit.com
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://api.micromerit.com/api
+    description: Production server
+
+tags:
+  - name: Issuer Auth
+    description: Issuer authentication and profile management
+  - name: Issuer API Keys
+    description: API key management for issuers
+  - name: Learner Auth
+    description: Learner authentication and profile management
+  - name: Admin Auth
+    description: Admin authentication and issuer management
+  - name: Health
+    description: System health checks
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check endpoint
+      description: Check if the API is running
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /issuer/register:
+    post:
+      tags:
+        - Issuer Auth
+      summary: Register new issuer
+      description: |
+        Register a new issuer organization. Status is set to 'pending' by default.
+        Admin approval required before issuer can use the platform.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssuerRegistration'
+      responses:
+        '201':
+          description: Issuer registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Issuer registered successfully
+                  data:
+                    $ref: '#/components/schemas/IssuerProfile'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /issuer/login:
+    post:
+      tags:
+        - Issuer Auth
+      summary: Issuer login
+      description: Authenticate issuer and receive JWT tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssuerLogin'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Login successful
+                  data:
+                    type: object
+                    properties:
+                      issuer:
+                        $ref: '#/components/schemas/IssuerProfile'
+                      accessToken:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                      refreshToken:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /issuer/refresh:
+    post:
+      tags:
+        - Issuer Auth
+      summary: Refresh access token
+      description: Get new access token using refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Token refreshed successfully
+                  data:
+                    type: object
+                    properties:
+                      accessToken:
+                        type: string
+                      refreshToken:
+                        type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /issuer/me:
+    get:
+      tags:
+        - Issuer Auth
+      summary: Get issuer profile
+      description: Get current authenticated issuer's profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Profile retrieved successfully
+                  data:
+                    $ref: '#/components/schemas/IssuerProfile'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    
+    patch:
+      tags:
+        - Issuer Auth
+      summary: Update issuer profile
+      description: Update current authenticated issuer's profile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssuerProfileUpdate'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Profile updated successfully
+                  data:
+                    $ref: '#/components/schemas/IssuerProfile'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /issuer/api-keys:
+    get:
+      tags:
+        - Issuer API Keys
+      summary: List all API keys
+      description: Get all API keys for the authenticated issuer
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: API keys retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: API keys retrieved successfully
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApiKey'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    
+    post:
+      tags:
+        - Issuer API Keys
+      summary: Create new API key
+      description: |
+        Create a new API key for programmatic access. Maximum 5 active keys per issuer.
+        Issuer must be in 'approved' status.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: Production API Key
+                rate_limit_per_minute:
+                  type: integer
+                  minimum: 1
+                  maximum: 1000
+                  default: 60
+                  example: 100
+      responses:
+        '201':
+          description: API key created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: API key created successfully
+                  data:
+                    allOf:
+                      - $ref: '#/components/schemas/ApiKey'
+                      - type: object
+                        properties:
+                          api_key:
+                            type: string
+                            description: Full API key (only shown once)
+                            example: mmk_1234567890abcdef1234567890abcdef
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /issuer/api-keys/{id}:
+    delete:
+      tags:
+        - Issuer API Keys
+      summary: Revoke API key
+      description: Revoke an existing API key
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: API key ID
+      responses:
+        '200':
+          description: API key revoked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: API key revoked successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /learner/register:
+    post:
+      tags:
+        - Learner Auth
+      summary: Register new learner
+      description: |
+        Register a new learner. Either email OR phone_number is required (at least one).
+        Status is set to 'active' by default.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LearnerRegistration'
+      responses:
+        '201':
+          description: Learner registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Learner registered successfully
+                  data:
+                    $ref: '#/components/schemas/LearnerProfile'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /learner/login:
+    post:
+      tags:
+        - Learner Auth
+      summary: Learner login
+      description: Authenticate learner using email or phone number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LearnerLogin'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Login successful
+                  data:
+                    type: object
+                    properties:
+                      learner:
+                        $ref: '#/components/schemas/LearnerProfile'
+                      accessToken:
+                        type: string
+                      refreshToken:
+                        type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /learner/refresh:
+    post:
+      tags:
+        - Learner Auth
+      summary: Refresh access token
+      description: Get new access token using refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Token refreshed successfully
+                  data:
+                    type: object
+                    properties:
+                      accessToken:
+                        type: string
+                      refreshToken:
+                        type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /learner/me:
+    get:
+      tags:
+        - Learner Auth
+      summary: Get learner profile
+      description: Get current authenticated learner's profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Profile retrieved successfully
+                  data:
+                    $ref: '#/components/schemas/LearnerProfile'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    
+    patch:
+      tags:
+        - Learner Auth
+      summary: Update learner profile
+      description: Update current authenticated learner's profile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LearnerProfileUpdate'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Profile updated successfully
+                  data:
+                    $ref: '#/components/schemas/LearnerProfile'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /admin/login:
+    post:
+      tags:
+        - Admin Auth
+      summary: Admin login
+      description: Authenticate admin user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminLogin'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Login successful
+                  data:
+                    type: object
+                    properties:
+                      admin:
+                        $ref: '#/components/schemas/AdminProfile'
+                      accessToken:
+                        type: string
+                      refreshToken:
+                        type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /admin/refresh:
+    post:
+      tags:
+        - Admin Auth
+      summary: Refresh access token
+      description: Get new access token using refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Token refreshed successfully
+                  data:
+                    type: object
+                    properties:
+                      accessToken:
+                        type: string
+                      refreshToken:
+                        type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /admin/me:
+    get:
+      tags:
+        - Admin Auth
+      summary: Get admin profile
+      description: Get current authenticated admin's profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Profile retrieved successfully
+                  data:
+                    $ref: '#/components/schemas/AdminProfile'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /admin/issuers:
+    get:
+      tags:
+        - Admin Auth
+      summary: List all issuers
+      description: Get all issuers with optional status filter
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, approved, rejected, blocked]
+          description: Filter issuers by status
+      responses:
+        '200':
+          description: Issuers retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Issuers retrieved successfully
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/IssuerProfile'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /admin/issuers/{id}/approve:
+    post:
+      tags:
+        - Admin Auth
+      summary: Approve issuer
+      description: Approve a pending issuer registration
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Issuer ID
+      responses:
+        '200':
+          description: Issuer approved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Issuer approved successfully
+                  data:
+                    $ref: '#/components/schemas/IssuerProfile'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /admin/issuers/{id}/reject:
+    post:
+      tags:
+        - Admin Auth
+      summary: Reject issuer
+      description: Reject a pending issuer registration
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Issuer ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+                  example: Incomplete organization documentation
+      responses:
+        '200':
+          description: Issuer rejected successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Issuer rejected successfully
+                  data:
+                    $ref: '#/components/schemas/IssuerProfile'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /admin/issuers/{id}/block:
+    post:
+      tags:
+        - Admin Auth
+      summary: Block issuer
+      description: Block an approved issuer
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Issuer ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+                  example: Violation of terms of service
+      responses:
+        '200':
+          description: Issuer blocked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Issuer blocked successfully
+                  data:
+                    $ref: '#/components/schemas/IssuerProfile'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /admin/issuers/{id}/unblock:
+    post:
+      tags:
+        - Admin Auth
+      summary: Unblock issuer
+      description: Unblock a blocked issuer
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Issuer ID
+      responses:
+        '200':
+          description: Issuer unblocked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Issuer unblocked successfully
+                  data:
+                    $ref: '#/components/schemas/IssuerProfile'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from login or refresh endpoints
+    
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for programmatic issuer access
+
+  schemas:
+    IssuerRegistration:
+      type: object
+      required:
+        - organization_name
+        - email
+        - password
+        - contact_person_name
+        - phone_number
+      properties:
+        organization_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Tech University
+        organization_type:
+          type: string
+          maxLength: 100
+          example: Educational Institution
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          example: admin@techuniversity.edu
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+          example: SecurePass123!
+        contact_person_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: John Doe
+        phone_number:
+          type: string
+          minLength: 10
+          maxLength: 15
+          example: '+1234567890'
+        address:
+          type: string
+          maxLength: 500
+          example: 123 University Ave, City, State 12345
+        website:
+          type: string
+          format: uri
+          maxLength: 255
+          example: https://www.techuniversity.edu
+        logo_url:
+          type: string
+          format: uri
+          maxLength: 500
+          example: https://cdn.techuniversity.edu/logo.png
+
+    IssuerLogin:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: admin@techuniversity.edu
+        password:
+          type: string
+          example: SecurePass123!
+
+    IssuerProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174000
+        organization_name:
+          type: string
+          example: Tech University
+        organization_type:
+          type: string
+          nullable: true
+          example: Educational Institution
+        email:
+          type: string
+          format: email
+          example: admin@techuniversity.edu
+        contact_person_name:
+          type: string
+          example: John Doe
+        phone_number:
+          type: string
+          example: '+1234567890'
+        address:
+          type: string
+          nullable: true
+          example: 123 University Ave, City, State 12345
+        website:
+          type: string
+          nullable: true
+          example: https://www.techuniversity.edu
+        logo_url:
+          type: string
+          nullable: true
+          example: https://cdn.techuniversity.edu/logo.png
+        status:
+          type: string
+          enum: [pending, approved, rejected, blocked]
+          example: approved
+        rejection_reason:
+          type: string
+          nullable: true
+        blocked_reason:
+          type: string
+          nullable: true
+        approved_at:
+          type: string
+          format: date-time
+          nullable: true
+        rejected_at:
+          type: string
+          format: date-time
+          nullable: true
+        blocked_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    IssuerProfileUpdate:
+      type: object
+      properties:
+        organization_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        organization_type:
+          type: string
+          maxLength: 100
+        contact_person_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        phone_number:
+          type: string
+          minLength: 10
+          maxLength: 15
+        address:
+          type: string
+          maxLength: 500
+        website:
+          type: string
+          format: uri
+          maxLength: 255
+        logo_url:
+          type: string
+          format: uri
+          maxLength: 500
+
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174001
+        issuer_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Production API Key
+        key_prefix:
+          type: string
+          example: mmk_1234
+          description: First 8 characters of the API key for identification
+        rate_limit_per_minute:
+          type: integer
+          example: 60
+        usage_count:
+          type: integer
+          example: 1523
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        is_active:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+        revoked_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    LearnerRegistration:
+      type: object
+      required:
+        - name
+        - password
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Jane Smith
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          example: jane.smith@example.com
+        phone_number:
+          type: string
+          minLength: 10
+          maxLength: 15
+          example: '+9876543210'
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+          example: SecurePass123!
+      description: Either email or phone_number must be provided
+
+    LearnerLogin:
+      type: object
+      required:
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: jane.smith@example.com
+        phone_number:
+          type: string
+          example: '+9876543210'
+        password:
+          type: string
+          example: SecurePass123!
+      description: Either email or phone_number must be provided
+
+    LearnerProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174002
+        name:
+          type: string
+          example: Jane Smith
+        email:
+          type: string
+          format: email
+          nullable: true
+          example: jane.smith@example.com
+        phone_number:
+          type: string
+          nullable: true
+          example: '+9876543210'
+        status:
+          type: string
+          enum: [active, suspended]
+          example: active
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    LearnerProfileUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        phone_number:
+          type: string
+          minLength: 10
+          maxLength: 15
+
+    AdminLogin:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          example: admin
+        password:
+          type: string
+          example: AdminPass123!
+
+    AdminProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174003
+        username:
+          type: string
+          example: admin
+        created_at:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: An error occurred
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Validation error
+            errors:
+              - field: email
+                message: Invalid email format
+
+    UnauthorizedError:
+      description: Authentication failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Invalid credentials
+
+    ForbiddenError:
+      description: Access denied
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Your account has been blocked
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Resource not found
+
+    ConflictError:
+      description: Resource already exists
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Email already registered
+
+    RateLimitError:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Too many requests. Please try again later.
