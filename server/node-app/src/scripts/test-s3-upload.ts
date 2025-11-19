@@ -10,13 +10,11 @@
  * Or: npx ts-node src/scripts/test-s3-upload.ts
  */
 
-import dotenv from 'dotenv';
+import 'dotenv/config';
+
 import { s3Service } from '../utils/s3';
 import { uploadBase64ImageToS3, handleProfilePhotoUpload } from '../utils/imageUpload';
 import { logger } from '../utils/logger';
-
-// Load environment variables
-dotenv.config();
 
 // Test base64 image (1x1 pixel red PNG - tiny test image)
 const TEST_IMAGE_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
