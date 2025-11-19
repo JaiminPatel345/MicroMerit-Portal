@@ -1,14 +1,37 @@
 import app from './app';
 import { logger } from './utils/logger';
-import { disconnectPrisma } from './utils/prisma';
+import { connectPrisma, disconnectPrisma } from './utils/prisma';
 
 const PORT = process.env.PORT || 3000;
 
-const server = app.listen(PORT, () => {
-  logger.info(`Server is running on port ${PORT}`);
-  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(`Health check: http://localhost:${PORT}/health`);
-});
+let server: any;
+
+// Start server function with database connection check
+const startServer = async () => {
+  try {
+    // Connect to database first
+    try{
+      await connectPrisma();
+    }catch(error){
+      logger.error('Failed to connect to the database', { error });
+      console.error('Failed to connect to the database, make sure postgreSQL is running and accessible', { error });
+      process.exit(1);
+    }
+    
+    // Start the server only if database connection is successful
+    server = app.listen(PORT, () => {
+      logger.info(`Server is running on port ${PORT}`);
+      logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`Health check: http://localhost:${PORT}/health`);
+    });
+  } catch (error) {
+    logger.error('Failed to start server', { error });
+    process.exit(1);
+  }
+};
+
+// Start the server immediately
+startServer();
 
 // Graceful shutdown
 const gracefulShutdown = async (signal: string) => {

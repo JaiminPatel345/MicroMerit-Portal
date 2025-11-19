@@ -16,6 +16,19 @@ class PrismaClientSingleton {
     return PrismaClientSingleton.instance;
   }
 
+  static async connect(): Promise<void> {
+    const client = PrismaClientSingleton.getInstance();
+    try {
+      await client.$connect();
+      // Test the connection with a simple query
+      await client.$queryRaw`SELECT 1`;
+      logger.info('Database connection established successfully');
+    } catch (error) {
+      logger.error('Failed to connect to the database', { error });
+      throw new Error(`Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   static async disconnect(): Promise<void> {
     if (PrismaClientSingleton.instance) {
       await PrismaClientSingleton.instance.$disconnect();
@@ -26,4 +39,5 @@ class PrismaClientSingleton {
 }
 
 export const prisma = PrismaClientSingleton.getInstance();
+export const connectPrisma = PrismaClientSingleton.connect;
 export const disconnectPrisma = PrismaClientSingleton.disconnect;
