@@ -22,6 +22,14 @@ export class AdminService {
   }
 
   /**
+   * Sanitize issuer data (remove password hash)
+   */
+  private sanitizeIssuer(issuer: issuer): Omit<issuer, 'password_hash'> {
+    const { password_hash, ...sanitized } = issuer;
+    return sanitized;
+  }
+
+  /**
    * Login an admin
    */
   async login(data: AdminLoginInput): Promise<{ admin: AdminResponse; tokens: TokenResponse }> {
@@ -93,7 +101,7 @@ export class AdminService {
   /**
    * Approve an issuer
    */
-  async approveIssuer(adminId: number, issuerId: number): Promise<issuer> {
+  async approveIssuer(adminId: number, issuerId: number): Promise<Omit<issuer, 'password_hash'>> {
     const admin = await adminRepository.findById(adminId);
     if (!admin) {
       throw new Error('Admin not found');
@@ -117,13 +125,13 @@ export class AdminService {
       issuerEmail: issuer.email,
     });
 
-    return approvedIssuer;
+    return this.sanitizeIssuer(approvedIssuer);
   }
 
   /**
    * Reject an issuer
    */
-  async rejectIssuer(adminId: number, issuerId: number, reason: string): Promise<issuer> {
+  async rejectIssuer(adminId: number, issuerId: number, reason: string): Promise<Omit<issuer, 'password_hash'>> {
     const admin = await adminRepository.findById(adminId);
     if (!admin) {
       throw new Error('Admin not found');
@@ -148,13 +156,13 @@ export class AdminService {
       reason,
     });
 
-    return rejectedIssuer;
+    return this.sanitizeIssuer(rejectedIssuer);
   }
 
   /**
    * Block an issuer
    */
-  async blockIssuer(adminId: number, issuerId: number, reason: string): Promise<issuer> {
+  async blockIssuer(adminId: number, issuerId: number, reason: string): Promise<Omit<issuer, 'password_hash'>> {
     const admin = await adminRepository.findById(adminId);
     if (!admin) {
       throw new Error('Admin not found');
@@ -179,13 +187,13 @@ export class AdminService {
       reason,
     });
 
-    return blockedIssuer;
+    return this.sanitizeIssuer(blockedIssuer);
   }
 
   /**
    * Unblock an issuer
    */
-  async unblockIssuer(adminId: number, issuerId: number): Promise<issuer> {
+  async unblockIssuer(adminId: number, issuerId: number): Promise<Omit<issuer, 'password_hash'>> {
     const admin = await adminRepository.findById(adminId);
     if (!admin) {
       throw new Error('Admin not found');
@@ -209,14 +217,15 @@ export class AdminService {
       issuerEmail: issuer.email,
     });
 
-    return unblockedIssuer;
+    return this.sanitizeIssuer(unblockedIssuer);
   }
 
   /**
    * List all issuers with optional filters
    */
-  async listIssuers(filters?: { status?: string; is_blocked?: boolean }): Promise<issuer[]> {
-    return issuerRepository.findAll(filters);
+  async listIssuers(filters?: { status?: string; is_blocked?: boolean }): Promise<Omit<issuer, 'password_hash'>[]> {
+    const issuers = await issuerRepository.findAll(filters);
+    return issuers.map(issuer => this.sanitizeIssuer(issuer));
   }
 }
 
