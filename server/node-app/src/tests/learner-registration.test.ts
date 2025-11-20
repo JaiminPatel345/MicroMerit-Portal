@@ -233,6 +233,7 @@ describe('RegistrationService', () => {
       expect(mockRepository.findSessionById).toHaveBeenCalledWith('session-123');
       expect(bcryptUtils.hashPassword).toHaveBeenCalledWith('SecurePass123');
       expect(mockRepository.createLearner).toHaveBeenCalledWith({
+        name: 'John Doe',
         email: 'john@example.com',
         phone: undefined,
         hashedPassword: 'hashed-password',
@@ -287,6 +288,7 @@ describe('RegistrationService', () => {
       const result = await service.completeRegistration(sessionId, input);
 
       expect(mockRepository.createLearner).toHaveBeenCalledWith({
+        name: 'Alex Smith',
         email: 'alex@example.com',
         phone: undefined,
         hashedPassword: 'hashed-password',
@@ -336,6 +338,7 @@ describe('RegistrationService', () => {
       const result = await service.completeRegistration(sessionId, input);
 
       expect(mockRepository.createLearner).toHaveBeenCalledWith({
+        name: 'Phone User',
         email: undefined,
         phone: '+1234567890',
         hashedPassword: 'hashed-password',
