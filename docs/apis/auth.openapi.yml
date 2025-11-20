@@ -165,7 +165,6 @@ paths:
                   description: Session ID from Step 1
                 otp:
                   type: string
-                  length: 6
                   pattern: '^\d{6}$'
                   example: '123456'
       responses:
@@ -545,46 +544,6 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '404':
           $ref: '#/components/responses/NotFoundError'
-
-  /auth/learner/register:
-    post:
-      tags:
-        - Learner Auth
-      summary: Register new learner (Legacy)
-      description: |
-        **DEPRECATED**: Use the three-step registration process instead (/auth/learner/start-register).
-        
-        Register a new learner. Either email OR phone is required (at least one).
-        Status is set to 'active' by default.
-      deprecated: true
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LearnerRegistration'
-      responses:
-        '201':
-          description: Learner registered successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Learner registered successfully
-                  data:
-                    $ref: '#/components/schemas/LearnerProfile'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '409':
-          $ref: '#/components/responses/ConflictError'
-        '429':
-          $ref: '#/components/responses/RateLimitError'
 
   /auth/learner/login:
     post:
@@ -1083,71 +1042,72 @@ components:
           minLength: 3
           maxLength: 255
           example: Tech University
-          description: Organization name
+          description: "[REQUIRED] Organization name"
         email:
           type: string
           format: email
           maxLength: 255
           example: admin@techuniversity.edu
-          description: Organization email (OTP will be sent here)
+          description: "[REQUIRED] Organization email (OTP will be sent here)"
         password:
           type: string
           minLength: 8
           maxLength: 100
           example: SecurePass123!
+          description: "[REQUIRED] Password (minimum 8 characters)"
         type:
           type: string
           enum: [university, edtech, company, training_provider]
           example: university
-          description: Organization type
+          description: "[REQUIRED] Organization type"
         official_domain:
           type: string
           format: uri
           maxLength: 255
           example: https://techuniversity.edu
-          description: Official domain URL (optional)
+          description: "[OPTIONAL] Official domain URL"
         website_url:
           type: string
           format: uri
           maxLength: 255
           example: https://www.techuniversity.edu
-          description: Website URL (optional)
+          description: "[OPTIONAL] Website URL"
         phone:
           type: string
           pattern: '^\+?[1-9]\d{1,14}$'
           maxLength: 15
           example: '+1234567890'
-          description: Phone number (optional)
+          description: "[OPTIONAL] Phone number"
         contact_person_name:
           type: string
           minLength: 2
           maxLength: 255
           example: John Doe
-          description: Contact person name (optional)
+          description: "[OPTIONAL] Contact person name"
         contact_person_designation:
           type: string
           minLength: 2
           maxLength: 255
           example: Director
-          description: Contact person designation (optional)
+          description: "[OPTIONAL] Contact person designation"
         address:
           type: string
           minLength: 10
           maxLength: 1000
           example: 123 University Ave, City, State 12345
-          description: Organization address (optional)
+          description: "[OPTIONAL] Organization address"
         kyc_document_url:
           type: string
           format: uri
           maxLength: 500
           example: https://cdn.techuniversity.edu/kyc.pdf
-          description: KYC document URL (optional)
+          description: "[OPTIONAL] KYC document URL"
         logo_url:
           type: string
           format: uri
           maxLength: 500
           example: https://cdn.techuniversity.edu/logo.png
-          description: Organization logo URL (optional)
+          description: "[OPTIONAL] Organization logo URL"
 
     IssuerRegistration:
       type: object
