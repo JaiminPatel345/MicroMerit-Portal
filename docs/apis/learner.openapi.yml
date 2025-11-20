@@ -1,0 +1,1064 @@
+openapi: 3.0.3
+info:
+  title: MicroMerit Portal - Learner API
+  description: |
+    Complete learner module including authentication, registration, profile management, and contact verification.
+    
+    ## Registration Flow
+    1. **Start Registration** (`POST /auth/learner/start-register`): Initiate registration with email OR phone number
+    2. **Verify OTP** (`POST /auth/learner/verify-otp`): Verify the OTP sent via email/SMS (returns temp token)
+    3. **Complete Registration** (`POST /auth/learner/complete-register`): Finalize with password and profile details
+    
+    ## Authentication
+    - **Login** (`POST /auth/learner/login`): Email/phone + password authentication
+    - **Refresh** (`POST /auth/learner/refresh`): Get new access token using refresh token
+    - **OAuth** (`GET /auth/learner/oauth/google`): Google OAuth login flow
+    
+    ## Profile Management
+    - **Get Profile** (`GET /learner/profile`): Retrieve learner profile
+    - **Update Profile** (`PUT /learner/profile`): Update profile details
+    
+    ## Contact Verification
+    - **Request Verification** (`POST /learner/contacts/request`): Send OTP for email/phone verification
+    - **Verify Contact** (`POST /learner/contacts/verify`): Verify OTP and add contact
+    
+    Supports three contact types:
+    - `email` - Add secondary email
+    - `primary-email` - Set primary email (for phone-registered users)
+    - `primary-phone` - Set primary phone (for email-registered users)
+    
+    ## Features
+    - OTP verification via email (Nodemailer) or SMS (Twilio)
+    - Session-based registration with expiry (10 minutes default)
+    - Duplicate email/phone prevention
+    - OAuth registration support (password optional)
+    - Unified contact verification endpoints
+    
+  version: 1.1.0
+  contact:
+    name: MicroMerit Portal Team
+    email: support@micromerit.com
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://api.micromerit.com/api
+    description: Production server
+
+tags:
+  - name: Auth - Learner
+    description: Learner authentication (login, register, refresh, OAuth)
+  - name: Profile
+    description: Learner profile management
+  - name: Contacts
+    description: Email and phone contact verification
+
+paths:
+  # ==================== AUTHENTICATION ====================
+  /auth/learner/start-register:
+    post:
+      tags: [Auth - Learner]
+      summary: Start learner registration (Step 1 - Send OTP)
+      description: |
+        Initiate the registration process by providing email OR phone number.
+        An OTP will be sent to the provided contact method.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 255
+                  example: learner@example.com
+                  description: Email address (optional, but either email or phone is required)
+                phone:
+                  type: string
+                  pattern: '^\+?[1-9]\d{1,14}$'
+                  maxLength: 15
+                  example: '+1234567890'
+                  description: Phone number (optional, but either email or phone is required)
+              description: Either email OR phone is required
+              oneOf:
+                - required: [email]
+                - required: [phone]
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OTPResponse'
+              example:
+                success: true
+                message: OTP sent to your email
+                data:
+                  sessionId: "123e4567-e89b-12d3-a456-426614174000"
+                  message: "OTP sent to email"
+                  expiresAt: "2024-01-01T12:10:00Z"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Email or phone already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                email_exists:
+                  summary: Email already in use
+                  value:
+                    success: false
+                    message: Email already registered
+                    error: EMAIL_ALREADY_REGISTERED
+                    statusCode: 409
+                phone_exists:
+                  summary: Phone number already in use
+                  value:
+                    success: false
+                    message: Phone number already registered
+                    error: PHONE_ALREADY_REGISTERED
+                    statusCode: 409
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /auth/learner/verify-otp:
+    post:
+      tags: [Auth - Learner]
+      summary: Verify OTP (Step 2)
+      description: |
+        Verify the OTP sent to email or phone number.
+        The session must be verified before completing registration.
+        Returns a temporary token valid for 15 minutes for step 3.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOTPRequest'
+            example:
+              sessionId: "123e4567-e89b-12d3-a456-426614174000"
+              otp: "123456"
+      responses:
+        '200':
+          description: OTP verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      tempToken:
+                        type: string
+                        description: |
+                          **Temporary registration token - IMPORTANT**
+                          
+                          Use this token for Step 3 (complete-register):
+                          - Valid for: 15 minutes
+                          - Usage: Add to Authorization header as `Bearer <token>`
+                          - Required for: POST /auth/learner/complete-register
+                          - Token type: Contains 'registration' type and sessionId
+                          
+                          Example usage:
+                          ```
+                          Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                          ```
+              example:
+                success: true
+                message: OTP verified successfully
+                data:
+                  message: OTP verified successfully
+                  tempToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        '400':
+          description: Invalid OTP or session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_otp:
+                  summary: Incorrect OTP code
+                  value:
+                    success: false
+                    message: Invalid OTP
+                    error: INVALID_OTP
+                    statusCode: 400
+                otp_expired:
+                  summary: OTP expired (>10 minutes)
+                  value:
+                    success: false
+                    message: OTP expired
+                    error: OTP_EXPIRED
+                    statusCode: 400
+                already_verified:
+                  summary: Session already verified
+                  value:
+                    success: false
+                    message: Session already verified
+                    error: SESSION_ALREADY_VERIFIED
+                    statusCode: 400
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Invalid session ID
+                error: SESSION_NOT_FOUND
+                statusCode: 404
+
+  /auth/learner/complete-register:
+    post:
+      tags: [Auth - Learner]
+      summary: Complete registration (Step 3)
+      description: |
+        Complete the registration process after OTP verification.
+        Creates the learner account and returns JWT tokens.
+        
+        **IMPORTANT - Authentication Required**: 
+        This endpoint requires a temporary token obtained from Step 2 (verify-otp).
+        The temporary token must be sent in the Authorization header as a Bearer token.
+        
+        **Token Details**:
+        - Obtained from: POST /auth/learner/verify-otp (Step 2)
+        - Valid for: 15 minutes
+        - Format: `Authorization: Bearer <tempToken>`
+        - Token type: Must be 'registration' type
+        
+        **Password Note**: Password is optional for OAuth-based registrations.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  example: John Doe
+                password:
+                  type: string
+                  minLength: 8
+                  maxLength: 100
+                  example: SecurePass123!
+                  description: Optional for OAuth registrations
+                profilePhotoUrl:
+                  type: string
+                  example: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+                  description: |
+                    Profile photo (optional). Accepts two formats:
+                    
+                    **Option 1: Base64 encoded image (Recommended)**
+                    - Format: `data:image/[type];base64,[base64-string]`
+                    - Supported types: png, jpg, jpeg, gif, webp, bmp
+                    - Max size: 5MB
+                    - Automatically uploaded to S3
+                    - Example: `data:image/png;base64,iVBORw0KGgoAAAANS...`
+                    
+                    **Option 2: Direct URL**
+                    - Any valid image URL
+                    - Must be publicly accessible
+                    - Example: `https://example.com/photo.jpg`
+                dob:
+                  type: string
+                  format: date-time
+                  example: 1995-05-15T00:00:00.000Z
+                  description: Date of birth (optional, ISO 8601 format)
+                gender:
+                  type: string
+                  enum: [Male, Female, Others, Not to disclose]
+                  example: Male
+                  description: Gender (optional)
+            examples:
+              withBase64Photo:
+                summary: Complete registration with base64 photo
+                value:
+                  name: "John Doe"
+                  password: "SecurePass123!"
+                  profilePhotoUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+                  dob: "1995-05-15T00:00:00.000Z"
+                  gender: "Male"
+              withPhotoUrl:
+                summary: Complete registration with photo URL
+                value:
+                  name: "Jane Smith"
+                  password: "SecurePass456!"
+                  profilePhotoUrl: "https://example.com/photo.jpg"
+                  dob: "1998-03-20T00:00:00.000Z"
+                  gender: "Female"
+              withoutPhoto:
+                summary: Complete registration without photo
+                value:
+                  name: "Alex Johnson"
+                  password: "SecurePass789!"
+                  gender: "Others"
+      responses:
+        '201':
+          description: Registration completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerAuthResponse'
+              example:
+                success: true
+                message: Registration completed successfully
+                data:
+                  learner:
+                    id: 123
+                    email: learner@example.com
+                    phone: null
+                    profileUrl: https://example.com/photo.jpg
+                    dob: "1995-05-15T00:00:00.000Z"
+                    gender: Male
+                    other_emails: []
+                    created_at: "2024-01-01T12:00:00Z"
+                  tokens:
+                    accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        '400':
+          description: Invalid session or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                session_not_verified:
+                  summary: OTP not verified yet
+                  value:
+                    success: false
+                    message: Session not verified
+                    error: SESSION_NOT_VERIFIED
+                    statusCode: 400
+                session_expired:
+                  summary: Session expired (>10 minutes from OTP send)
+                  value:
+                    success: false
+                    message: Session expired
+                    error: SESSION_EXPIRED
+                    statusCode: 400
+                validation_error:
+                  summary: Field validation failed
+                  value:
+                    success: false
+                    message: Validation error
+                    errors:
+                      - field: name
+                        message: Name is required
+                    statusCode: 400
+        '401':
+          description: Missing or invalid temporary token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing_token:
+                  summary: No token provided
+                  value:
+                    success: false
+                    message: Temporary token required
+                    error: TOKEN_REQUIRED
+                    statusCode: 401
+                invalid_token_type:
+                  summary: Wrong token type
+                  value:
+                    success: false
+                    message: Invalid token type
+                    error: INVALID_TOKEN_TYPE
+                    statusCode: 401
+                expired_token:
+                  summary: Token expired (>15 minutes)
+                  value:
+                    success: false
+                    message: Authentication token has expired
+                    error: TOKEN_EXPIRED
+                    statusCode: 401
+                invalid_token:
+                  summary: Malformed or invalid token
+                  value:
+                    success: false
+                    message: Invalid authentication token
+                    error: INVALID_TOKEN
+                    statusCode: 401
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Invalid session ID
+                error: SESSION_NOT_FOUND
+                statusCode: 404
+
+  /auth/learner/login:
+    post:
+      tags: [Auth - Learner]
+      summary: Learner login
+      description: Login with email/phone and password. Either email or phone must be provided.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: learner@example.com
+                phone:
+                  type: string
+                  example: "+1234567890"
+                password:
+                  type: string
+                  example: SecurePass123!
+              oneOf:
+                - required: [email, password]
+                - required: [phone, password]
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerAuthResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Invalid email or password
+                statusCode: 401
+
+  /auth/learner/refresh:
+    post:
+      tags: [Auth - Learner]
+      summary: Refresh access token
+      description: Get a new access token using a valid refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/learner/oauth/google:
+    get:
+      tags: [Auth - Learner]
+      summary: Google OAuth login
+      description: |
+        Redirects to Google OAuth consent page.
+        After user consent, Google redirects to the callback URL.
+      responses:
+        '302':
+          description: Redirect to Google OAuth consent page
+
+  /auth/learner/oauth/google/callback:
+    get:
+      tags: [Auth - Learner]
+      summary: Google OAuth callback
+      description: |
+        Callback endpoint for Google OAuth.
+        Handles the OAuth code and creates/logs in the learner.
+      parameters:
+        - name: code
+          in: query
+          required: true
+          description: Authorization code from Google
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OAuth successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LearnerAuthResponse'
+        '400':
+          description: OAuth error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ==================== PROFILE MANAGEMENT ====================
+  /learner/profile:
+    get:
+      tags: [Profile]
+      summary: Get learner profile
+      description: Retrieve the authenticated learner's profile information
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/LearnerProfile'
+              example:
+                success: true
+                data:
+                  id: 123
+                  email: learner@example.com
+                  phone: "+1234567890"
+                  profileUrl: https://example.com/photo.jpg
+                  dob: "1995-05-15T00:00:00.000Z"
+                  gender: Male
+                  other_emails: ["secondary@example.com"]
+                  created_at: "2024-01-01T12:00:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    
+    put:
+      tags: [Profile]
+      summary: Update learner profile
+      description: Update learner profile details (photo, date of birth, gender)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profileUrl:
+                  type: string
+                  example: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+                  description: |
+                    Profile photo (optional). Accepts two formats:
+                    
+                    **Option 1: Base64 encoded image (Recommended)**
+                    - Format: `data:image/[type];base64,[base64-string]`
+                    - Supported types: png, jpg, jpeg, gif, webp, bmp
+                    - Max size: 5MB
+                    - Automatically uploaded to S3
+                    - Example: `data:image/png;base64,iVBORw0KGgoAAAANS...`
+                    
+                    **Option 2: Direct URL**
+                    - Any valid image URL
+                    - Must be publicly accessible
+                    - Example: `https://example.com/photo.jpg`
+                dob:
+                  type: string
+                  format: date
+                  example: "1995-05-15"
+                gender:
+                  type: string
+                  enum: [Male, Female, Others, Not to disclose]
+                  example: Female
+            examples:
+              updateWithBase64Photo:
+                summary: Update profile with base64 photo
+                value:
+                  profileUrl: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD..."
+                  dob: "1995-05-15"
+                  gender: "Female"
+              updateWithPhotoUrl:
+                summary: Update profile with photo URL
+                value:
+                  profileUrl: "https://example.com/new-photo.jpg"
+                  gender: "Male"
+              updateBasicInfo:
+                summary: Update only dob and gender
+                value:
+                  dob: "1998-03-20"
+                  gender: "Others"
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/LearnerProfile'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # ==================== CONTACT VERIFICATION ====================
+  /learner/contacts/request:
+    post:
+      tags: [Contacts]
+      summary: Request contact verification (Unified endpoint)
+      description: |
+        Send OTP for verifying a new contact (email or phone).
+        
+        **Contact Types:**
+        - `email` - Add secondary email to `other_emails` list
+        - `primary-email` - Set primary email (for phone-registered users who don't have email yet)
+        - `primary-phone` - Set primary phone (for email-registered users who don't have phone yet)
+        
+        **Requirements:**
+        - For `email`: Email must not be registered or already in other_emails
+        - For `primary-email`: Learner must not have a primary email yet
+        - For `primary-phone`: Learner must not have a primary phone yet
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type:
+                  type: string
+                  enum: [email, primary-email, primary-phone]
+                  description: Type of contact to verify
+                email:
+                  type: string
+                  format: email
+                  description: Required when type is 'email' or 'primary-email'
+                phone:
+                  type: string
+                  pattern: '^\+?[1-9]\d{1,14}$'
+                  description: Required when type is 'primary-phone'
+            examples:
+              addSecondaryEmail:
+                summary: Add secondary email
+                value:
+                  type: email
+                  email: secondary@example.com
+              addPrimaryEmail:
+                summary: Add primary email (phone-registered users)
+                value:
+                  type: primary-email
+                  email: primary@example.com
+              addPrimaryPhone:
+                summary: Add primary phone (email-registered users)
+                value:
+                  type: primary-phone
+                  phone: "+1234567890"
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OTPResponse'
+              example:
+                success: true
+                message: OTP sent successfully
+                data:
+                  sessionId: "123e4567-e89b-12d3-a456-426614174001"
+                  message: "OTP sent to email"
+                  expiresAt: "2024-01-01T12:10:00Z"
+        '400':
+          description: Invalid request or contact already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                already_has_primary:
+                  summary: Already has primary email/phone
+                  value:
+                    success: false
+                    message: Primary email already exists
+                    statusCode: 400
+                contact_registered:
+                  summary: Contact already registered
+                  value:
+                    success: false
+                    message: Email is already registered
+                    statusCode: 400
+                already_in_list:
+                  summary: Email already in other_emails
+                  value:
+                    success: false
+                    message: Email is already added to your account
+                    statusCode: 400
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /learner/contacts/verify:
+    post:
+      tags: [Contacts]
+      summary: Verify contact OTP (Unified endpoint)
+      description: |
+        Verify OTP and add the contact to learner account.
+        
+        **Actions by type:**
+        - `email` - Adds email to `other_emails` array
+        - `primary-email` - Sets the `email` field (for phone-registered users)
+        - `primary-phone` - Sets the `phone` field (for email-registered users)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, sessionId, otp]
+              properties:
+                type:
+                  type: string
+                  enum: [email, primary-email, primary-phone]
+                  description: Must match the type used in request endpoint
+                sessionId:
+                  type: string
+                  format: uuid
+                  description: Session ID from the request endpoint
+                otp:
+                  type: string
+                  pattern: '^\d{6}$'
+                  description: 6-digit OTP code
+            examples:
+              verifyEmail:
+                summary: Verify secondary email
+                value:
+                  type: email
+                  sessionId: "123e4567-e89b-12d3-a456-426614174001"
+                  otp: "123456"
+              verifyPrimaryEmail:
+                summary: Verify primary email
+                value:
+                  type: primary-email
+                  sessionId: "123e4567-e89b-12d3-a456-426614174002"
+                  otp: "654321"
+      responses:
+        '200':
+          description: Contact verified and added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      email:
+                        type: string
+                        nullable: true
+                      phone:
+                        type: string
+                        nullable: true
+              examples:
+                emailAdded:
+                  summary: Secondary email added
+                  value:
+                    success: true
+                    message: Email added successfully
+                    data:
+                      email: secondary@example.com
+                primaryEmailAdded:
+                  summary: Primary email added
+                  value:
+                    success: true
+                    message: Primary email added successfully
+                    data:
+                      email: primary@example.com
+                primaryPhoneAdded:
+                  summary: Primary phone added
+                  value:
+                    success: true
+                    message: Primary phone added successfully
+                    data:
+                      phone: "+1234567890"
+        '400':
+          description: Invalid OTP or session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_otp:
+                  summary: Incorrect OTP code
+                  value:
+                    success: false
+                    message: Invalid OTP
+                    statusCode: 400
+                otp_expired:
+                  summary: OTP expired (>10 minutes)
+                  value:
+                    success: false
+                    message: OTP expired
+                    statusCode: 400
+                already_verified:
+                  summary: Session already verified
+                  value:
+                    success: false
+                    message: Session already verified
+                    statusCode: 400
+                wrong_type:
+                  summary: Session type mismatch
+                  value:
+                    success: false
+                    message: Invalid session type
+                    statusCode: 400
+                unauthorized_session:
+                  summary: Session doesn't belong to authenticated learner
+                  value:
+                    success: false
+                    message: Unauthorized access to session
+                    statusCode: 400
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Invalid session ID
+                statusCode: 404
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        - For `/auth/learner/complete-register`: Temporary JWT token from verify-otp step (valid for 15 minutes)
+        - For all other authenticated endpoints: Standard JWT access token from login
+
+  schemas:
+    LearnerProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 123
+        email:
+          type: string
+          format: email
+          nullable: true
+          example: learner@example.com
+          description: Primary email (null if registered with phone only)
+        phone:
+          type: string
+          nullable: true
+          example: '+1234567890'
+          description: Primary phone (null if registered with email only)
+        profileUrl:
+          type: string
+          nullable: true
+          format: uri
+          example: https://example.com/photo.jpg
+        other_emails:
+          type: array
+          items:
+            type: string
+            format: email
+          example: ["secondary@example.com"]
+          description: List of additional verified emails
+        dob:
+          type: string
+          format: date
+          nullable: true
+          example: "1995-05-15"
+          description: Date of birth
+        gender:
+          type: string
+          nullable: true
+          enum: [Male, Female, Others, Not to disclose]
+          example: Male
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00Z"
+
+    OTPResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: OTP sent successfully
+        data:
+          type: object
+          properties:
+            sessionId:
+              type: string
+              format: uuid
+              example: "123e4567-e89b-12d3-a456-426614174000"
+              description: Session ID to use for OTP verification
+            message:
+              type: string
+              example: "OTP sent to email"
+            expiresAt:
+              type: string
+              format: date-time
+              example: "2024-01-01T12:10:00Z"
+              description: OTP expiration time (10 minutes from creation)
+
+    VerifyOTPRequest:
+      type: object
+      required: [sessionId, otp]
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        otp:
+          type: string
+          pattern: '^\d{6}$'
+          example: "123456"
+          description: 6-digit OTP code
+
+    TokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          description: Access token (valid for 15 minutes)
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          description: Refresh token (valid for 7 days)
+
+    LearnerAuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Login successful
+        data:
+          type: object
+          properties:
+            learner:
+              $ref: '#/components/schemas/LearnerProfile'
+            tokens:
+              $ref: '#/components/schemas/TokenResponse'
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: An error occurred
+        error:
+          type: string
+          example: ERROR_CODE
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+        statusCode:
+          type: integer
+          example: 400
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Validation error
+            errors:
+              - field: email
+                message: Invalid email format
+            statusCode: 400
+
+    UnauthorizedError:
+      description: Authentication failed or token required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: User not authenticated
+            error: UNAUTHORIZED
+            statusCode: 401
+
+    RateLimitError:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Too many requests. Please try again later.
+            error: RATE_LIMIT_EXCEEDED
+            statusCode: 429

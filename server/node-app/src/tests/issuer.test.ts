@@ -136,7 +136,7 @@ describe('Issuer Service', () => {
 
       (issuerRepository.findByEmail as jest.Mock).mockResolvedValue(mockIssuer);
 
-      await expect(issuerService.login(mockInput)).rejects.toThrow('Account is blocked');
+      await expect(issuerService.login(mockInput)).rejects.toThrow('Your account is blocked');
     });
 
     it('should throw error if issuer is rejected', async () => {
@@ -156,7 +156,7 @@ describe('Issuer Service', () => {
 
       (issuerRepository.findByEmail as jest.Mock).mockResolvedValue(mockIssuer);
 
-      await expect(issuerService.login(mockInput)).rejects.toThrow('Account has been rejected');
+      await expect(issuerService.login(mockInput)).rejects.toThrow('Your account has been rejected');
     });
 
     it('should throw error with invalid credentials', async () => {

@@ -5,62 +5,66 @@ import { requireAdmin } from '../../middleware/role';
 import { asyncHandler } from '../../middleware/error';
 import { authRateLimiter } from '../../middleware/rateLimit';
 
-const router = Router();
+// Auth routes (login, refresh) - mounted at /auth/admin
+const authRouter = Router();
 
-// Public routes
-router.post(
+authRouter.post(
   '/login',
   authRateLimiter,
   asyncHandler(adminController.login.bind(adminController))
 );
 
-router.post(
+authRouter.post(
   '/refresh',
   asyncHandler(adminController.refresh.bind(adminController))
 );
 
-// Protected routes - Profile
-router.get(
-  '/me',
+// Resource management routes - mounted at /admin
+const resourceRouter = Router();
+
+// Profile
+resourceRouter.get(
+  '/profile',
   authenticateToken,
   requireAdmin,
   asyncHandler(adminController.getMe.bind(adminController))
 );
 
-// Protected routes - Issuer Management
-router.post(
-  '/issuer/approve/:id',
-  authenticateToken,
-  requireAdmin,
-  asyncHandler(adminController.approveIssuer.bind(adminController))
-);
-
-router.post(
-  '/issuer/reject/:id',
-  authenticateToken,
-  requireAdmin,
-  asyncHandler(adminController.rejectIssuer.bind(adminController))
-);
-
-router.post(
-  '/issuer/block/:id',
-  authenticateToken,
-  requireAdmin,
-  asyncHandler(adminController.blockIssuer.bind(adminController))
-);
-
-router.post(
-  '/issuer/unblock/:id',
-  authenticateToken,
-  requireAdmin,
-  asyncHandler(adminController.unblockIssuer.bind(adminController))
-);
-
-router.get(
-  '/issuer/list',
+// Issuer management
+resourceRouter.get(
+  '/issuers',
   authenticateToken,
   requireAdmin,
   asyncHandler(adminController.listIssuers.bind(adminController))
 );
 
-export default router;
+resourceRouter.post(
+  '/issuers/:id/approve',
+  authenticateToken,
+  requireAdmin,
+  asyncHandler(adminController.approveIssuer.bind(adminController))
+);
+
+resourceRouter.post(
+  '/issuers/:id/reject',
+  authenticateToken,
+  requireAdmin,
+  asyncHandler(adminController.rejectIssuer.bind(adminController))
+);
+
+resourceRouter.post(
+  '/issuers/:id/block',
+  authenticateToken,
+  requireAdmin,
+  asyncHandler(adminController.blockIssuer.bind(adminController))
+);
+
+resourceRouter.post(
+  '/issuers/:id/unblock',
+  authenticateToken,
+  requireAdmin,
+  asyncHandler(adminController.unblockIssuer.bind(adminController))
+);
+
+export { authRouter as adminAuthRoutes, resourceRouter as adminResourceRoutes };
+export default authRouter; // Default export for backward compatibility

@@ -83,133 +83,73 @@ export class LearnerController {
   }
 
   /**
-   * Request to add email
-   * POST /auth/learner/add-email/request
+   * Unified contact verification request
+   * POST /learner/contacts/request
    */
-  async requestAddEmail(req: Request, res: Response): Promise<void> {
+  async requestContactVerification(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
         sendError(res, 'User not authenticated', 'Authentication required', 401);
         return;
       }
 
-      const { requestAddEmailSchema } = require('./schema');
-      const validatedData = requestAddEmailSchema.parse(req.body);
-      const result = await learnerService.requestAddEmail(req.user.id, validatedData.email);
+      const { requestContactVerificationSchema } = require('./schema');
+      const validatedData = requestContactVerificationSchema.parse(req.body);
+      
+      let result;
+      switch (validatedData.type) {
+        case 'email':
+          result = await learnerService.requestAddEmail(req.user.id, validatedData.email!);
+          break;
+        case 'primary-email':
+          result = await learnerService.requestAddPrimaryEmail(req.user.id, validatedData.email!);
+          break;
+        case 'primary-phone':
+          result = await learnerService.requestAddPrimaryPhone(req.user.id, validatedData.phone!);
+          break;
+      }
       
       sendSuccess(res, result, 'OTP sent successfully', 200);
     } catch (error: any) {
-      logger.error('Request add email failed', { error: error.message });
+      logger.error('Request contact verification failed', { error: error.message });
       sendError(res, error.message, 'Failed to send OTP', 400);
     }
   }
 
   /**
-   * Verify email OTP and add email
-   * POST /auth/learner/add-email/verify
+   * Unified contact verification
+   * POST /learner/contacts/verify
    */
-  async verifyAddEmail(req: Request, res: Response): Promise<void> {
+  async verifyContact(req: Request, res: Response): Promise<void> {
     try {
       if (!req.user) {
         sendError(res, 'User not authenticated', 'Authentication required', 401);
         return;
       }
 
-      const { verifyEmailOTPSchema } = require('./schema');
-      const validatedData = verifyEmailOTPSchema.parse(req.body);
-      const result = await learnerService.verifyEmailOTP(req.user.id, validatedData.sessionId, validatedData.otp);
+      const { verifyContactSchema } = require('./schema');
+      const validatedData = verifyContactSchema.parse(req.body);
       
-      sendSuccess(res, result, 'Email added successfully', 200);
-    } catch (error: any) {
-      logger.error('Verify add email failed', { error: error.message });
-      sendError(res, error.message, 'Failed to verify OTP', 400);
-    }
-  }
-
-  /**
-   * Request to add primary email (for phone-registered users)
-   * POST /auth/learner/add-primary-email/request
-   */
-  async requestAddPrimaryEmail(req: Request, res: Response): Promise<void> {
-    try {
-      if (!req.user) {
-        sendError(res, 'User not authenticated', 'Authentication required', 401);
-        return;
+      let result;
+      let successMessage;
+      switch (validatedData.type) {
+        case 'email':
+          result = await learnerService.verifyEmailOTP(req.user.id, validatedData.sessionId, validatedData.otp);
+          successMessage = 'Email added successfully';
+          break;
+        case 'primary-email':
+          result = await learnerService.verifyPrimaryEmailOTP(req.user.id, validatedData.sessionId, validatedData.otp);
+          successMessage = 'Primary email added successfully';
+          break;
+        case 'primary-phone':
+          result = await learnerService.verifyPrimaryPhoneOTP(req.user.id, validatedData.sessionId, validatedData.otp);
+          successMessage = 'Primary phone added successfully';
+          break;
       }
-
-      const { requestAddPrimaryEmailSchema } = require('./schema');
-      const validatedData = requestAddPrimaryEmailSchema.parse(req.body);
-      const result = await learnerService.requestAddPrimaryEmail(req.user.id, validatedData.email);
       
-      sendSuccess(res, result, 'OTP sent successfully', 200);
+      sendSuccess(res, result, successMessage, 200);
     } catch (error: any) {
-      logger.error('Request add primary email failed', { error: error.message });
-      sendError(res, error.message, 'Failed to send OTP', 400);
-    }
-  }
-
-  /**
-   * Verify primary email OTP
-   * POST /auth/learner/add-primary-email/verify
-   */
-  async verifyPrimaryEmail(req: Request, res: Response): Promise<void> {
-    try {
-      if (!req.user) {
-        sendError(res, 'User not authenticated', 'Authentication required', 401);
-        return;
-      }
-
-      const { verifyPrimaryEmailOTPSchema } = require('./schema');
-      const validatedData = verifyPrimaryEmailOTPSchema.parse(req.body);
-      const result = await learnerService.verifyPrimaryEmailOTP(req.user.id, validatedData.sessionId, validatedData.otp);
-      
-      sendSuccess(res, result, 'Primary email added successfully', 200);
-    } catch (error: any) {
-      logger.error('Verify primary email failed', { error: error.message });
-      sendError(res, error.message, 'Failed to verify OTP', 400);
-    }
-  }
-
-  /**
-   * Request to add primary phone (for email-registered users)
-   * POST /auth/learner/add-primary-phone/request
-   */
-  async requestAddPrimaryPhone(req: Request, res: Response): Promise<void> {
-    try {
-      if (!req.user) {
-        sendError(res, 'User not authenticated', 'Authentication required', 401);
-        return;
-      }
-
-      const { requestAddPrimaryPhoneSchema } = require('./schema');
-      const validatedData = requestAddPrimaryPhoneSchema.parse(req.body);
-      const result = await learnerService.requestAddPrimaryPhone(req.user.id, validatedData.phone);
-      
-      sendSuccess(res, result, 'OTP sent successfully', 200);
-    } catch (error: any) {
-      logger.error('Request add primary phone failed', { error: error.message });
-      sendError(res, error.message, 'Failed to send OTP', 400);
-    }
-  }
-
-  /**
-   * Verify primary phone OTP
-   * POST /auth/learner/add-primary-phone/verify
-   */
-  async verifyPrimaryPhone(req: Request, res: Response): Promise<void> {
-    try {
-      if (!req.user) {
-        sendError(res, 'User not authenticated', 'Authentication required', 401);
-        return;
-      }
-
-      const { verifyPrimaryPhoneOTPSchema } = require('./schema');
-      const validatedData = verifyPrimaryPhoneOTPSchema.parse(req.body);
-      const result = await learnerService.verifyPrimaryPhoneOTP(req.user.id, validatedData.sessionId, validatedData.otp);
-      
-      sendSuccess(res, result, 'Primary phone added successfully', 200);
-    } catch (error: any) {
-      logger.error('Verify primary phone failed', { error: error.message });
+      logger.error('Verify contact failed', { error: error.message });
       sendError(res, error.message, 'Failed to verify OTP', 400);
     }
   }

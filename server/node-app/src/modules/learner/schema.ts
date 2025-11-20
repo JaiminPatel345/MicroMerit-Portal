@@ -106,3 +106,36 @@ export const verifyPrimaryPhoneOTPSchema = z.object({
 });
 
 export type VerifyPrimaryPhoneOTPInput = z.infer<typeof verifyPrimaryPhoneOTPSchema>;
+
+/**
+ * Unified contact verification request schema
+ */
+export const requestContactVerificationSchema = z.object({
+  type: z.enum(['email', 'primary-email', 'primary-phone']),
+  email: z.string().email('Invalid email address').optional(),
+  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number').optional(),
+}).refine(
+  (data) => {
+    if (data.type === 'email' || data.type === 'primary-email') {
+      return !!data.email;
+    }
+    if (data.type === 'primary-phone') {
+      return !!data.phone;
+    }
+    return false;
+  },
+  { message: 'Email is required for email/primary-email type, phone is required for primary-phone type' }
+);
+
+export type RequestContactVerificationInput = z.infer<typeof requestContactVerificationSchema>;
+
+/**
+ * Unified contact verification schema
+ */
+export const verifyContactSchema = z.object({
+  type: z.enum(['email', 'primary-email', 'primary-phone']),
+  sessionId: z.string().uuid(),
+  otp: z.string().length(6).regex(/^\d{6}$/),
+});
+
+export type VerifyContactInput = z.infer<typeof verifyContactSchema>;

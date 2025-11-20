@@ -1,0 +1,665 @@
+openapi: 3.0.3
+info:
+  title: MicroMerit Portal - Admin API
+  description: |
+    Complete admin module for managing issuers and platform operations.
+    
+    ## Authentication
+    - **Login** (`POST /auth/admin/login`): Email + password authentication
+    - **Refresh** (`POST /auth/admin/refresh`): Get new access token using refresh token
+    
+    ## Profile Management
+    - **Get Profile** (`GET /admin/profile`): Retrieve admin profile
+    
+    ## Issuer Management
+    Admins manage issuer lifecycle and approvals:
+    
+    - **List Issuers** (`GET /admin/issuers`): View all issuers with filtering
+    - **Approve Issuer** (`POST /admin/issuers/:id/approve`): Approve pending issuer
+    - **Reject Issuer** (`POST /admin/issuers/:id/reject`): Reject pending issuer
+    - **Block Issuer** (`POST /admin/issuers/:id/block`): Block an issuer
+    - **Unblock Issuer** (`POST /admin/issuers/:id/unblock`): Unblock a blocked issuer
+    
+    ## Issuer Status Flow
+    1. **pending** - New registration, awaiting approval
+    2. **approved** - Admin approved, can issue credentials
+    3. **rejected** - Admin rejected the application
+    
+    Additionally, approved issuers can be **blocked** (is_blocked: true) for violations.
+    
+    ## Filters
+    When listing issuers, you can filter by:
+    - **status**: pending, approved, rejected
+    - **is_blocked**: true, false
+    
+  version: 1.1.0
+  contact:
+    name: MicroMerit Portal Team
+    email: support@micromerit.com
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://api.micromerit.com/api
+    description: Production server
+
+tags:
+  - name: Auth - Admin
+    description: Admin authentication (login, refresh)
+  - name: Profile
+    description: Admin profile management
+  - name: Issuer Management
+    description: Manage issuers (approve, reject, block, unblock)
+
+paths:
+  # ==================== AUTHENTICATION ====================
+  /auth/admin/login:
+    post:
+      tags: [Auth - Admin]
+      summary: Admin login
+      description: Login with admin email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "admin@micromerit.com"
+                password:
+                  type: string
+                  example: "AdminPass123!"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAuthResponse'
+              example:
+                success: true
+                message: Login successful
+                data:
+                  admin:
+                    id: 1
+                    email: "admin@micromerit.com"
+                    created_at: "2024-01-01T12:00:00Z"
+                  tokens:
+                    accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Invalid email or password
+                statusCode: 401
+
+  /auth/admin/refresh:
+    post:
+      tags: [Auth - Admin]
+      summary: Refresh access token
+      description: Get a new access token using a valid refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ==================== PROFILE MANAGEMENT ====================
+  /admin/profile:
+    get:
+      tags: [Profile]
+      summary: Get admin profile
+      description: Retrieve the authenticated admin's profile information
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/AdminProfile'
+              example:
+                success: true
+                data:
+                  id: 1
+                  email: "admin@micromerit.com"
+                  created_at: "2024-01-01T12:00:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # ==================== ISSUER MANAGEMENT ====================
+  /admin/issuers:
+    get:
+      tags: [Issuer Management]
+      summary: List all issuers
+      description: |
+        Retrieve all issuers with optional filtering.
+        
+        **Filters:**
+        - **status**: Filter by approval status (pending, approved, rejected)
+        - **is_blocked**: Filter by block status (true, false)
+        
+        **Examples:**
+        - `/admin/issuers` - All issuers
+        - `/admin/issuers?status=pending` - Pending approvals
+        - `/admin/issuers?status=approved&is_blocked=false` - Active approved issuers
+        - `/admin/issuers?is_blocked=true` - All blocked issuers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filter by issuer status
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+            example: pending
+        - name: is_blocked
+          in: query
+          required: false
+          description: Filter by block status
+          schema:
+            type: boolean
+            example: false
+      responses:
+        '200':
+          description: Issuers retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/IssuerProfile'
+              example:
+                success: true
+                data:
+                  - id: 1
+                    name: "MIT University"
+                    email: "admin@mit.edu"
+                    type: university
+                    status: pending
+                    is_blocked: false
+                    logo_url: "https://example.com/logo.png"
+                    created_at: "2024-01-01T12:00:00Z"
+                  - id: 2
+                    name: "Harvard University"
+                    email: "admin@harvard.edu"
+                    type: university
+                    status: approved
+                    is_blocked: false
+                    logo_url: "https://example.com/harvard-logo.png"
+                    created_at: "2024-01-02T12:00:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /admin/issuers/{id}/approve:
+    post:
+      tags: [Issuer Management]
+      summary: Approve issuer
+      description: |
+        Approve a pending issuer application.
+        
+        **Effect:**
+        - Status changes from **pending** to **approved**
+        - Issuer can now create API keys and issue credentials
+        
+        **Note:** Can only approve issuers with status = pending
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Issuer ID to approve
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Issuer approved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/IssuerProfile'
+              example:
+                success: true
+                data:
+                  id: 1
+                  name: "MIT University"
+                  email: "admin@mit.edu"
+                  type: university
+                  status: approved
+                  is_blocked: false
+                  logo_url: "https://example.com/logo.png"
+                  created_at: "2024-01-01T12:00:00Z"
+        '400':
+          description: Invalid status transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Issuer is not in pending status
+                statusCode: 400
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Issuer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Issuer not found
+                statusCode: 404
+
+  /admin/issuers/{id}/reject:
+    post:
+      tags: [Issuer Management]
+      summary: Reject issuer
+      description: |
+        Reject a pending issuer application.
+        
+        **Effect:**
+        - Status changes from **pending** to **rejected**
+        - Issuer cannot issue credentials
+        - Reason is stored for audit purposes
+        
+        **Note:** Can only reject issuers with status = pending
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Issuer ID to reject
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+                  example: "Incomplete KYC documentation"
+                  description: Reason for rejection
+      responses:
+        '200':
+          description: Issuer rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/IssuerProfile'
+              example:
+                success: true
+                data:
+                  id: 1
+                  name: "MIT University"
+                  email: "admin@mit.edu"
+                  type: university
+                  status: rejected
+                  is_blocked: false
+                  logo_url: "https://example.com/logo.png"
+                  created_at: "2024-01-01T12:00:00Z"
+        '400':
+          description: Invalid status transition or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_status:
+                  summary: Not in pending status
+                  value:
+                    success: false
+                    message: Issuer is not in pending status
+                    statusCode: 400
+                missing_reason:
+                  summary: Reason required
+                  value:
+                    success: false
+                    message: Rejection reason is required
+                    statusCode: 400
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Issuer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/issuers/{id}/block:
+    post:
+      tags: [Issuer Management]
+      summary: Block issuer
+      description: |
+        Block an issuer (typically for policy violations).
+        
+        **Effect:**
+        - is_blocked changes to **true**
+        - Issuer cannot issue new credentials
+        - Existing credentials remain valid
+        - Can be unblocked later
+        
+        **Note:** Can block issuers with any status
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Issuer ID to block
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+                  example: "Violated terms of service"
+                  description: Reason for blocking
+      responses:
+        '200':
+          description: Issuer blocked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              example:
+                success: true
+                message: Issuer blocked successfully
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Issuer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /admin/issuers/{id}/unblock:
+    post:
+      tags: [Issuer Management]
+      summary: Unblock issuer
+      description: |
+        Unblock a previously blocked issuer.
+        
+        **Effect:**
+        - is_blocked changes to **false**
+        - Issuer can resume issuing credentials
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Issuer ID to unblock
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Issuer unblocked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              example:
+                success: true
+                message: Issuer unblocked successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Issuer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from admin login
+
+  schemas:
+    AdminProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        email:
+          type: string
+          format: email
+          example: "admin@micromerit.com"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00Z"
+
+    IssuerProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "MIT University"
+        email:
+          type: string
+          format: email
+          example: "admin@mit.edu"
+        type:
+          type: string
+          enum: [university, school, training_center, government, corporate, other]
+          example: university
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+          example: approved
+          description: |
+            - **pending**: Awaiting admin approval
+            - **approved**: Can issue credentials
+            - **rejected**: Application rejected by admin
+        is_blocked:
+          type: boolean
+          example: false
+          description: Whether the issuer is blocked by admin
+        logo_url:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://example.com/logo.png"
+        website_url:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://mit.edu"
+        phone:
+          type: string
+          nullable: true
+          example: "+1234567890"
+        contact_person_name:
+          type: string
+          nullable: true
+          example: "John Doe"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00Z"
+
+    TokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          description: Access token (valid for 15 minutes)
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          description: Refresh token (valid for 7 days)
+
+    AdminAuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Login successful
+        data:
+          type: object
+          properties:
+            admin:
+              $ref: '#/components/schemas/AdminProfile'
+            tokens:
+              $ref: '#/components/schemas/TokenResponse'
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: An error occurred
+        error:
+          type: string
+          example: ERROR_CODE
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+        statusCode:
+          type: integer
+          example: 400
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Validation error
+            errors:
+              - field: reason
+                message: Reason is required
+            statusCode: 400
+
+    UnauthorizedError:
+      description: Authentication failed or token required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: User not authenticated
+            error: UNAUTHORIZED
+            statusCode: 401

@@ -2,14 +2,18 @@
 
 ## Documentation Files
 
+**One module = One OpenAPI file** - Each module has its own dedicated specification file.
+
 ```
-docs/
-├── README.md                           # Master index and overview
-├── auth.openapi.yml                    # Core authentication (36 KB)
-├── learner-registration.openapi.yml    # 3-step registration with OTP (11 KB)
+docs/apis/
+├── health.openapi.yml                  # System health check
+├── learner.openapi.yml                 # Complete learner module (auth + profile + contacts)
+├── issuer.openapi.yml                  # Complete issuer module (auth + profile + API keys)
+├── admin.openapi.yml                   # Complete admin module (auth + issuer management)
 ├── oauth.openapi.yml                   # Google & DigiLocker OAuth (9.3 KB)
 ├── credentials.openapi.yml             # Credential lifecycle management (18 KB)
 ├── pdf-certificates.openapi.yml        # PDF generation with S3 (9.7 KB)
+├── verification.openapi.yml            # Credential verification
 └── blockchain.openapi.yml              # Blockchain integration placeholder (9.4 KB)
 ```
 
@@ -19,55 +23,96 @@ docs/
 
 | Module | Spec File | Endpoints | Description |
 |--------|-----------|-----------|-------------|
-| **Core Auth** | `auth.openapi.yml` | 20+ | Issuer, Learner, Admin authentication |
-| **Registration** | `learner-registration.openapi.yml` | 3 | 3-step learner registration with OTP |
+| **Health** | `health.openapi.yml` | 1 | System health check |
+| **Learner** | `learner.openapi.yml` | 10 | Complete learner module: auth, registration (3-step OTP), profile, contact verification, OAuth |
+| **Issuer** | `issuer.openapi.yml` | 9 | Complete issuer module: auth, registration (2-step OTP), profile, API key management |
+| **Admin** | `admin.openapi.yml` | 8 | Complete admin module: auth, profile, issuer management (approve/reject/block/unblock) |
 | **OAuth** | `oauth.openapi.yml` | 4 | Google & DigiLocker social login |
 | **Credentials** | `credentials.openapi.yml` | 7 | Issue, claim, revoke, verify credentials |
 | **PDF Certs** | `pdf-certificates.openapi.yml` | 3 | Generate and download PDF certificates |
+| **Verification** | `verification.openapi.yml` | - | Credential verification |
 | **Blockchain** | `blockchain.openapi.yml` | 3 | Blockchain recording (placeholder) |
 
 ### By User Role
 
 #### Issuer Endpoints
-- Authentication (2-step with OTP): `POST /issuer/start-register`, `POST /issuer/verify-register`, `POST /issuer/login`
-- Authentication (Legacy): `POST /issuer/register` (deprecated)
-- Profile: `GET /issuer/me`, `PATCH /issuer/me`
-- API Keys: `GET /issuer/api-keys`, `POST /issuer/api-keys`, `DELETE /issuer/api-keys/{id}`
-- Credentials: `POST /credential/issue`, `GET /credential/issuer/list`, `PATCH /credential/revoke/{uid}`
-- PDF: `POST /pdf/generate`
-- Stats: `GET /credential/issuer/stats`
+**File**: `issuer.openapi.yml`
+
+- **Authentication**: 
+  - Registration (2-step OTP): `POST /auth/issuer/start-register`, `POST /auth/issuer/verify-register`
+  - Login: `POST /auth/issuer/login`
+  - Refresh: `POST /auth/issuer/refresh`
+- **Profile**: 
+  - Get: `GET /issuer/profile`
+  - Update: `PUT /issuer/profile`
+- **API Keys**: 
+  - List: `GET /issuer/api-keys`
+  - Create: `POST /issuer/api-keys`
+  - Get details: `GET /issuer/api-keys/{id}`
+  - Revoke: `DELETE /issuer/api-keys/{id}`
+- **Credentials** (see `credentials.openapi.yml`): 
+  - Issue: `POST /credential/issue`
+  - List: `GET /credential/issuer/list`
+  - Revoke: `PATCH /credential/revoke/{uid}`
+  - Stats: `GET /credential/issuer/stats`
+- **PDF** (see `pdf-certificates.openapi.yml`): 
+  - Generate: `POST /pdf/generate`
 
 #### Learner Endpoints
-- Authentication: `POST /learner/login`
-- Registration (3-step with OTP): `POST /learner/start-register`, `POST /learner/verify-otp`, `POST /learner/complete-register`
-- Registration (Legacy): `POST /learner/register` (deprecated)
-- Email Management: `POST /learner/add-email/request`, `POST /learner/add-email/verify`
-- OAuth: `GET /learner/oauth/google`, `GET /learner/oauth/digilocker`
-- Profile: `GET /learner/me`, `PATCH /learner/me`
-- Credentials: `POST /credential/claim`, `GET /credential/learner/list`
-- Stats: `GET /credential/learner/stats`
+**File**: `learner.openapi.yml`
+
+- **Authentication**: 
+  - Registration (3-step OTP): `POST /auth/learner/start-register`, `POST /auth/learner/verify-otp`, `POST /auth/learner/complete-register`
+  - Login: `POST /auth/learner/login`
+  - Refresh: `POST /auth/learner/refresh`
+  - OAuth: `GET /auth/learner/oauth/google`, `GET /auth/learner/oauth/google/callback`
+- **Profile**: 
+  - Get: `GET /learner/profile`
+  - Update: `PUT /learner/profile`
+- **Contact Verification** (unified endpoints):
+  - Request OTP: `POST /learner/contacts/request` (supports: email, primary-email, primary-phone)
+  - Verify OTP: `POST /learner/contacts/verify`
+- **Credentials** (see `credentials.openapi.yml`): 
+  - Claim: `POST /credential/claim`
+  - List: `GET /credential/learner/list`
+  - Stats: `GET /credential/learner/stats`
 
 #### Admin Endpoints
-- Authentication: `POST /admin/login`
-- Profile: `GET /admin/me`
-- Issuer Management: `GET /admin/issuers`, `POST /admin/issuers/{id}/approve`, `POST /admin/issuers/{id}/reject`, `POST /admin/issuers/{id}/block`, `POST /admin/issuers/{id}/unblock`
+**File**: `admin.openapi.yml`
+
+- **Authentication**: 
+  - Login: `POST /auth/admin/login`
+  - Refresh: `POST /auth/admin/refresh`
+- **Profile**: 
+  - Get: `GET /admin/profile`
+- **Issuer Management**: 
+  - List: `GET /admin/issuers` (supports filtering by status, is_blocked)
+  - Approve: `POST /admin/issuers/{id}/approve`
+  - Reject: `POST /admin/issuers/{id}/reject`
+  - Block: `POST /admin/issuers/{id}/block`
+  - Unblock: `POST /admin/issuers/{id}/unblock`
 
 #### Public Endpoints (No Auth)
-- Health: `GET /health`
-- Verification: `GET /credential/verify/{uid}`
-- PDF: `GET /pdf/{uid}`, `GET /pdf/{uid}/download`
-- Blockchain: `GET /blockchain/verify/{uid}`, `GET /blockchain/transaction/{hash}`
+**Files**: `health.openapi.yml`, `verification.openapi.yml`, `pdf-certificates.openapi.yml`, `blockchain.openapi.yml`
+
+- **Health**: `GET /health`
+- **Verification**: `GET /credential/verify/{uid}`
+- **PDF**: `GET /pdf/{uid}`, `GET /pdf/{uid}/download`
+- **Blockchain**: `GET /blockchain/verify/{uid}`, `GET /blockchain/transaction/{hash}`
 
 ### By Feature
 
 #### Authentication & Authorization
 - **JWT Tokens**: 15min access, 7 days refresh
 - **API Keys**: Custom rate limits per key
-- **OAuth**: Google & DigiLocker
+- **OAuth**: Google & DigiLocker (see `oauth.openapi.yml`)
 - **OTP**: Email/SMS verification (6-digit code, 10-minute expiry)
-  - **Learner Registration**: 3-step process with OTP verification
-  - **Issuer Registration**: 2-step process with email OTP verification before admin approval
-  - **Email Addition**: Learners can add verified additional emails one at a time
+  - **Learner Registration**: 3-step process with OTP verification (see `learner.openapi.yml`)
+  - **Issuer Registration**: 2-step process with email OTP verification before admin approval (see `issuer.openapi.yml`)
+  - **Contact Verification**: Unified endpoints for adding email/phone with OTP (see `learner.openapi.yml`)
+    - Add secondary email
+    - Add primary email (for phone-registered users)
+    - Add primary phone (for email-registered users)
 
 #### Credential Management
 - **Issue**: Issuer creates credential for learner
@@ -92,15 +137,20 @@ docs/
 # Install Swagger UI
 yarn add swagger-ui-express
 
-# Add to Express app
+# Add to Express app (example for learner module)
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 
-const authSpec = YAML.load('./docs/auth.openapi.yml');
-app.use('/api-docs/auth', swaggerUi.serve, swaggerUi.setup(authSpec));
+const learnerSpec = YAML.load('./docs/apis/learner.openapi.yml');
+app.use('/api-docs/learner', swaggerUi.serve, swaggerUi.setup(learnerSpec));
+
+// Repeat for other modules (issuer, admin, etc.)
 ```
 
-Then visit: `http://localhost:3000/api-docs/auth`
+Then visit: 
+- `http://localhost:3000/api-docs/learner`
+- `http://localhost:3000/api-docs/issuer`
+- `http://localhost:3000/api-docs/admin`
 
 ### Method 2: Postman
 1. Open Postman
@@ -113,8 +163,10 @@ Then visit: `http://localhost:3000/api-docs/auth`
 # Install Redoc CLI
 npm i -g redoc-cli
 
-# Generate static HTML
-redoc-cli bundle docs/auth.openapi.yml -o docs/auth.html
+# Generate static HTML for any module
+redoc-cli bundle docs/apis/learner.openapi.yml -o docs/learner.html
+redoc-cli bundle docs/apis/issuer.openapi.yml -o docs/issuer.html
+redoc-cli bundle docs/apis/admin.openapi.yml -o docs/admin.html
 ```
 
 ### Method 4: VS Code
@@ -175,7 +227,7 @@ curl -X POST http://localhost:3000/api/auth/learner/start-register \
     "email": "learner@example.com"
   }'
 
-# Step 2: Verify OTP
+# Step 2: Verify OTP (returns tempToken)
 curl -X POST http://localhost:3000/api/auth/learner/verify-otp \
   -H "Content-Type: application/json" \
   -d '{
@@ -184,12 +236,39 @@ curl -X POST http://localhost:3000/api/auth/learner/verify-otp \
   }'
 
 # Step 3: Complete registration (use tempToken from Step 2)
+# Option A: With base64 image (recommended for direct upload)
 curl -X POST http://localhost:3000/api/auth/learner/complete-register \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <tempToken>" \
   -d '{
     "name": "John Doe",
-    "password": "SecurePass123!"
+    "password": "SecurePass123!",
+    "profilePhotoUrl": "data:image/png;base64,iVBORw0KGgoAAAANS...",
+    "dob": "1995-05-15T00:00:00.000Z",
+    "gender": "Male"
+  }'
+
+# Option B: With image URL
+curl -X POST http://localhost:3000/api/auth/learner/complete-register \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <tempToken>" \
+  -d '{
+    "name": "John Doe",
+    "password": "SecurePass123!",
+    "profilePhotoUrl": "https://example.com/photo.jpg",
+    "dob": "1995-05-15T00:00:00.000Z",
+    "gender": "Male"
+  }'
+
+# Option C: Without photo
+curl -X POST http://localhost:3000/api/auth/learner/complete-register \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <tempToken>" \
+  -d '{
+    "name": "John Doe",
+    "password": "SecurePass123!",
+    "dob": "1995-05-15T00:00:00.000Z",
+    "gender": "Male"
   }'
 ```
 
@@ -216,46 +295,55 @@ curl -X POST http://localhost:3000/api/auth/issuer/verify-register \
   }'
 ```
 
-### Add Email to Learner Account
+### Learner Contact Verification (Unified Endpoints)
 ```bash
-# Step 1: Request to add email (send OTP)
-curl -X POST http://localhost:3000/api/auth/learner/add-email/request \
+# Add secondary email
+curl -X POST http://localhost:3000/api/learner/contacts/request \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <accessToken>" \
   -d '{
-    "email": "alternate@example.com"
+    "type": "email",
+    "email": "secondary@example.com"
   }'
 
-# Step 2: Verify OTP and add email
-curl -X POST http://localhost:3000/api/auth/learner/add-email/verify \
+curl -X POST http://localhost:3000/api/learner/contacts/verify \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <accessToken>" \
   -d '{
+    "type": "email",
     "sessionId": "123e4567-e89b-12d3-a456-426614174001",
     "otp": "123456"
   }'
-```
 
-### cURL
-### cURL (Legacy Examples)
-```bash
-# Register issuer (deprecated - use 2-step process instead)
-curl -X POST http://localhost:3000/api/issuer/register \
+# Add primary email (for phone-registered users)
+curl -X POST http://localhost:3000/api/learner/contacts/request \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <accessToken>" \
   -d '{
-    "organization_name": "Tech University",
-    "email": "admin@techuni.edu",
-    "password": "SecurePass123!",
-    "contact_person_name": "John Doe",
-    "phone_number": "+1234567890"
+    "type": "primary-email",
+    "email": "primary@example.com"
+  }'
+
+# Add primary phone (for email-registered users)
+curl -X POST http://localhost:3000/api/learner/contacts/request \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <accessToken>" \
+  -d '{
+    "type": "primary-phone",
+    "phone": "+1234567890"
   }'
 ```
 
 ### HTTPie
 ```bash
-# Login
-http POST localhost:3000/api/issuer/login \
+# Issuer login
+http POST localhost:3000/api/auth/issuer/login \
   email=admin@techuni.edu \
+  password=SecurePass123!
+
+# Learner login
+http POST localhost:3000/api/auth/learner/login \
+  email=learner@example.com \
   password=SecurePass123!
 ```
 
@@ -325,22 +413,32 @@ const data = await response.json();
 ## Updates
 
 Documentation is versioned alongside the API:
-- **Current Version**: v1.0.0
-- **Last Updated**: November 18, 2025
+- **Current Version**: v1.1.0
+- **Last Updated**: November 20, 2025
 - **Next Update**: When new features are added
 
-### Recent Changes (v1.0.0 - November 2025)
-1. **Learner Registration**: Removed `other_emails` field from Step 3 (profile completion)
-2. **Email Management**: Added two-step OTP verification for adding emails (`/learner/add-email/request` and `/learner/add-email/verify`)
-3. **Issuer Registration**: Added mandatory 2-step OTP verification before admin approval (`/issuer/start-register` and `/issuer/verify-register`)
-4. **Security Enhancement**: All email additions now require OTP verification to ensure email ownership
-5. **Admin Workflow**: Issuers must verify their email via OTP before their application reaches admin for approval
+### Recent Changes (v1.1.0 - November 2025)
+1. **OpenAPI Reorganization**: Moved to module-based structure - one file per module
+   - Created `learner.openapi.yml` - merged learner auth, registration, profile, and contact verification
+   - Created `issuer.openapi.yml` - merged issuer auth, registration, profile, and API keys
+   - Created `admin.openapi.yml` - merged admin auth, profile, and issuer management
+   - Created `health.openapi.yml` - system health endpoint
+   - Deleted `auth.openapi.yml` and `learner-registration.openapi.yml`
+2. **Contact Verification**: Unified 6 endpoints into 2 with `type` parameter
+   - `POST /learner/contacts/request` - supports email, primary-email, primary-phone
+   - `POST /learner/contacts/verify` - unified OTP verification
+3. **Route Restructuring**: Separated authentication from resource management
+   - `/auth/*` - Authentication only (login, register, refresh)
+   - `/learner/*`, `/issuer/*`, `/admin/*` - Resource management
+4. **Security Enhancement**: Removed password_hash from all API responses
+5. **Deprecated Routes**: Removed all legacy routes from codebase
 
 ## Contributing
 
 When adding new endpoints:
-1. Update the relevant `.openapi.yml` file
+1. Update the relevant module's `.openapi.yml` file (e.g., `learner.openapi.yml` for learner endpoints)
 2. Follow existing schema patterns
 3. Include examples for all request/response bodies
 4. Document all error cases
 5. Update this README's Quick Reference section
+6. **Module separation**: Keep one module per file - don't mix learner/issuer/admin endpoints

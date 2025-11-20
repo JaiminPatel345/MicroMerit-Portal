@@ -6,74 +6,78 @@ import { requireIssuer } from '../../middleware/role';
 import { asyncHandler } from '../../middleware/error';
 import { authRateLimiter, registrationRateLimiter, apiKeyRateLimiter } from '../../middleware/rateLimit';
 
-const router = Router();
+// Auth routes (login, register, refresh) - mounted at /auth/issuer
+const authRouter = Router();
 
-// Public routes - Two-step registration with OTP
-router.post(
+authRouter.post(
   '/start-register',
   registrationRateLimiter,
   asyncHandler(issuerController.startRegistration.bind(issuerController))
 );
 
-router.post(
+authRouter.post(
   '/verify-register',
   asyncHandler(issuerController.verifyRegistration.bind(issuerController))
 );
 
-router.post(
+authRouter.post(
   '/login',
   authRateLimiter,
   asyncHandler(issuerController.login.bind(issuerController))
 );
 
-router.post(
+authRouter.post(
   '/refresh',
   asyncHandler(issuerController.refresh.bind(issuerController))
 );
 
-// Protected routes - Profile
-router.get(
-  '/me',
+// Resource management routes - mounted at /issuer
+const resourceRouter = Router();
+
+// Profile management
+resourceRouter.get(
+  '/profile',
   authenticateToken,
   requireIssuer,
   asyncHandler(issuerController.getMe.bind(issuerController))
 );
 
-router.put(
-  '/me',
+resourceRouter.put(
+  '/profile',
   authenticateToken,
   requireIssuer,
   asyncHandler(issuerController.updateMe.bind(issuerController))
 );
 
-// Protected routes - API Keys
-router.post(
-  '/api-key/create',
+// API key management
+resourceRouter.post(
+  '/api-keys',
   authenticateToken,
   requireIssuer,
   apiKeyRateLimiter,
   asyncHandler(apiKeyController.create.bind(apiKeyController))
 );
 
-router.get(
-  '/api-key/list',
+resourceRouter.get(
+  '/api-keys',
   authenticateToken,
   requireIssuer,
   asyncHandler(apiKeyController.list.bind(apiKeyController))
 );
 
-router.post(
-  '/api-key/revoke/:id',
-  authenticateToken,
-  requireIssuer,
-  asyncHandler(apiKeyController.revoke.bind(apiKeyController))
-);
-
-router.get(
-  '/api-key/:id',
+resourceRouter.get(
+  '/api-keys/:id',
   authenticateToken,
   requireIssuer,
   asyncHandler(apiKeyController.getDetails.bind(apiKeyController))
 );
 
-export default router;
+resourceRouter.delete(
+  '/api-keys/:id',
+  authenticateToken,
+  requireIssuer,
+  asyncHandler(apiKeyController.revoke.bind(apiKeyController))
+);
+
+export { authRouter as issuerAuthRoutes, resourceRouter as issuerResourceRoutes };
+export default authRouter; // Default export for backward compatibility

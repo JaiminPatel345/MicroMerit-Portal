@@ -7,85 +7,59 @@ import { authRateLimiter } from '../../middleware/rateLimit';
 import registrationRoutes from '../learner-registration/routes';
 import oauthRoutes from '../learner-oauth/routes';
 
-const router = Router();
+// Auth routes (login, register, refresh) - mounted at /auth/learner
+const authRouter = Router();
 
 // Three-step registration routes
-router.use('/', registrationRoutes);
+authRouter.use('/', registrationRoutes);
 
 // OAuth routes
-router.use('/oauth', oauthRoutes);
+authRouter.use('/oauth', oauthRoutes);
 
-router.post(
+authRouter.post(
   '/login',
   authRateLimiter,
   asyncHandler(learnerController.login.bind(learnerController))
 );
 
-router.post(
+authRouter.post(
   '/refresh',
   asyncHandler(learnerController.refresh.bind(learnerController))
 );
 
-// Protected routes
-router.get(
-  '/me',
+// Resource management routes - mounted at /learner
+const resourceRouter = Router();
+
+// Profile management
+resourceRouter.get(
+  '/profile',
   authenticateToken,
   requireLearner,
   asyncHandler(learnerController.getMe.bind(learnerController))
 );
 
-router.put(
-  '/me',
+resourceRouter.put(
+  '/profile',
   authenticateToken,
   requireLearner,
   asyncHandler(learnerController.updateMe.bind(learnerController))
 );
 
-// Email management routes
-router.post(
-  '/add-email/request',
+// Contact verification - unified endpoints
+resourceRouter.post(
+  '/contacts/request',
   authenticateToken,
   requireLearner,
   authRateLimiter,
-  asyncHandler(learnerController.requestAddEmail.bind(learnerController))
+  asyncHandler(learnerController.requestContactVerification.bind(learnerController))
 );
 
-router.post(
-  '/add-email/verify',
+resourceRouter.post(
+  '/contacts/verify',
   authenticateToken,
   requireLearner,
-  asyncHandler(learnerController.verifyAddEmail.bind(learnerController))
+  asyncHandler(learnerController.verifyContact.bind(learnerController))
 );
 
-// Primary contact management routes
-router.post(
-  '/add-primary-email/request',
-  authenticateToken,
-  requireLearner,
-  authRateLimiter,
-  asyncHandler(learnerController.requestAddPrimaryEmail.bind(learnerController))
-);
-
-router.post(
-  '/add-primary-email/verify',
-  authenticateToken,
-  requireLearner,
-  asyncHandler(learnerController.verifyPrimaryEmail.bind(learnerController))
-);
-
-router.post(
-  '/add-primary-phone/request',
-  authenticateToken,
-  requireLearner,
-  authRateLimiter,
-  asyncHandler(learnerController.requestAddPrimaryPhone.bind(learnerController))
-);
-
-router.post(
-  '/add-primary-phone/verify',
-  authenticateToken,
-  requireLearner,
-  asyncHandler(learnerController.verifyPrimaryPhone.bind(learnerController))
-);
-
-export default router;
+export { authRouter as learnerAuthRoutes, resourceRouter as learnerResourceRoutes };
+export default authRouter; // Default export for backward compatibility

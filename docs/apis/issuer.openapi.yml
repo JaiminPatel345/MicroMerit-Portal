@@ -1,0 +1,849 @@
+openapi: 3.0.3
+info:
+  title: MicroMerit Portal - Issuer API
+  description: |
+    Complete issuer module including authentication, registration, profile management, and API key management.
+    
+    ## Registration Flow
+    1. **Start Registration** (`POST /auth/issuer/start-register`): Submit issuer details and receive OTP
+    2. **Verify and Complete** (`POST /auth/issuer/verify-register`): Verify OTP to complete registration
+    
+    After registration, issuer enters **pending** status and requires admin approval before credentials can be issued.
+    
+    ## Authentication
+    - **Login** (`POST /auth/issuer/login`): Email + password authentication
+    - **Refresh** (`POST /auth/issuer/refresh`): Get new access token using refresh token
+    
+    ## Profile Management
+    - **Get Profile** (`GET /issuer/profile`): Retrieve issuer profile
+    - **Update Profile** (`PUT /issuer/profile`): Update profile details
+    
+    ## API Key Management
+    Issuers can create multiple API keys for credential issuance. Each key:
+    - Has a unique name for identification
+    - Can be individually revoked
+    - Shows last usage timestamp
+    - **Important**: Full API key is only shown once at creation
+    
+    - **List Keys** (`GET /issuer/api-keys`): View all API keys
+    - **Create Key** (`POST /issuer/api-keys`): Generate new API key
+    - **Get Key** (`GET /issuer/api-keys/:id`): View specific key details
+    - **Revoke Key** (`DELETE /issuer/api-keys/:id`): Revoke an API key
+    
+    ## Issuer Status Flow
+    1. **pending** - After registration, awaiting admin approval
+    2. **approved** - Admin approved, can issue credentials
+    3. **rejected** - Admin rejected the application
+    4. **blocked** - Admin blocked (can be unblocked)
+    
+  version: 1.1.0
+
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+
+tags:
+  - name: Auth - Issuer
+    description: Issuer authentication (login, register, refresh)
+  - name: Profile
+    description: Issuer profile management
+  - name: API Keys
+    description: API key management for credential issuance
+
+paths:
+  # ==================== AUTHENTICATION ====================
+  /auth/issuer/start-register:
+    post:
+      tags: [Auth - Issuer]
+      summary: Start issuer registration (Step 1 - Send OTP)
+      description: |
+        Initiate issuer registration with organization details.
+        An OTP will be sent to the provided email for verification.
+        
+        **Required fields**: name, type, email, password
+        
+        **Optional fields**: official_domain, phone, contact_person_name, 
+        contact_person_designation, address, kyc_document_url, logo_url
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, type, email, password]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  example: "MIT University"
+                  description: Organization name
+                official_domain:
+                  type: string
+                  maxLength: 255
+                  example: "mit.edu"
+                  description: Official domain of the organization (optional)
+                type:
+                  type: string
+                  enum: [university, school, training_center, government, corporate, other]
+                  example: university
+                  description: Type of issuing organization
+                email:
+                  type: string
+                  format: email
+                  maxLength: 255
+                  example: "admin@mit.edu"
+                  description: Official email address
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  maxLength: 100
+                  example: "SecurePass123!"
+                  description: Account password (min 8 characters)
+                phone:
+                  type: string
+                  maxLength: 15
+                  example: "+1234567890"
+                  description: Contact phone number (optional)
+                contact_person_name:
+                  type: string
+                  maxLength: 255
+                  example: "John Doe"
+                  description: Name of contact person (optional)
+                contact_person_designation:
+                  type: string
+                  maxLength: 255
+                  example: "Registrar"
+                  description: Designation of contact person (optional)
+                address:
+                  type: string
+                  example: "77 Massachusetts Ave, Cambridge, MA"
+                  description: Organization address (optional)
+                kyc_document_url:
+                  type: string
+                  format: uri
+                  example: "https://example.com/kyc-doc.pdf"
+                  description: KYC document URL (optional)
+                logo_url:
+                  type: string
+                  format: uri
+                  example: "https://example.com/logo.png"
+                  description: Organization logo URL (optional)
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OTPResponse'
+              example:
+                success: true
+                message: OTP sent to your email
+                data:
+                  sessionId: "123e4567-e89b-12d3-a456-426614174000"
+                  message: "OTP sent to email"
+                  expiresAt: "2024-01-01T12:10:00Z"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Email already registered
+                error: EMAIL_ALREADY_REGISTERED
+                statusCode: 409
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+  /auth/issuer/verify-register:
+    post:
+      tags: [Auth - Issuer]
+      summary: Verify OTP and complete registration (Step 2)
+      description: |
+        Verify the OTP sent to email and complete issuer registration.
+        
+        After successful registration:
+        - Issuer status is set to **pending**
+        - Admin approval is required before issuer can issue credentials
+        - Returns JWT tokens for immediate login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyOTPRequest'
+            example:
+              sessionId: "123e4567-e89b-12d3-a456-426614174000"
+              otp: "123456"
+      responses:
+        '201':
+          description: Registration completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssuerAuthResponse'
+              example:
+                success: true
+                message: Registration completed successfully
+                data:
+                  issuer:
+                    id: 1
+                    name: "MIT University"
+                    email: "admin@mit.edu"
+                    type: university
+                    status: pending
+                    is_blocked: false
+                    logo_url: "https://example.com/logo.png"
+                    created_at: "2024-01-01T12:00:00Z"
+                  tokens:
+                    accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        '400':
+          description: Invalid OTP or session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_otp:
+                  summary: Incorrect OTP
+                  value:
+                    success: false
+                    message: Invalid OTP
+                    error: INVALID_OTP
+                    statusCode: 400
+                otp_expired:
+                  summary: OTP expired
+                  value:
+                    success: false
+                    message: OTP expired
+                    error: OTP_EXPIRED
+                    statusCode: 400
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Invalid session ID
+                error: SESSION_NOT_FOUND
+                statusCode: 404
+
+  /auth/issuer/login:
+    post:
+      tags: [Auth - Issuer]
+      summary: Issuer login
+      description: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "admin@mit.edu"
+                password:
+                  type: string
+                  example: "SecurePass123!"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssuerAuthResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Invalid email or password
+                statusCode: 401
+        '403':
+          description: Account blocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Your account has been blocked
+                statusCode: 403
+
+  /auth/issuer/refresh:
+    post:
+      tags: [Auth - Issuer]
+      summary: Refresh access token
+      description: Get a new access token using a valid refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ==================== PROFILE MANAGEMENT ====================
+  /issuer/profile:
+    get:
+      tags: [Profile]
+      summary: Get issuer profile
+      description: Retrieve the authenticated issuer's profile information
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/IssuerProfile'
+              example:
+                success: true
+                data:
+                  id: 1
+                  name: "MIT University"
+                  email: "admin@mit.edu"
+                  type: university
+                  status: approved
+                  is_blocked: false
+                  logo_url: "https://example.com/logo.png"
+                  website_url: "https://mit.edu"
+                  phone: "+1234567890"
+                  contact_person_name: "John Doe"
+                  created_at: "2024-01-01T12:00:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    
+    put:
+      tags: [Profile]
+      summary: Update issuer profile
+      description: |
+        Update issuer profile details.
+        
+        **Updatable fields**: name, website_url, phone, contact_person_name, logo_url
+        
+        **Non-updatable fields**: email, type, status, is_blocked (admin-controlled)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  example: "Massachusetts Institute of Technology"
+                website_url:
+                  type: string
+                  format: uri
+                  maxLength: 255
+                  example: "https://mit.edu"
+                phone:
+                  type: string
+                  maxLength: 15
+                  example: "+1234567890"
+                contact_person_name:
+                  type: string
+                  maxLength: 255
+                  example: "Jane Smith"
+                logo_url:
+                  type: string
+                  format: uri
+                  example: "https://example.com/new-logo.png"
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/IssuerProfile'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # ==================== API KEY MANAGEMENT ====================
+  /issuer/api-keys:
+    get:
+      tags: [API Keys]
+      summary: List all API keys
+      description: |
+        Retrieve all API keys for the authenticated issuer.
+        
+        **Note**: The full API key value is NOT returned here. 
+        It's only shown once during creation.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: API keys retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/APIKey'
+              example:
+                success: true
+                data:
+                  - id: 1
+                    name: "Production API Key"
+                    prefix: "mm_live_abc123"
+                    status: active
+                    created_at: "2024-01-01T12:00:00Z"
+                    last_used_at: "2024-01-05T15:30:00Z"
+                  - id: 2
+                    name: "Development API Key"
+                    prefix: "mm_test_xyz789"
+                    status: active
+                    created_at: "2024-01-02T10:00:00Z"
+                    last_used_at: null
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    
+    post:
+      tags: [API Keys]
+      summary: Create new API key
+      description: |
+        Generate a new API key for credential issuance.
+        
+        **IMPORTANT**: The full API key is only shown in this response.
+        Save it securely - it cannot be retrieved later.
+        
+        **API Key Format**: `mm_live_<random_string>` or `mm_test_<random_string>`
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: "Production API Key"
+                  description: Descriptive name for the API key
+      responses:
+        '201':
+          description: API key created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/APIKeyWithSecret'
+              example:
+                success: true
+                data:
+                  id: 3
+                  name: "Production API Key"
+                  prefix: "mm_live_abc123"
+                  api_key: "mm_live_abc123def456ghi789jkl012mno345pqr678stu901vwx234yz"
+                  status: active
+                  created_at: "2024-01-10T12:00:00Z"
+                  last_used_at: null
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /issuer/api-keys/{id}:
+    get:
+      tags: [API Keys]
+      summary: Get API key details
+      description: |
+        Retrieve details of a specific API key.
+        
+        **Note**: The full API key value is NOT returned.
+        Only metadata like name, prefix, status, and usage timestamps are shown.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: API key ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: API key details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/APIKey'
+              example:
+                success: true
+                data:
+                  id: 1
+                  name: "Production API Key"
+                  prefix: "mm_live_abc123"
+                  status: active
+                  created_at: "2024-01-01T12:00:00Z"
+                  last_used_at: "2024-01-05T15:30:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: API key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: API key not found
+                statusCode: 404
+    
+    delete:
+      tags: [API Keys]
+      summary: Revoke API key
+      description: |
+        Revoke an API key. Revoked keys:
+        - Status changes to `revoked`
+        - Cannot be used for credential issuance
+        - Cannot be reactivated
+        
+        **Action is permanent** - create a new key if needed later.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: API key ID to revoke
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: API key revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+              example:
+                success: true
+                message: API key revoked successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: API key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: API key not found
+                statusCode: 404
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from login or registration
+
+  schemas:
+    IssuerProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "MIT University"
+        email:
+          type: string
+          format: email
+          example: "admin@mit.edu"
+        type:
+          type: string
+          enum: [university, school, training_center, government, corporate, other]
+          example: university
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+          example: approved
+          description: |
+            - **pending**: Awaiting admin approval
+            - **approved**: Can issue credentials
+            - **rejected**: Application rejected by admin
+        is_blocked:
+          type: boolean
+          example: false
+          description: Whether the issuer is blocked by admin
+        logo_url:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://example.com/logo.png"
+        website_url:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://mit.edu"
+        phone:
+          type: string
+          nullable: true
+          example: "+1234567890"
+        contact_person_name:
+          type: string
+          nullable: true
+          example: "John Doe"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00Z"
+
+    APIKey:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Production API Key"
+          description: Descriptive name for the key
+        prefix:
+          type: string
+          example: "mm_live_abc123"
+          description: First 13 characters of the API key
+        status:
+          type: string
+          enum: [active, revoked]
+          example: active
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00Z"
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-01-05T15:30:00Z"
+          description: Timestamp of last API key usage (null if never used)
+
+    APIKeyWithSecret:
+      allOf:
+        - $ref: '#/components/schemas/APIKey'
+        - type: object
+          properties:
+            api_key:
+              type: string
+              example: "mm_live_abc123def456ghi789jkl012mno345pqr678stu901vwx234yz"
+              description: |
+                **Full API key - ONLY SHOWN ONCE**
+                
+                Save this securely. You won't be able to see it again.
+                Use this key in the `X-API-Key` header for credential issuance.
+
+    OTPResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: OTP sent successfully
+        data:
+          type: object
+          properties:
+            sessionId:
+              type: string
+              format: uuid
+              example: "123e4567-e89b-12d3-a456-426614174000"
+            message:
+              type: string
+              example: "OTP sent to email"
+            expiresAt:
+              type: string
+              format: date-time
+              example: "2024-01-01T12:10:00Z"
+
+    VerifyOTPRequest:
+      type: object
+      required: [sessionId, otp]
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        otp:
+          type: string
+          pattern: '^\d{6}$'
+          example: "123456"
+
+    TokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          description: Access token (valid for 15 minutes)
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          description: Refresh token (valid for 7 days)
+
+    IssuerAuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Login successful
+        data:
+          type: object
+          properties:
+            issuer:
+              $ref: '#/components/schemas/IssuerProfile'
+            tokens:
+              $ref: '#/components/schemas/TokenResponse'
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: An error occurred
+        error:
+          type: string
+          example: ERROR_CODE
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+        statusCode:
+          type: integer
+          example: 400
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Validation error
+            errors:
+              - field: email
+                message: Invalid email format
+            statusCode: 400
+
+    UnauthorizedError:
+      description: Authentication failed or token required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: User not authenticated
+            error: UNAUTHORIZED
+            statusCode: 401
+
+    RateLimitError:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            message: Too many requests. Please try again later.
+            error: RATE_LIMIT_EXCEEDED
+            statusCode: 429

@@ -5,9 +5,9 @@ import { generalRateLimiter } from './middleware/rateLimit';
 import { logger } from './utils/logger';
 
 // Import routes
-import issuerRoutes from './modules/issuer/routes';
-import learnerRoutes from './modules/learner/routes';
-import adminRoutes from './modules/admin/routes';
+import { issuerAuthRoutes, issuerResourceRoutes } from './modules/issuer/routes';
+import { learnerAuthRoutes, learnerResourceRoutes } from './modules/learner/routes';
+import { adminAuthRoutes, adminResourceRoutes } from './modules/admin/routes';
 import credentialRoutes from './modules/credential/routes';
 import pdfRoutes from './modules/pdf/routes';
 import verificationRoutes from './modules/verification/routes';
@@ -58,9 +58,17 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
-app.use('/auth/issuer', issuerRoutes);
-app.use('/auth/learner', learnerRoutes);
-app.use('/auth/admin', adminRoutes);
+// Authentication routes
+app.use('/auth/issuer', issuerAuthRoutes);
+app.use('/auth/learner', learnerAuthRoutes);
+app.use('/auth/admin', adminAuthRoutes);
+
+// Resource management routes
+app.use('/issuer', issuerResourceRoutes);
+app.use('/learner', learnerResourceRoutes);
+app.use('/admin', adminResourceRoutes);
+
+// Other routes
 app.use('/credentials', credentialRoutes);
 app.use('/pdf', pdfRoutes);
 app.use('/verify', verificationRoutes);
@@ -72,9 +80,19 @@ app.get('/', (req, res) => {
     message: 'MicroMerit Portal API',
     version: '1.0.0',
     endpoints: {
-      issuer: '/auth/issuer',
-      learner: '/auth/learner',
-      admin: '/auth/admin',
+      auth: {
+        issuer: '/auth/issuer',
+        learner: '/auth/learner',
+        admin: '/auth/admin',
+      },
+      resources: {
+        issuer: '/issuer',
+        learner: '/learner',
+        admin: '/admin',
+        credentials: '/credentials',
+        pdf: '/pdf',
+        verify: '/verify',
+      },
       health: '/health',
     },
   });
