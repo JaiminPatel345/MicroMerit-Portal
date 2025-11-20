@@ -129,9 +129,12 @@ export const sendOTP = async (
   otp: string
 ): Promise<void> => {
   if (method === 'email') {
-    await sendOTPEmail(recipient, otp);
+
+    console.log(`Sending OTP ${otp} to email ${recipient}`);
+    // await sendOTPEmail(recipient, otp);
   } else if (method === 'phone') {
-    await sendOTPSMS(recipient, otp);
+    console.log(`Sending OTP ${otp} to phone ${recipient}`);
+    // await sendOTPSMS(recipient, otp);
   } else {
     throw new Error('Invalid verification method');
   }

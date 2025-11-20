@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Phone, ArrowLeft } from 'lucide-react';
+import { signUpLeaner } from '../services/authServices';
 
 const VerifyOTP = () => {
   const navigate = useNavigate();
@@ -11,7 +12,8 @@ const VerifyOTP = () => {
   const [canResend, setCanResend] = useState(false);
   const inputRefs = useRef([]);
 
-  const { identifier, type, password, verificationType } = location.state || {};
+  const { identifier, type, verificationType , sessionId } = location.state || {};
+  // console.log(sessionId)
 
   useEffect(() => {
     if (!identifier || !type) {
@@ -72,16 +74,27 @@ const VerifyOTP = () => {
       setError('Please enter a valid 6-digit OTP');
       return;
     }
+ 
+    try{
+      const response = await signUpLeaner.verify({ sessionId , otp: otpCode });
 
-    navigate('/profile-builder', {
-      state: {
-        identifier,
-        type,
-        password,
-        loginMethod: type,
-        otpVerified: true
+      if(response?.data?.success === true){
+        navigate('/profile-builder', {
+          state: {
+            identifier,
+            type,
+            loginMethod: type,
+            otpVerified: true
+          }
+        });
       }
-    });
+    }catch(err){
+      setError(err.response?.data?.message || 'OTP verification failed. Please try again.');
+      return;
+    }
+
+    
+
   };
 
   const handleResendOTP = async () => {

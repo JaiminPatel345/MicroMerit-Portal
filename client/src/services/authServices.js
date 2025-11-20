@@ -1,3 +1,6 @@
+import api from './axiosInstance';
+
+
 export const sendOTP = async (mobile) => {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -6,6 +9,18 @@ export const sendOTP = async (mobile) => {
     }, 1000);
   });
 };
+
+export const oauthGoogleLogin = {
+  oauth: () => api.get('/auth/learner/oauth/google'),
+};
+
+export const signUpLeaner = {
+   start : (payload) => api.post('auth/learner/start-register',payload),
+   verify : (payload) => api.post('auth/learner/verify-otp',payload)
+}
+
+
+
 
 export const verifyOTP = async (mobile, otp) => {
   return new Promise((resolve) => {
