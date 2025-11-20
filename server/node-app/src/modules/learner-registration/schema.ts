@@ -25,8 +25,13 @@ export const verifyOTPSchema = z.object({
 export const completeRegistrationSchema = z.object({
   body: z.object({
     name: z.string().min(1).max(255),
+    phone : z.string().regex(/^\+?[1-9]\d{1,14}$/),
+    email : z.string().email(),
+    dateOfBirth : z.string().optional(), // ISO date string
+    gender : z.enum(['male','female','other','prefer_not_to_say']).optional(),
     profilePhotoUrl: z.string().optional(), // Accept base64 or URL
-    password: z.string().min(8).optional(),
+    password: z.string().min(8),
+
   }),
 });
 

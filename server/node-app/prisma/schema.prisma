@@ -63,7 +63,8 @@ model learner {
   status                 String    @default("active")
   other_emails           String[]
   created_at             DateTime  @default(now())
-
+  dateOfBirth            DateTime?
+  gender                 String?
   credentials            credential[]
 }
 

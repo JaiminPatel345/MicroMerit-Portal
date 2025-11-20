@@ -139,11 +139,13 @@ export class RegistrationService {
 
     // Create learner
     const learner = await this.repository.createLearner({
-      email: session.email || undefined,
-      phone: session.phone || undefined,
+      email: input.email || session.email || undefined,
+      phone: input.phone || session.phone || undefined,
       hashedPassword,
       profileUrl: input.profilePhotoUrl,
       otherEmails: (input as any).otherEmails || undefined,
+      dateOfBirth: input.dateOfBirth,
+      gender: input.gender
     });
 
     // Generate tokens

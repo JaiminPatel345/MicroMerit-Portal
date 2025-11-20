@@ -6,18 +6,18 @@ import { z } from 'zod';
 export const startIssuerRegistrationSchema = z.object({
   email: z.string().email('Invalid email address'),
   name: z.string().min(3, 'Name must be at least 3 characters').max(255),
-  official_domain: z.string().url('Invalid URL').optional(),
-  website_url: z.string().url('Invalid URL').optional(),
+  official_domain: z.string().optional().nullable(),
+  website_url: z.string().url('Invalid URL').optional().nullable(),
   type: z.enum(['university', 'edtech', 'company', 'training_provider'], {
     errorMap: () => ({ message: 'Type must be one of: university, edtech, company, training_provider' }),
   }),
-  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number').optional(),
+  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number'),
   password: z.string().min(8, 'Password must be at least 8 characters').max(100),
-  contact_person_name: z.string().min(2).max(255).optional(),
-  contact_person_designation: z.string().min(2).max(255).optional(),
-  address: z.string().min(10).max(1000).optional(),
-  kyc_document_url: z.string().url('Invalid URL').optional(),
-  logo_url: z.string().url('Invalid URL').optional(),
+  contact_person_name: z.string().min(2).max(255),
+  contact_person_designation: z.string().min(2).max(255),
+  address: z.string().min(10).max(1000),
+  kyc_document_url: z.string().url('Invalid URL'),
+  logo_url: z.string().url('Invalid URL').optional().nullable(),
 });
 
 export type StartIssuerRegistrationInput = z.infer<typeof startIssuerRegistrationSchema>;
@@ -78,7 +78,7 @@ export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
  */
 export const updateIssuerProfileSchema = z.object({
   name: z.string().min(3).max(255).optional(),
-  official_domain: z.string().url('Invalid URL').optional(),
+  official_domain: z.string().optional(),
   website_url: z.string().url('Invalid URL').optional(),
   type: z.enum(['university', 'edtech', 'company', 'training_provider']).optional(),
   phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number').optional(),
