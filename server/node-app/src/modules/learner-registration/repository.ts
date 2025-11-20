@@ -11,12 +11,13 @@ export class RegistrationRepository {
     verificationMethod: 'email' | 'phone';
     expiresAt: Date;
   }) {
-    return prisma.registration_session.create({
+    return prisma.verification_session.create({
       data: {
+        session_type: 'learner_registration',
         email: data.email,
         phone: data.phone,
         otp_hash: data.otpHash,
-        verification_method: data.verificationMethod,
+        metadata: { verification_method: data.verificationMethod },
         expires_at: data.expiresAt,
       },
     });
@@ -26,8 +27,10 @@ export class RegistrationRepository {
    * Find a registration session by ID
    */
   async findSessionById(sessionId: string) {
-    return prisma.registration_session.findUnique({
-      where: { id: sessionId },
+    return prisma.verification_session.findUnique({
+      where: { 
+        id: sessionId,
+      },
     });
   }
 
@@ -35,7 +38,7 @@ export class RegistrationRepository {
    * Mark session as verified
    */
   async markSessionAsVerified(sessionId: string) {
-    return prisma.registration_session.update({
+    return prisma.verification_session.update({
       where: { id: sessionId },
       data: {
         is_verified: true,
@@ -48,8 +51,9 @@ export class RegistrationRepository {
    * Delete expired sessions (cleanup utility)
    */
   async deleteExpiredSessions(): Promise<number> {
-    const result = await prisma.registration_session.deleteMany({
+    const result = await prisma.verification_session.deleteMany({
       where: {
+        session_type: 'learner_registration',
         expires_at: {
           lt: new Date(),
         },

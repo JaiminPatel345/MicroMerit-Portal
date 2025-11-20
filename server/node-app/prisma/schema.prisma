@@ -76,63 +76,36 @@ model admin {
   created_at     DateTime @default(now())
 }
 
-model registration_session {
-  id                  String    @id @default(uuid())
-  email               String?
-  phone               String?
-  otp_hash            String
-  is_verified         Boolean   @default(false)
-  verification_method String    // 'email' or 'phone'
-  expires_at          DateTime
-  verified_at         DateTime?
-  created_at          DateTime  @default(now())
+model verification_session {
+  id                String    @id @default(uuid())
+  session_type      String    // 'learner_registration', 'email_verification', 'issuer_registration', 'primary_contact_change'
+  
+  // Related entity IDs (nullable based on type)
+  learner_id        Int?
+  issuer_id         Int?
+  
+  // Contact details
+  email             String?
+  phone             String?
+  contact_type      String?   // 'email' or 'phone' for primary contact changes
+  
+  // OTP verification
+  otp_hash          String
+  is_verified       Boolean   @default(false)
+  verified_at       DateTime?
+  
+  // Additional data (for issuer registration, etc.)
+  metadata          Json?
+  
+  // Lifecycle
+  expires_at        DateTime
+  created_at        DateTime  @default(now())
 
+  @@index([session_type])
+  @@index([learner_id])
+  @@index([issuer_id])
   @@index([email])
   @@index([phone])
-  @@index([expires_at])
-}
-
-model email_verification_session {
-  id           String    @id @default(uuid())
-  learner_id   Int
-  email        String
-  otp_hash     String
-  is_verified  Boolean   @default(false)
-  expires_at   DateTime
-  verified_at  DateTime?
-  created_at   DateTime  @default(now())
-
-  @@index([learner_id])
-  @@index([email])
-  @@index([expires_at])
-}
-
-model issuer_registration_session {
-  id                 String    @id @default(uuid())
-  email              String
-  otp_hash           String
-  is_verified        Boolean   @default(false)
-  expires_at         DateTime
-  verified_at        DateTime?
-  registration_data  Json
-  created_at         DateTime  @default(now())
-
-  @@index([email])
-  @@index([expires_at])
-}
-
-model primary_contact_verification_session {
-  id                 String    @id @default(uuid())
-  learner_id         Int
-  contact_type       String    // 'email' or 'phone'
-  contact_value      String    // email address or phone number
-  otp_hash           String
-  is_verified        Boolean   @default(false)
-  expires_at         DateTime
-  verified_at        DateTime?
-  created_at         DateTime  @default(now())
-
-  @@index([learner_id])
   @@index([expires_at])
 }
 

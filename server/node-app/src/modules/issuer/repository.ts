@@ -116,24 +116,25 @@ export class IssuerRepository {
     expiresAt: Date;
     registrationData: any;
   }) {
-    return prisma.issuer_registration_session.create({
+    return prisma.verification_session.create({
       data: {
+        session_type: 'issuer_registration',
         email: data.email,
         otp_hash: data.otpHash,
         expires_at: data.expiresAt,
-        registration_data: data.registrationData,
+        metadata: data.registrationData,
       },
     });
   }
 
   async findRegistrationSessionById(sessionId: string) {
-    return prisma.issuer_registration_session.findUnique({
+    return prisma.verification_session.findUnique({
       where: { id: sessionId },
     });
   }
 
   async markRegistrationSessionAsVerified(sessionId: string) {
-    return prisma.issuer_registration_session.update({
+    return prisma.verification_session.update({
       where: { id: sessionId },
       data: {
         is_verified: true,

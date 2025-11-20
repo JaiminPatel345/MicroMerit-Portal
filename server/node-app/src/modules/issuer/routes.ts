@@ -20,13 +20,6 @@ router.post(
   asyncHandler(issuerController.verifyRegistration.bind(issuerController))
 );
 
-// Public routes - Legacy registration (deprecated)
-router.post(
-  '/register',
-  registrationRateLimiter,
-  asyncHandler(issuerController.register.bind(issuerController))
-);
-
 router.post(
   '/login',
   authRateLimiter,

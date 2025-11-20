@@ -45,22 +45,6 @@ export class IssuerController {
   }
 
   /**
-   * Register a new issuer (Legacy - without OTP)
-   * POST /auth/issuer/register
-   */
-  async register(req: Request, res: Response): Promise<void> {
-    try {
-      const validatedData = issuerRegistrationSchema.parse(req.body);
-      const result = await issuerService.register(validatedData);
-      
-      sendSuccess(res, result, 'Issuer registered successfully. Account pending approval.', 201);
-    } catch (error: any) {
-      logger.error('Issuer registration failed', { error: error.message });
-      sendError(res, error.message, 'Registration failed', 400);
-    }
-  }
-
-  /**
    * Login an issuer
    * POST /auth/issuer/login
    */

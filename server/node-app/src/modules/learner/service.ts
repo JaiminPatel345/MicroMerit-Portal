@@ -292,6 +292,11 @@ export class LearnerService {
     // Mark session as verified
     await learnerRepository.markEmailVerificationSessionAsVerified(sessionId);
 
+    // Validate email is present
+    if (!session.email) {
+      throw new Error('Email not found in session');
+    }
+
     // Add email to other_emails
     await learnerRepository.addEmailToOtherEmails(learnerId, session.email);
 
@@ -394,12 +399,12 @@ export class LearnerService {
     await learnerRepository.markPrimaryContactVerificationSessionAsVerified(sessionId);
 
     // Update learner's primary email
-    await learnerRepository.updateLearnerPrimaryEmail(learnerId, session.contact_value);
+    await learnerRepository.updateLearnerPrimaryEmail(learnerId, session.email!);
 
-    logger.info('Primary email added to learner account', { learnerId, email: session.contact_value });
+    logger.info('Primary email added to learner account', { learnerId, email: session.email });
 
     return {
-      email: session.contact_value,
+      email: session.email!,
       message: 'Primary email added successfully',
     };
   }
@@ -495,12 +500,12 @@ export class LearnerService {
     await learnerRepository.markPrimaryContactVerificationSessionAsVerified(sessionId);
 
     // Update learner's primary phone
-    await learnerRepository.updateLearnerPrimaryPhone(learnerId, session.contact_value);
+    await learnerRepository.updateLearnerPrimaryPhone(learnerId, session.phone!);
 
-    logger.info('Primary phone added to learner account', { learnerId, phone: session.contact_value });
+    logger.info('Primary phone added to learner account', { learnerId, phone: session.phone });
 
     return {
-      phone: session.contact_value,
+      phone: session.phone!,
       message: 'Primary phone added successfully',
     };
   }

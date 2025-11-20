@@ -120,7 +120,7 @@ export class IssuerService {
     await issuerRepository.markRegistrationSessionAsVerified(sessionId);
 
     // Extract registration data
-    const registrationData = session.registration_data as any;
+    const registrationData = session.metadata as any;
 
     // Hash password
     const password_hash = await hashPassword(registrationData.password);

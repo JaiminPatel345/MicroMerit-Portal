@@ -81,8 +81,9 @@ export class LearnerRepository {
     otpHash: string;
     expiresAt: Date;
   }) {
-    return prisma.email_verification_session.create({
+    return prisma.verification_session.create({
       data: {
+        session_type: 'email_verification',
         learner_id: data.learnerId,
         email: data.email,
         otp_hash: data.otpHash,
@@ -92,13 +93,13 @@ export class LearnerRepository {
   }
 
   async findEmailVerificationSessionById(sessionId: string) {
-    return prisma.email_verification_session.findUnique({
+    return prisma.verification_session.findUnique({
       where: { id: sessionId },
     });
   }
 
   async markEmailVerificationSessionAsVerified(sessionId: string) {
-    return prisma.email_verification_session.update({
+    return prisma.verification_session.update({
       where: { id: sessionId },
       data: {
         is_verified: true,
@@ -144,11 +145,13 @@ export class LearnerRepository {
     otpHash: string;
     expiresAt: Date;
   }) {
-    return prisma.primary_contact_verification_session.create({
+    return prisma.verification_session.create({
       data: {
+        session_type: 'primary_contact_change',
         learner_id: data.learnerId,
         contact_type: data.contactType,
-        contact_value: data.contactValue,
+        email: data.contactType === 'email' ? data.contactValue : null,
+        phone: data.contactType === 'phone' ? data.contactValue : null,
         otp_hash: data.otpHash,
         expires_at: data.expiresAt,
       },
@@ -156,13 +159,13 @@ export class LearnerRepository {
   }
 
   async findPrimaryContactVerificationSessionById(sessionId: string) {
-    return prisma.primary_contact_verification_session.findUnique({
+    return prisma.verification_session.findUnique({
       where: { id: sessionId },
     });
   }
 
   async markPrimaryContactVerificationSessionAsVerified(sessionId: string) {
-    return prisma.primary_contact_verification_session.update({
+    return prisma.verification_session.update({
       where: { id: sessionId },
       data: {
         is_verified: true,
