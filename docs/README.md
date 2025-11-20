@@ -15,7 +15,7 @@ MicroMerit Portal is a comprehensive digital credential management system with s
 ## OpenAPI Specifications
 
 ### Core Authentication
-- **[Authentication API](./auth.openapi.yml)** - Core authentication for Issuer, Learner, and Admin roles
+- **[Authentication API](apis/auth.openapi.yml)** - Core authentication for Issuer, Learner, and Admin roles
   - **Issuer**: Two-step registration with email OTP verification (start-register → verify-register), then admin approval required
   - Issuer login, profile management
   - **Learner**: Three-step registration (see Learner Registration Flow), login, profile management
@@ -25,7 +25,7 @@ MicroMerit Portal is a comprehensive digital credential management system with s
   - **Security**: Email verification mandatory for issuer registration before admin review
 
 ### Learner Registration Flow
-- **[Learner Registration API](./learner-registration.openapi.yml)** - Three-step registration with OTP
+- **[Learner Registration API](apis/learner-registration.openapi.yml)** - Three-step registration with OTP
   - Step 1: Start registration with email or phone
   - Step 2: Verify OTP sent via email/SMS
   - Step 3: Complete registration with name and password (other_emails removed - use add-email endpoints instead)
@@ -33,14 +33,14 @@ MicroMerit Portal is a comprehensive digital credential management system with s
   - **Email Management**: Two-step verified email addition (request OTP → verify OTP)
 
 ### OAuth Authentication
-- **[OAuth API](./oauth.openapi.yml)** - Social authentication and DigiLocker integration
+- **[OAuth API](apis/oauth.openapi.yml)** - Social authentication and DigiLocker integration
   - Google OAuth 2.0 sign-in
   - DigiLocker authentication with certificate fetching
   - Automatic account creation or linking
   - JWT token generation
 
 ### Credential Management
-- **[Credentials API](./credentials.openapi.yml)** - Digital credential lifecycle
+- **[Credentials API](apis/credentials.openapi.yml)** - Digital credential lifecycle
   - Issue credentials to learners (issuer)
   - Claim issued credentials (learner)
   - Revoke credentials with reason (issuer)
@@ -48,14 +48,14 @@ MicroMerit Portal is a comprehensive digital credential management system with s
   - Statistics and filtering
 
 ### PDF Certificates
-- **[PDF Certificates API](./pdf-certificates.openapi.yml)** - Certificate generation and storage
+- **[PDF Certificates API](apis/pdf-certificates.openapi.yml)** - Certificate generation and storage
   - Generate PDF certificates with embedded QR codes
   - Amazon S3 cloud storage
   - Public certificate viewing and downloading
   - Professional certificate design
 
 ### Blockchain Integration
-- **[Blockchain API](./blockchain.openapi.yml)** - Blockchain recording and verification (placeholder)
+- **[Blockchain API](apis/blockchain.openapi.yml)** - Blockchain recording and verification (placeholder)
   - Record credential hashes on blockchain
   - Verify blockchain records
   - Transaction details lookup

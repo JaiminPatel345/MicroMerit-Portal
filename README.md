@@ -102,8 +102,8 @@ After seeding the database:
 - **[API Documentation](./docs/README.md)** - Complete OpenAPI specifications
 - **[Backend Setup Guide](./docs/BACKEND_SETUP.md)** - Detailed backend setup instructions
 - **[API Structure](./docs/API_STRUCTURE.md)** - API endpoints quick reference
-- **[Authentication Flow](./docs/auth.openapi.yml)** - Authentication API details
-- **[Registration Flow](./docs/learner-registration.openapi.yml)** - Learner registration with OTP
+- **[Authentication Flow](docs/apis/auth.openapi.yml)** - Authentication API details
+- **[Registration Flow](docs/apis/learner-registration.openapi.yml)** - Learner registration with OTP
 
 ## 🛠️ Technology Stack
 
