@@ -232,48 +232,6 @@ paths:
                 message: Invalid session ID
                 statusCode: 404
 
-  /auth/issuer/register:
-    post:
-      tags:
-        - Issuer Auth
-      summary: Register new issuer (Legacy - DEPRECATED)
-      description: |
-        **DEPRECATED**: Use the two-step registration process instead:
-        1. POST /auth/issuer/start-register (Send OTP)
-        2. POST /auth/issuer/verify-register (Verify OTP & Complete)
-        
-        Register a new issuer organization. Status is set to 'pending' by default.
-        Admin approval required before issuer can use the platform.
-      deprecated: true
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/IssuerRegistration'
-      responses:
-        '201':
-          description: Issuer registered successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: Issuer registered successfully
-                  data:
-                    $ref: '#/components/schemas/IssuerProfile'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '409':
-          $ref: '#/components/responses/ConflictError'
-        '429':
-          $ref: '#/components/responses/RateLimitError'
-
   /auth/issuer/login:
     post:
       tags:
