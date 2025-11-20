@@ -5,12 +5,15 @@ import VerifyOTP from './pages/VerifyOTP';
 import ProfileBuilder from './pages/ProfileBuilder';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
-import OTPVerification from './pages/OTPVerification';
 import { useLocation } from 'react-router-dom';
 import IssuerSignUp from './pages/issuer/Signup';
 import IssuerLogin from './pages/issuer/Login';
-const HideHeaderRoutes = ["/login", "/signup", "/verify-otp", "/otp-verification", "/profile-builder", "/issuer/login", "/issuer/signup"];
-
+import IssuerDashboard from './pages/issuer/Dashboard';
+import Dashboard from './pages/Dashboard';
+const HideHeaderRoutes = ["/login", "/signup", "/verify-otp", "/profile-builder", "/issuer/login", "/issuer/signup"];
+import { Provider } from 'react-redux';
+import { store, persistor } from './store/store';
+import { PersistGate } from 'redux-persist/integration/react';
 
 function Layout() {
 
@@ -19,19 +22,26 @@ function Layout() {
 
   return (
       <div className="flex flex-col min-h-screen">
+        <Provider store={store}>
+           <PersistGate loading={null} persistor={persistor}>
          {!hideHeader && <Header />}
+
         <main className="flex-grow">
           <Routes>
+
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/otp-verification" element={<OTPVerification />} />
             <Route path="/profile-builder" element={<ProfileBuilder />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/verify-otp" element={<VerifyOTP />} />
             <Route path='/issuer/signup' element={ <IssuerSignUp  />} />
             <Route path='/issuer/login' element={ <IssuerLogin  />} />
+            <Route path='/issuer/dashboard' element={ <IssuerDashboard  />} />
           </Routes>
         </main>
+         </PersistGate>
+        </Provider>
       </div>
 
   );

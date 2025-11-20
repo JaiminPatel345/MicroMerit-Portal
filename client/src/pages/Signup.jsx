@@ -112,6 +112,7 @@ const Signup = () => {
     try{
       const response = await oauthGoogleLogin.oauth();
       console.log('Google OAuth response:', response);
+      navigate(response?.data?.data?.authUrl);
       if (response.success) {
         navigate('/profile-builder', {
           state: {

@@ -10,7 +10,7 @@ MicroMerit Portal is a comprehensive digital credential management system with s
 - Digital credential lifecycle management
 - PDF certificate generation with QR codes
 - Cloud storage with Amazon S3
-- Blockchain integration (placeholder)
+- Blockchain integration ( placeholder )
 
 ## OpenAPI Specifications
 

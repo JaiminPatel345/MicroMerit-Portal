@@ -1,15 +1,22 @@
-// src/store/store.js
 import { configureStore } from "@reduxjs/toolkit";
+import { persistStore, persistReducer } from "redux-persist";
+import storage from "redux-persist/lib/storage"; // localStorage
+import rootReducer from "./rootReducer";
 
-import authIssuerReducer from "./authIssuerSlice";
-import authLearnerReducer from "./authLearnerSlice";
+const persistConfig = {
+  key: "root",
+  storage,
+  whitelist: ["authIssuer", "authLearner"], // which slices to persist
+};
+
+const persistedReducer = persistReducer(persistConfig, rootReducer);
 
 export const store = configureStore({
-  reducer: {
-    authIssuer: authIssuerReducer,
-    authLearner: authLearnerReducer,
-  },
+  reducer: persistedReducer,
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: false, // required for redux-persist
+    }),
 });
 
-export * from "./authIssuerSlice";
-export * from "./authLearnerSlice";
+export const persistor = persistStore(store);

@@ -15,11 +15,26 @@ export const oauthGoogleLogin = {
 };
 
 export const signUpLeaner = {
-   start : (payload) => api.post('auth/learner/start-register',payload),
-   verify : (payload) => api.post('auth/learner/verify-otp',payload)
+   start : (payload) => api.post('/auth/learner/start-register',payload),
+   verify : (payload) => api.post('/auth/learner/verify-otp',payload)
 }
 
+export const signInIssuer = {
+  start : (payload) => api.post('/auth/issuer/start-register',payload),
+  verify : (payload) => api.post('/auth/issuer/verify-register',payload)
+}
 
+export const loginIssuer = {
+  login : (payload) => api.post('/auth/issuer/login',payload)
+}
+
+export const loginLearner = {
+    login : (payload) => api.post('/auth/learner/login',payload)
+}
+
+export const completeProfile = {
+  complete : (payload,config) => api.post('/auth/learner/complete-register',payload, config)
+}
 
 
 export const verifyOTP = async (mobile, otp) => {

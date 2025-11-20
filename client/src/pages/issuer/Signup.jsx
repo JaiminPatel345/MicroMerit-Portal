@@ -1,17 +1,20 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { sendOTP } from "../../services/authServices";
+import { signInIssuer } from "../../services/authServices";
 import {
   validateEmail,
   validateMobile,
   validateDomain,
   validateURL,
 } from "../../utils/formValidation";
+import { issuerLoginSuccess } from "../../store/authIssuerSlice";
+import { useDispatch } from "react-redux";
 
 function IssuerSignUp() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
 
   const [form, setForm] = useState({
     name: "",
@@ -25,6 +28,8 @@ function IssuerSignUp() {
     address: "",
     kyc_document_url: "",
     logo_url: "",
+    password: "",
+    confirm_password: "",
     consent: false,
   });
 
@@ -79,6 +84,10 @@ function IssuerSignUp() {
     const mobileValidation = validateMobile(form.phone);
     if (mobileValidation) err.phone = mobileValidation;
 
+    if(!form.phone.trim()){
+      err.phone = "Phone number is required";
+    }
+
     // Contact name
     if (!form.contact_person_name.trim())
       err.contact_person_name = "Contact person name required";
@@ -97,7 +106,7 @@ function IssuerSignUp() {
     return Object.keys(err).length === 0;
   };
 
-  const validateStep3 = () => {
+    const validateStep3 = () => {
     let err = {};
 
     // KYC URL
@@ -114,6 +123,18 @@ function IssuerSignUp() {
       if (logoErr) err.logo_url = logoErr;
     }
 
+    // Password
+    if (!form.password || form.password.trim().length < 8) {
+      err.password = "Password must be at least 8 characters";
+    } else if (!/[A-Za-z]/.test(form.password) || !/[0-9]/.test(form.password)) {
+      err.password = "Password must contain letters and numbers";
+    }
+
+    // Confirm Password
+    if (form.confirm_password !== form.password) {
+      err.confirm_password = "Passwords do not match";
+    }
+
     // Consent
     if (!form.consent) err.consent = "You must accept consent to continue";
 
@@ -121,16 +142,42 @@ function IssuerSignUp() {
     return Object.keys(err).length === 0;
   };
 
+
   const submitSignup = async () => {
     if (!validateStep3()) return;
 
     try {
       setLoading(true);
-      await sendOTP(form.email);
 
-      navigate("/verify-otp", {
-        state: { email: form.email, type: "issuer" },
+      const response = await signInIssuer.start({
+        name: form.name,
+        official_domain: form.official_domain || null,
+        website_url: form.website_url || null,
+        type: form.type,
+        email: form.email,
+        phone: form.phone,
+        contact_person_name: form.contact_person_name,
+        contact_person_designation: form.contact_person_designation,
+        address: form.address,
+        kyc_document_url: form.kyc_document_url,
+        logo_url: form.logo_url || null,
+        password: form.password,
       });
+
+      if(response.data.success === true){
+
+
+
+        navigate("/verify-otp", {
+          state: { sessionId: response?.data?.data.sessionId, type: "issuer", identifier: form.email },
+        });
+
+      }
+
+    } catch (error) {
+      setErrors({submit :  error.response?.data?.message || "Signup failed. Please try again."});
+      console.error("Signup error:", error);
+      
     } finally {
       setLoading(false);
     }
@@ -139,7 +186,10 @@ function IssuerSignUp() {
   // ---------------- UI ----------------
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-50 px-6">
+
+
       <div className="w-full max-w-lg bg-white p-8 rounded-2xl shadow-xl">
+
         <h2 className="text-2xl font-bold text-blue-chill-700 text-center mb-6">
           Register as Issuer
         </h2>
@@ -155,6 +205,12 @@ function IssuerSignUp() {
             ></div>
           ))}
         </div>
+
+        {errors.submit && (
+          <p className="text-red-600 text-center mb-4 font-medium">
+            {errors.submit}
+          </p>
+        )}
 
         {/* -------------------- STEP 1 -------------------- */}
         {step === 1 && (
@@ -364,6 +420,38 @@ function IssuerSignUp() {
               )}
             </div>
 
+            {/* PASSWORD */}
+            <div>
+              <label>Password</label>
+              <input
+                type="password"
+                name="password"
+                className="w-full p-3 border rounded-lg"
+                placeholder="Minimum 8 characters"
+                value={form.password}
+                onChange={handleChange}
+              />
+              {errors.password && (
+                <p className="text-red-500 text-sm">{errors.password}</p>
+              )}
+            </div>
+
+            {/* CONFIRM PASSWORD */}
+            <div>
+              <label>Confirm Password</label>
+              <input
+                type="password"
+                name="confirm_password"
+                className="w-full p-3 border rounded-lg"
+                placeholder="Re-enter password"
+                value={form.confirm_password}
+                onChange={handleChange}
+              />
+              {errors.confirm_password && (
+                <p className="text-red-500 text-sm">{errors.confirm_password}</p>
+              )}
+            </div>
+
             {/* CONSENT */}
             <div className="flex items-center gap-3 mt-4">
               <input
@@ -396,6 +484,7 @@ function IssuerSignUp() {
             </div>
           </div>
         )}
+
 
         {/* LOGIN LINK */}
         <div className="text-center mt-6">
