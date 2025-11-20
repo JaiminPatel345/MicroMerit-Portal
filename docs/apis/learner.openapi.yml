@@ -567,61 +567,59 @@ paths:
     put:
       tags: [Profile]
       summary: Update learner profile
-      description: Update learner profile details (photo, date of birth, gender)
+      description: |
+        Update learner profile details including profile photo, date of birth, and gender.
+        
+        **Profile Photo Upload**:
+        - Uses multipart/form-data for file upload
+        - Field name: `profilePhoto`
+        - Accepts image files only (png, jpg, jpeg, gif, webp, bmp)
+        - Max file size: 5MB
+        - Automatically uploaded to S3
+        - Optional field
       security:
         - BearerAuth: []
       requestBody:
-        required: true
+        required: false
         content:
-          application/json:
+          multipart/form-data:
             schema:
               type: object
               properties:
-                profileUrl:
+                profilePhoto:
                   type: string
-                  example: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+                  format: binary
                   description: |
-                    Profile photo (optional). Accepts two formats:
-                    
-                    **Option 1: Base64 encoded image (Recommended)**
-                    - Format: `data:image/[type];base64,[base64-string]`
-                    - Supported types: png, jpg, jpeg, gif, webp, bmp
+                    Profile photo (optional)
+                    - Accepts: image/png, image/jpeg, image/jpg, image/gif, image/webp, image/bmp
                     - Max size: 5MB
                     - Automatically uploaded to S3
-                    - Example: `data:image/png;base64,iVBORw0KGgoAAAANS...`
-                    
-                    **Option 2: Direct URL**
-                    - Any valid image URL
-                    - Must be publicly accessible
-                    - Example: `https://example.com/photo.jpg`
+                email:
+                  type: string
+                  format: email
+                  example: "newemail@example.com"
+                  description: Update email (optional, must be unique)
+                phone:
+                  type: string
+                  pattern: '^\+?[1-9]\d{1,14}$'
+                  example: "+1234567890"
+                  description: Update phone (optional, must be unique)
                 dob:
                   type: string
-                  format: date
-                  example: "1995-05-15"
+                  format: date-time
+                  example: "1995-05-15T00:00:00.000Z"
+                  description: Date of birth (optional, ISO 8601 format)
                 gender:
                   type: string
                   enum: [Male, Female, Others, Not to disclose]
                   example: Female
-            examples:
-              updateWithBase64Photo:
-                summary: Update profile with base64 photo
-                value:
-                  profileUrl: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD..."
-                  dob: "1995-05-15"
-                  gender: "Female"
-              updateWithPhotoUrl:
-                summary: Update profile with photo URL
-                value:
-                  profileUrl: "https://example.com/new-photo.jpg"
-                  gender: "Male"
-              updateBasicInfo:
-                summary: Update only dob and gender
-                value:
-                  dob: "1998-03-20"
-                  gender: "Others"
+                  description: Gender (optional)
+            encoding:
+              profilePhoto:
+                contentType: image/png, image/jpeg, image/jpg, image/gif, image/webp, image/bmp
       responses:
         '200':
-          description: Profile updated
+          description: Profile updated successfully
           content:
             application/json:
               schema:
@@ -629,10 +627,54 @@ paths:
                 properties:
                   success:
                     type: boolean
+                  message:
+                    type: string
                   data:
                     $ref: '#/components/schemas/LearnerProfile'
+              example:
+                success: true
+                message: Profile updated successfully
+                data:
+                  id: 123
+                  email: learner@example.com
+                  phone: "+1234567890"
+                  profileUrl: https://s3.amazonaws.com/bucket/profile-photos/learner-123/profile-1234567890.png
+                  dob: "1995-05-15T00:00:00.000Z"
+                  gender: Female
+                  otherEmails: ["secondary@example.com"]
         '400':
-          $ref: '#/components/responses/ValidationError'
+          description: Validation error or file upload error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                email_in_use:
+                  summary: Email already in use
+                  value:
+                    success: false
+                    message: Email is already in use
+                    statusCode: 400
+                phone_in_use:
+                  summary: Phone already in use
+                  value:
+                    success: false
+                    message: Phone number is already in use
+                    statusCode: 400
+                invalid_file_type:
+                  summary: Invalid file type
+                  value:
+                    success: false
+                    message: Only image files are allowed (png, jpg, jpeg, gif, webp, bmp)
+                    error: INVALID_FILE_TYPE
+                    statusCode: 400
+                file_too_large:
+                  summary: File exceeds size limit
+                  value:
+                    success: false
+                    message: File size exceeds 5MB limit
+                    error: FILE_TOO_LARGE
+                    statusCode: 400
         '401':
           $ref: '#/components/responses/UnauthorizedError'
 

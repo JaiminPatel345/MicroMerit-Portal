@@ -29,7 +29,7 @@ export class RegistrationService {
     const verificationMethod = email ? 'email' : 'phone';
     const recipient = email || phone!;
 
-    // Check if already registered
+    // Check if already registered (account fully created)
     if (email) {
       const exists = await this.repository.isEmailRegistered(email);
       if (exists) {
@@ -43,6 +43,10 @@ export class RegistrationService {
         throw new ConflictError('Phone number already registered', 409, 'PHONE_ALREADY_REGISTERED');
       }
     }
+
+    // Delete any old incomplete registration sessions for this contact
+    // This allows user to re-register if they didn't complete step 3
+    await this.repository.deleteIncompleteSessionsByContact(email, phone);
 
     // Generate OTP
     const otp = generateOTP(6);
@@ -99,10 +103,10 @@ export class RegistrationService {
     // Mark as verified
     await this.repository.markSessionAsVerified(sessionId);
 
-    // Generate temporary token (valid for 15 minutes for completing registration)
+    // Generate temporary token (valid for 30 minutes for completing registration)
     const tempToken = generateAccessToken(
       { sessionId, type: 'registration' },
-      '15m'
+      '30m'
     );
 
     return {
@@ -130,7 +134,7 @@ export class RegistrationService {
     }
 
     if (new Date() > session.expires_at) {
-      throw new ValidationError('Session expired', 400, 'SESSION_EXPIRED');
+      throw new ValidationError('Session expired. Please start registration again from step 1', 400, 'SESSION_EXPIRED');
     }
 
     // Hash password if provided

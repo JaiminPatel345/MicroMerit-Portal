@@ -4,6 +4,7 @@ import { authenticateToken } from '../../middleware/auth';
 import { requireLearner } from '../../middleware/role';
 import { asyncHandler } from '../../middleware/error';
 import { authRateLimiter } from '../../middleware/rateLimit';
+import { uploadProfilePhoto } from '../../utils/multerConfig';
 import registrationRoutes from '../learner-registration/routes';
 import oauthRoutes from '../learner-oauth/routes';
 
@@ -42,6 +43,7 @@ resourceRouter.put(
   '/profile',
   authenticateToken,
   requireLearner,
+  uploadProfilePhoto,
   asyncHandler(learnerController.updateMe.bind(learnerController))
 );
 

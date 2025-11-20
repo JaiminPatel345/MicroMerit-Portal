@@ -63,7 +63,7 @@ export class LearnerController {
 
   /**
    * Update learner profile
-   * PUT /auth/learner/me
+   * PUT /learner/profile
    */
   async updateMe(req: Request, res: Response): Promise<void> {
     try {
@@ -73,7 +73,9 @@ export class LearnerController {
       }
 
       const validatedData = updateLearnerProfileSchema.parse(req.body);
-      const learner = await learnerService.updateProfile(req.user.id, validatedData);
+      const profilePhotoFile = req.file;
+      
+      const learner = await learnerService.updateProfile(req.user.id, validatedData, profilePhotoFile);
       
       sendSuccess(res, learner, 'Profile updated successfully');
     } catch (error: any) {

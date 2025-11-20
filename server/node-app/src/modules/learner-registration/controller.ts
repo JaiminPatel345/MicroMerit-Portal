@@ -60,20 +60,30 @@ export const completeRegistration = async (
     // Extract temp token from Authorization header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new AuthError('Temporary token required', 401, 'TOKEN_REQUIRED');
+      throw new AuthError('Temporary token required. Please start registration again', 401, 'TOKEN_REQUIRED');
     }
 
     const tempToken = authHeader.substring(7);
-    const decoded = verifyAccessToken(tempToken);
+    let decoded;
+    
+    try {
+      decoded = verifyAccessToken(tempToken);
+    } catch (error: any) {
+      // If token expired, guide user to start registration again
+      if (error.code === 'TOKEN_EXPIRED') {
+        throw new AuthError('Registration session expired. Please start registration again from step 1', 401, 'TOKEN_EXPIRED');
+      }
+      throw new AuthError('Invalid registration token. Please start registration again', 401, 'INVALID_TOKEN');
+    }
 
     // Validate token type
     if ((decoded as any).type !== 'registration') {
-      throw new AuthError('Invalid token type', 401, 'INVALID_TOKEN_TYPE');
+      throw new AuthError('Invalid token type. Please start registration again', 401, 'INVALID_TOKEN_TYPE');
     }
 
     const sessionId = (decoded as any).sessionId;
     if (!sessionId) {
-      throw new AuthError('Invalid token payload', 401, 'INVALID_TOKEN_PAYLOAD');
+      throw new AuthError('Invalid token payload. Please start registration again', 401, 'INVALID_TOKEN_PAYLOAD');
     }
 
     // Extract profile photo file from multer (if provided)

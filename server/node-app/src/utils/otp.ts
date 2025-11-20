@@ -40,10 +40,10 @@ export const verifyOTP = async (otp: string, hash: string): Promise<boolean> => 
 
 /**
  * Calculate OTP expiry timestamp
- * @param minutes - Minutes until expiry (default: from env or 10)
+ * @param minutes - Minutes until expiry (default: from env or 30)
  * @returns Date object representing expiry time
  */
 export const getOTPExpiry = (minutes?: number): Date => {
-  const expiryMinutes = minutes || parseInt(process.env.OTP_EXPIRY_MINUTES || '10', 10);
+  const expiryMinutes = minutes || parseInt(process.env.OTP_EXPIRY_MINUTES || '30', 10);
   return new Date(Date.now() + expiryMinutes * 60 * 1000);
 };

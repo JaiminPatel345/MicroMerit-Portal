@@ -48,6 +48,22 @@ export class RegistrationRepository {
   }
 
   /**
+   * Delete old incomplete registration sessions for same contact
+   * Allows user to re-register if they didn't complete step 3
+   */
+  async deleteIncompleteSessionsByContact(email?: string, phone?: string) {
+    return prisma.verification_session.deleteMany({
+      where: {
+        session_type: 'learner_registration',
+        OR: [
+          email ? { email } : {},
+          phone ? { phone } : {},
+        ].filter(obj => Object.keys(obj).length > 0),
+      },
+    });
+  }
+
+  /**
    * Delete expired sessions (cleanup utility)
    */
   async deleteExpiredSessions(): Promise<number> {

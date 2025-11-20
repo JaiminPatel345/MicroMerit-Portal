@@ -4,7 +4,7 @@ import { generateTokens, TokenResponse, verifyRefreshToken } from '../../utils/j
 import { learner } from '@prisma/client';
 import { LearnerRegistrationInput, LearnerLoginInput, UpdateLearnerProfileInput } from './schema';
 import { logger } from '../../utils/logger';
-import { handleProfilePhotoUpload } from '../../utils/imageUpload';
+import { handleProfilePhotoFileUpload } from '../../utils/imageUpload';
 
 export interface LearnerResponse {
   id: number;
@@ -167,7 +167,11 @@ export class LearnerService {
   /**
    * Update learner profile
    */
-  async updateProfile(learnerId: number, data: UpdateLearnerProfileInput): Promise<LearnerResponse> {
+  async updateProfile(
+    learnerId: number,
+    data: UpdateLearnerProfileInput,
+    profilePhotoFile?: Express.Multer.File
+  ): Promise<LearnerResponse> {
     // Check if email is being updated and already exists
     if (data.email) {
       const existingLearner = await learnerRepository.findByEmail(data.email);
@@ -184,11 +188,11 @@ export class LearnerService {
       }
     }
 
-    // Handle profile photo upload (base64 or URL)
-    let profileUrl = data.profileUrl;
-    if (data.profileUrl) {
+    // Handle profile photo upload (multipart file upload)
+    let profileUrl: string | undefined;
+    if (profilePhotoFile) {
       try {
-        profileUrl = await handleProfilePhotoUpload(data.profileUrl, learnerId);
+        profileUrl = await handleProfilePhotoFileUpload(profilePhotoFile, learnerId);
         logger.info('Profile photo updated', { learnerId, hasPhoto: !!profileUrl });
       } catch (error: any) {
         logger.error('Profile photo upload failed during update', { learnerId, error: error.message });
@@ -196,11 +200,14 @@ export class LearnerService {
       }
     }
 
-    // Update learner with processed profile URL
-    const updateData = {
-      ...data,
-      profileUrl,
-    };
+    // Prepare update data
+    const updateData: any = {};
+    if (data.email !== undefined) updateData.email = data.email;
+    if (data.phone !== undefined) updateData.phone = data.phone;
+    if (data.external_digilocker_id !== undefined) updateData.external_digilocker_id = data.external_digilocker_id;
+    if (data.dob !== undefined) updateData.dob = new Date(data.dob);
+    if (data.gender !== undefined) updateData.gender = data.gender;
+    if (profileUrl !== undefined) updateData.profileUrl = profileUrl;
 
     const learner = await learnerRepository.update(learnerId, updateData);
     logger.info('Learner profile updated', { learnerId });
