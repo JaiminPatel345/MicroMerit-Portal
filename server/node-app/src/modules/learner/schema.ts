@@ -11,6 +11,8 @@ export const learnerRegistrationSchema = z.object({
   profileUrl: z.string().optional(), // Accept base64 or URL
   external_digilocker_id: z.string().optional(),
   other_emails: z.array(z.string().email('Invalid email')).optional(),
+  dob: z.date().optional(),
+  gender: z.enum(['Male', 'Female', 'Others', 'Not to disclose']).optional(),
 }).refine(
   (data) => data.email || data.phone,
   { message: 'Either email or phone is required' }
@@ -42,6 +44,8 @@ export const updateLearnerProfileSchema = z.object({
   profileUrl: z.string().optional(), // Accept base64 or URL
   external_digilocker_id: z.string().optional(),
   other_emails: z.array(z.string().email('Invalid email')).optional(),
+  dob: z.date().optional(),
+  gender: z.enum(['Male', 'Female', 'Others', 'Not to disclose']).optional(),
 });
 
 export type UpdateLearnerProfileInput = z.infer<typeof updateLearnerProfileSchema>;

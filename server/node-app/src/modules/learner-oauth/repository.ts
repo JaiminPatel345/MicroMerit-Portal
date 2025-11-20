@@ -38,6 +38,8 @@ export class OAuthRepository {
     profileUrl?: string;
     otherEmails?: string[];
     externalDigilockerId?: string;
+    dob?: Date;
+    gender?: string;
   }) {
     return prisma.learner.create({
       data: {
@@ -47,6 +49,8 @@ export class OAuthRepository {
         profileUrl: data.profileUrl,
         other_emails: data.otherEmails || [],
         external_digilocker_id: data.externalDigilockerId,
+        dob: data.dob,
+        gender: data.gender,
       },
     });
   }

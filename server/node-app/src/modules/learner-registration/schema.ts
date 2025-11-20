@@ -27,6 +27,8 @@ export const completeRegistrationSchema = z.object({
     name: z.string().min(1).max(255),
     profilePhotoUrl: z.string().optional(), // Accept base64 or URL
     password: z.string().min(8).optional(),
+    dob: z.string().datetime().optional(), // ISO 8601 date string
+    gender: z.enum(['Male', 'Female', 'Others', 'Not to disclose']).optional(),
   }),
 });
 

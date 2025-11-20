@@ -15,6 +15,8 @@ export interface LearnerResponse {
   external_digilocker_id?: string | null;
   status: string;
   other_emails: string[];
+  dob?: Date | null;
+  gender?: string | null;
   created_at: Date;
 }
 
@@ -58,6 +60,8 @@ export class LearnerService {
       profileUrl: data.profileUrl,
       external_digilocker_id: data.external_digilocker_id,
       other_emails: data.other_emails || [],
+      dob: data.dob,
+      gender: data.gender,
     });
 
     logger.info('Learner registered', { learnerId: learner.id, email: learner.email, phone: learner.phone });

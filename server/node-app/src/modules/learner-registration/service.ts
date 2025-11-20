@@ -166,6 +166,8 @@ export class RegistrationService {
       hashedPassword,
       profileUrl: profilePhotoUrl,
       otherEmails: [], // Initialize with empty array
+      dob: input.dob ? new Date(input.dob) : undefined,
+      gender: input.gender,
     });
 
     logger.info('Learner registration completed', { 
@@ -193,6 +195,8 @@ export class RegistrationService {
         phone: learner.phone,
         profileUrl: learner.profileUrl,
         otherEmails: learner.other_emails,
+        dob: learner.dob,
+        gender: learner.gender,
       },
       accessToken,
       refreshToken,

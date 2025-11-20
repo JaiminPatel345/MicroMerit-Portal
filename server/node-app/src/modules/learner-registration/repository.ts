@@ -85,6 +85,8 @@ export class RegistrationRepository {
     profileUrl?: string;
     otherEmails?: string[];
     externalDigilockerId?: string;
+    dob?: Date;
+    gender?: string;
   }): Promise<any> {
     return prisma.learner.create({
       data: {
@@ -94,6 +96,8 @@ export class RegistrationRepository {
         profileUrl: data.profileUrl,
         other_emails: data.otherEmails || [],
         external_digilocker_id: data.externalDigilockerId,
+        dob: data.dob,
+        gender: data.gender,
       },
     });
   }

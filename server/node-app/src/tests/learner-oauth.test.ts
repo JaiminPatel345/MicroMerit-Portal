@@ -75,6 +75,8 @@ describe('OAuthService', () => {
         email: 'newuser@gmail.com',
         profileUrl: 'https://example.com/photo.jpg',
         otherEmails: [],
+        dob: undefined,
+        gender: undefined,
       });
       expect(result.learner.id).toBe(1);
       expect(result.accessToken).toBe('access-token');
@@ -185,6 +187,8 @@ describe('OAuthService', () => {
         phone: '+919876543210',
         externalDigilockerId: 'DL123456',
         otherEmails: [],
+        dob: undefined,
+        gender: undefined,
       });
       expect(result.learner.id).toBe(3);
       expect(result.certificatesCount).toBe(2);

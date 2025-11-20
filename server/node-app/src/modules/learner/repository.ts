@@ -9,6 +9,8 @@ export interface CreateLearnerDTO {
   profileUrl?: string;
   external_digilocker_id?: string;
   other_emails?: string[];
+  dob?: Date;
+  gender?: string;
 }
 
 export interface UpdateLearnerDTO {
@@ -18,6 +20,8 @@ export interface UpdateLearnerDTO {
   profileUrl?: string;
   external_digilocker_id?: string;
   other_emails?: string[];
+  dob?: Date;
+  gender?: string;
 }
 
 export class LearnerRepository {

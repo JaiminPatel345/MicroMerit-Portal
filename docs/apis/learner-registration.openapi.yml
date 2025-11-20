@@ -264,6 +264,16 @@ paths:
                   format: uri
                   example: https://example.com/photo.jpg
                   description: Profile photo URL (optional)
+                dob:
+                  type: string
+                  format: date-time
+                  example: 1995-05-15T00:00:00.000Z
+                  description: Date of birth (optional, ISO 8601 format)
+                gender:
+                  type: string
+                  enum: [Male, Female, Others, Not to disclose]
+                  example: Male
+                  description: Gender (optional)
       responses:
         '201':
           description: Registration completed successfully
@@ -946,6 +956,16 @@ components:
           items:
             type: string
             format: email
+        dob:
+          type: string
+          format: date-time
+          nullable: true
+          example: 1995-05-15T00:00:00.000Z
+        gender:
+          type: string
+          nullable: true
+          enum: [Male, Female, Others, Not to disclose]
+          example: Male
         status:
           type: string
           enum: [active, suspended]

@@ -239,6 +239,8 @@ describe('RegistrationService', () => {
         hashedPassword: 'hashed-password',
         profileUrl: 'https://example.com/photo.jpg',
         otherEmails: [],
+        dob: undefined,
+        gender: undefined,
       });
       expect(result.learner.id).toBe(1);
       expect(result.accessToken).toBe('access-token');
