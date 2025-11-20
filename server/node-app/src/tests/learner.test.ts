@@ -81,6 +81,85 @@ describe('Learner Service', () => {
       expect(result.learner.phone).toBe('+1234567890');
     });
 
+    it('should register a new learner with DOB and gender', async () => {
+      const mockInput = {
+        email: 'newuser@example.com',
+        password: 'password123',
+        dob: new Date('1990-01-01'),
+        gender: 'Female' as const,
+      };
+
+      const mockLearner = {
+        id: 3,
+        email: 'newuser@example.com',
+        phone: null,
+        hashed_password: 'hashed_password',
+        profileFolder: null,
+        profileUrl: null,
+        external_digilocker_id: null,
+        status: 'active',
+        other_emails: [],
+        dob: new Date('1990-01-01'),
+        gender: 'Female',
+        created_at: new Date(),
+      };
+
+      (learnerRepository.findByEmail as jest.Mock).mockResolvedValue(null);
+      (hashPassword as jest.Mock).mockResolvedValue('hashed_password');
+      (learnerRepository.create as jest.Mock).mockResolvedValue(mockLearner);
+      (generateTokens as jest.Mock).mockReturnValue({
+        accessToken: 'access_token',
+        refreshToken: 'refresh_token',
+      });
+
+      const result = await learnerService.register(mockInput);
+
+      expect(learnerRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+        dob: new Date('1990-01-01'),
+        gender: 'Female',
+      }));
+      expect(result.learner.dob).toEqual(new Date('1990-01-01'));
+      expect(result.learner.gender).toBe('Female');
+    });
+
+    it('should register with all gender options', async () => {
+      const genderOptions = ['Male', 'Female', 'Others', 'Not to disclose'] as const;
+      
+      for (const gender of genderOptions) {
+        const mockInput = {
+          email: `${gender.toLowerCase().replace(' ', '')}@example.com`,
+          password: 'password123',
+          gender,
+        };
+
+        const mockLearner = {
+          id: Math.floor(Math.random() * 1000),
+          email: mockInput.email,
+          phone: null,
+          hashed_password: 'hashed_password',
+          profileFolder: null,
+          profileUrl: null,
+          external_digilocker_id: null,
+          status: 'active',
+          other_emails: [],
+          dob: null,
+          gender,
+          created_at: new Date(),
+        };
+
+        (learnerRepository.findByEmail as jest.Mock).mockResolvedValue(null);
+        (hashPassword as jest.Mock).mockResolvedValue('hashed_password');
+        (learnerRepository.create as jest.Mock).mockResolvedValue(mockLearner);
+        (generateTokens as jest.Mock).mockReturnValue({
+          accessToken: 'access_token',
+          refreshToken: 'refresh_token',
+        });
+
+        const result = await learnerService.register(mockInput);
+        expect(result.learner.gender).toBe(gender);
+      }
+    });
+
     it('should throw error if learner email already exists', async () => {
       const mockInput = {
         email: 'existing@example.com',

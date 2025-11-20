@@ -536,5 +536,117 @@ describe('Learner Primary Contact Management', () => {
 
       await expect(learnerService.verifyPrimaryPhoneOTP(learnerId, sessionId, otp)).rejects.toThrow('Invalid OTP');
     });
+
+    it('should successfully add primary phone after email-based registration', async () => {
+      const learnerId = 1;
+      const phone = '+9876543210';
+      const mockLearner = {
+        id: learnerId,
+        email: 'user@example.com',
+        phone: null, // No phone yet
+        other_emails: [],
+        status: 'active',
+      };
+      const mockSession = {
+        id: 'session-phone-add',
+        learner_id: learnerId,
+        contact_type: 'phone',
+        contact_value: phone,
+        otp_hash: 'hashed-otp',
+        is_verified: false,
+        expires_at: new Date(Date.now() + 10 * 60 * 1000),
+        created_at: new Date(),
+      };
+
+      // Test request phase
+      (learnerRepository.findById as jest.Mock).mockResolvedValue(mockLearner);
+      (learnerRepository.findByPhone as jest.Mock).mockResolvedValue(null);
+      (learnerRepository.createPrimaryContactVerificationSession as jest.Mock).mockResolvedValue(mockSession);
+      mockOtpUtils.generateOTP.mockReturnValue('123456');
+      mockOtpUtils.hashOTP.mockResolvedValue('hashed-otp');
+      mockOtpUtils.getOTPExpiry.mockReturnValue(mockSession.expires_at);
+      mockNotification.sendOTP.mockResolvedValue(true);
+
+      const requestResult = await learnerService.requestAddPrimaryPhone(learnerId, phone);
+      
+      expect(requestResult.sessionId).toBe('session-phone-add');
+      expect(mockNotification.sendOTP).toHaveBeenCalledWith('sms', phone, '123456');
+
+      // Test verify phase
+      const otp = '123456';
+      const mockUpdatedLearner = {
+        ...mockLearner,
+        phone: phone,
+      };
+
+      (learnerRepository.findPrimaryContactVerificationSessionById as jest.Mock).mockResolvedValue(mockSession);
+      mockOtpUtils.verifyOTP.mockResolvedValue(true);
+      (learnerRepository.markPrimaryContactVerificationSessionAsVerified as jest.Mock).mockResolvedValue({
+        ...mockSession,
+        is_verified: true,
+      });
+      (learnerRepository.updateLearnerPrimaryPhone as jest.Mock).mockResolvedValue(mockUpdatedLearner);
+
+      const verifyResult = await learnerService.verifyPrimaryPhoneOTP(learnerId, 'session-phone-add', otp);
+      
+      expect(verifyResult.phone).toBe(phone);
+      expect(verifyResult.message).toBe('Primary phone added successfully');
+    });
+
+    it('should successfully add primary email after phone-based registration', async () => {
+      const learnerId = 2;
+      const email = 'newprimary@example.com';
+      const mockLearner = {
+        id: learnerId,
+        email: null, // No email yet
+        phone: '+1234567890',
+        other_emails: [],
+        status: 'active',
+      };
+      const mockSession = {
+        id: 'session-email-add',
+        learner_id: learnerId,
+        contact_type: 'email',
+        contact_value: email,
+        otp_hash: 'hashed-otp',
+        is_verified: false,
+        expires_at: new Date(Date.now() + 10 * 60 * 1000),
+        created_at: new Date(),
+      };
+
+      // Test request phase
+      (learnerRepository.findById as jest.Mock).mockResolvedValue(mockLearner);
+      (learnerRepository.findByEmail as jest.Mock).mockResolvedValue(null);
+      (learnerRepository.createPrimaryContactVerificationSession as jest.Mock).mockResolvedValue(mockSession);
+      mockOtpUtils.generateOTP.mockReturnValue('654321');
+      mockOtpUtils.hashOTP.mockResolvedValue('hashed-otp');
+      mockOtpUtils.getOTPExpiry.mockReturnValue(mockSession.expires_at);
+      mockNotification.sendOTP.mockResolvedValue(true);
+
+      const requestResult = await learnerService.requestAddPrimaryEmail(learnerId, email);
+      
+      expect(requestResult.sessionId).toBe('session-email-add');
+      expect(mockNotification.sendOTP).toHaveBeenCalledWith('email', email, '654321');
+
+      // Test verify phase
+      const otp = '654321';
+      const mockUpdatedLearner = {
+        ...mockLearner,
+        email: email,
+      };
+
+      (learnerRepository.findPrimaryContactVerificationSessionById as jest.Mock).mockResolvedValue(mockSession);
+      mockOtpUtils.verifyOTP.mockResolvedValue(true);
+      (learnerRepository.markPrimaryContactVerificationSessionAsVerified as jest.Mock).mockResolvedValue({
+        ...mockSession,
+        is_verified: true,
+      });
+      (learnerRepository.updateLearnerPrimaryEmail as jest.Mock).mockResolvedValue(mockUpdatedLearner);
+
+      const verifyResult = await learnerService.verifyPrimaryEmailOTP(learnerId, 'session-email-add', otp);
+      
+      expect(verifyResult.email).toBe(email);
+      expect(verifyResult.message).toBe('Primary email added successfully');
+    });
   });
 });

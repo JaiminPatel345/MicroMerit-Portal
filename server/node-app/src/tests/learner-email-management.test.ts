@@ -220,5 +220,37 @@ describe('Learner Email Management', () => {
 
       await expect(learnerService.verifyEmailOTP(learnerId, sessionId, otp)).rejects.toThrow('Invalid OTP');
     });
+
+    it('should successfully add multiple emails to other_emails array', async () => {
+      const learnerId = 1;
+      const emails = ['email1@example.com', 'email2@example.com', 'email3@example.com'];
+      
+      for (const email of emails) {
+        const sessionId = `session-${email}`;
+        const otp = '123456';
+        const mockSession = {
+          id: sessionId,
+          learner_id: 1,
+          email: email,
+          otp_hash: 'hashed-otp',
+          is_verified: false,
+          expires_at: new Date(Date.now() + 600000),
+          verified_at: null,
+          created_at: new Date(),
+        };
+
+        (learnerRepository.findEmailVerificationSessionById as jest.Mock).mockResolvedValue(mockSession);
+        (otpUtils.verifyOTP as jest.Mock).mockResolvedValue(true);
+        (learnerRepository.markEmailVerificationSessionAsVerified as jest.Mock).mockResolvedValue(undefined);
+        (learnerRepository.addEmailToOtherEmails as jest.Mock).mockResolvedValue(undefined);
+
+        const result = await learnerService.verifyEmailOTP(learnerId, sessionId, otp);
+
+        expect(result.email).toBe(email);
+        expect(result.message).toBe('Email added successfully');
+      }
+
+      expect(learnerRepository.addEmailToOtherEmails).toHaveBeenCalledTimes(3);
+    });
   });
 });

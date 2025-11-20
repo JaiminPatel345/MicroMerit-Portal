@@ -247,6 +247,109 @@ describe('RegistrationService', () => {
       expect(result.refreshToken).toBe('refresh-token');
     });
 
+    it('should successfully complete registration with DOB and gender', async () => {
+      const sessionId = 'session-789';
+      const input = {
+        name: 'Alex Smith',
+        profilePhotoUrl: 'https://example.com/alex.jpg',
+        password: 'SecurePass123',
+        dob: '1995-05-15T00:00:00.000Z',
+        gender: 'Male' as const,
+      };
+      const mockSession = {
+        id: 'session-789',
+        email: 'alex@example.com',
+        phone: null,
+        otp_hash: 'hashed-otp',
+        is_verified: true,
+        verification_method: 'email',
+        expires_at: new Date(Date.now() + 600000),
+        verified_at: new Date(),
+        created_at: new Date(),
+      };
+      const mockLearner = {
+        id: 3,
+        email: 'alex@example.com',
+        phone: null,
+        hashed_password: 'hashed-password',
+        profileUrl: 'https://example.com/alex.jpg',
+        other_emails: [],
+        dob: new Date('1995-05-15T00:00:00.000Z'),
+        gender: 'Male',
+        status: 'active',
+        created_at: new Date(),
+      };
+
+      mockRepository.findSessionById = jest.fn().mockResolvedValue(mockSession);
+      (bcryptUtils.hashPassword as jest.Mock).mockResolvedValue('hashed-password');
+      mockRepository.createLearner = jest.fn().mockResolvedValue(mockLearner);
+      (jwtUtils.generateAccessToken as jest.Mock).mockReturnValue('access-token');
+      (jwtUtils.generateRefreshToken as jest.Mock).mockReturnValue('refresh-token');
+
+      const result = await service.completeRegistration(sessionId, input);
+
+      expect(mockRepository.createLearner).toHaveBeenCalledWith({
+        email: 'alex@example.com',
+        phone: undefined,
+        hashedPassword: 'hashed-password',
+        profileUrl: 'https://example.com/alex.jpg',
+        otherEmails: [],
+        dob: new Date('1995-05-15T00:00:00.000Z'),
+        gender: 'Male',
+      });
+      expect(result.learner.dob).toBeDefined();
+      expect(result.learner.gender).toBe('Male');
+    });
+
+    it('should complete registration with phone number', async () => {
+      const sessionId = 'session-phone-123';
+      const input = {
+        name: 'Phone User',
+        password: 'SecurePass123',
+      };
+      const mockSession = {
+        id: 'session-phone-123',
+        email: null,
+        phone: '+1234567890',
+        otp_hash: 'hashed-otp',
+        is_verified: true,
+        verification_method: 'phone',
+        expires_at: new Date(Date.now() + 600000),
+        verified_at: new Date(),
+        created_at: new Date(),
+      };
+      const mockLearner = {
+        id: 4,
+        email: null,
+        phone: '+1234567890',
+        hashed_password: 'hashed-password',
+        profileUrl: null,
+        other_emails: [],
+        status: 'active',
+        created_at: new Date(),
+      };
+
+      mockRepository.findSessionById = jest.fn().mockResolvedValue(mockSession);
+      (bcryptUtils.hashPassword as jest.Mock).mockResolvedValue('hashed-password');
+      mockRepository.createLearner = jest.fn().mockResolvedValue(mockLearner);
+      (jwtUtils.generateAccessToken as jest.Mock).mockReturnValue('access-token');
+      (jwtUtils.generateRefreshToken as jest.Mock).mockReturnValue('refresh-token');
+
+      const result = await service.completeRegistration(sessionId, input);
+
+      expect(mockRepository.createLearner).toHaveBeenCalledWith({
+        email: undefined,
+        phone: '+1234567890',
+        hashedPassword: 'hashed-password',
+        profileUrl: undefined,
+        otherEmails: [],
+        dob: undefined,
+        gender: undefined,
+      });
+      expect(result.learner.phone).toBe('+1234567890');
+      expect(result.learner.email).toBeNull();
+    });
+
     it('should complete registration without password (OAuth case)', async () => {
       const sessionId = 'session-456';
       const input = {
