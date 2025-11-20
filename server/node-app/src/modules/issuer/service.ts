@@ -44,6 +44,9 @@ export class IssuerService {
     // Check if issuer already exists
     const existingIssuer = await issuerRepository.findByEmail(data.email);
     if (existingIssuer) {
+      if (existingIssuer.status === 'rejected') {
+        throw new Error(`Your account has been rejected. Reason: ${existingIssuer.rejected_reason || 'Contact admin for more details'}. You cannot reapply with this email.`);
+      }
       throw new Error('Issuer with this email already exists');
     }
 
@@ -163,6 +166,9 @@ export class IssuerService {
     // Check if issuer already exists
     const existingIssuer = await issuerRepository.findByEmail(data.email);
     if (existingIssuer) {
+      if (existingIssuer.status === 'rejected') {
+        throw new Error(`Your account has been rejected. Reason: ${existingIssuer.rejected_reason || 'Contact admin for more details'}. You cannot reapply with this email.`);
+      }
       throw new Error('Issuer with this email already exists');
     }
 
@@ -210,9 +216,14 @@ export class IssuerService {
       throw new Error('Invalid email or password');
     }
 
+    // Check if issuer is rejected
+    if (issuer.status === 'rejected') {
+      throw new Error(`Your account has been rejected. Reason: ${issuer.rejected_reason || 'Contact admin for more details'}. You cannot login with this account.`);
+    }
+
     // Check if issuer is blocked
     if (issuer.is_blocked) {
-      throw new Error(`Account is blocked. Reason: ${issuer.blocked_reason || 'Contact support'}`);
+      throw new Error(`Your account is blocked. Reason: ${issuer.blocked_reason || 'Contact support for assistance'}`);
     }
 
     // For now, we'll allow pending issuers to login but they won't be able to use API keys
@@ -220,10 +231,6 @@ export class IssuerService {
     // if (issuer.status === 'pending') {
     //   throw new Error('Account is pending approval');
     // }
-
-    if (issuer.status === 'rejected') {
-      throw new Error(`Account has been rejected. Reason: ${issuer.rejected_reason || 'Contact support'}`);
-    }
 
     // Verify password
     const isPasswordValid = await comparePassword(data.password, issuer.password_hash);
