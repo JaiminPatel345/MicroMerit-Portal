@@ -7,7 +7,7 @@ info:
     ## Registration Flow
     1. **Start Registration** (`POST /auth/learner/start-register`): Initiate registration with email OR phone number
     2. **Verify OTP** (`POST /auth/learner/verify-otp`): Verify the OTP sent via email/SMS (returns temp token)
-    3. **Complete Registration** (`POST /auth/learner/complete-register`): Finalize with password and profile details
+    3. **Complete Registration** (`POST /auth/learner/complete-register`): Finalize with password, profile details, and optional profile photo (multipart/form-data)
     
     ## Authentication
     - **Login** (`POST /auth/learner/login`): Email/phone + password authentication
@@ -33,6 +33,7 @@ info:
     - Duplicate email/phone prevention
     - OAuth registration support (password optional)
     - Unified contact verification endpoints
+    - Profile photo upload via multipart/form-data (images only, max 5MB)
     
   version: 1.1.0
   contact:
@@ -238,13 +239,21 @@ paths:
         - Format: `Authorization: Bearer <tempToken>`
         - Token type: Must be 'registration' type
         
+        **Profile Photo Upload**:
+        - Uses multipart/form-data for file upload
+        - Field name: `profilePhoto`
+        - Accepts image files only (png, jpg, jpeg, gif, webp, bmp)
+        - Max file size: 5MB
+        - Automatically uploaded to S3
+        - Optional field
+        
         **Password Note**: Password is optional for OAuth-based registrations.
       security:
         - BearerAuth: []
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               type: object
               required: [name]
@@ -254,29 +263,21 @@ paths:
                   minLength: 1
                   maxLength: 255
                   example: John Doe
+                  description: Learner's full name
                 password:
                   type: string
                   minLength: 8
                   maxLength: 100
                   example: SecurePass123!
                   description: Optional for OAuth registrations
-                profilePhotoUrl:
+                profilePhoto:
                   type: string
-                  example: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+                  format: binary
                   description: |
-                    Profile photo (optional). Accepts two formats:
-                    
-                    **Option 1: Base64 encoded image (Recommended)**
-                    - Format: `data:image/[type];base64,[base64-string]`
-                    - Supported types: png, jpg, jpeg, gif, webp, bmp
+                    Profile photo (optional)
+                    - Accepts: image/png, image/jpeg, image/jpg, image/gif, image/webp, image/bmp
                     - Max size: 5MB
                     - Automatically uploaded to S3
-                    - Example: `data:image/png;base64,iVBORw0KGgoAAAANS...`
-                    
-                    **Option 2: Direct URL**
-                    - Any valid image URL
-                    - Must be publicly accessible
-                    - Example: `https://example.com/photo.jpg`
                 dob:
                   type: string
                   format: date-time
@@ -287,29 +288,9 @@ paths:
                   enum: [Male, Female, Others, Not to disclose]
                   example: Male
                   description: Gender (optional)
-            examples:
-              withBase64Photo:
-                summary: Complete registration with base64 photo
-                value:
-                  name: "John Doe"
-                  password: "SecurePass123!"
-                  profilePhotoUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-                  dob: "1995-05-15T00:00:00.000Z"
-                  gender: "Male"
-              withPhotoUrl:
-                summary: Complete registration with photo URL
-                value:
-                  name: "Jane Smith"
-                  password: "SecurePass456!"
-                  profilePhotoUrl: "https://example.com/photo.jpg"
-                  dob: "1998-03-20T00:00:00.000Z"
-                  gender: "Female"
-              withoutPhoto:
-                summary: Complete registration without photo
-                value:
-                  name: "Alex Johnson"
-                  password: "SecurePass789!"
-                  gender: "Others"
+            encoding:
+              profilePhoto:
+                contentType: image/png, image/jpeg, image/jpg, image/gif, image/webp, image/bmp
       responses:
         '201':
           description: Registration completed successfully
@@ -325,16 +306,14 @@ paths:
                     id: 123
                     email: learner@example.com
                     phone: null
-                    profileUrl: https://example.com/photo.jpg
+                    profileUrl: https://s3.amazonaws.com/bucket/profile-photos/learner-123/profile-1234567890.png
                     dob: "1995-05-15T00:00:00.000Z"
                     gender: Male
-                    other_emails: []
-                    created_at: "2024-01-01T12:00:00Z"
-                  tokens:
-                    accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                    refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    otherEmails: []
+                  accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         '400':
-          description: Invalid session or validation error
+          description: Invalid session, validation error, or file upload error
           content:
             application/json:
               schema:
@@ -362,6 +341,27 @@ paths:
                     errors:
                       - field: name
                         message: Name is required
+                    statusCode: 400
+                invalid_file_type:
+                  summary: Invalid file type
+                  value:
+                    success: false
+                    message: Only image files are allowed (png, jpg, jpeg, gif, webp, bmp)
+                    error: INVALID_FILE_TYPE
+                    statusCode: 400
+                file_too_large:
+                  summary: File exceeds size limit
+                  value:
+                    success: false
+                    message: File size exceeds 5MB limit
+                    error: FILE_TOO_LARGE
+                    statusCode: 400
+                upload_failed:
+                  summary: S3 upload failed
+                  value:
+                    success: false
+                    message: Profile photo upload failed
+                    error: PROFILE_PHOTO_UPLOAD_FAILED
                     statusCode: 400
         '401':
           description: Missing or invalid temporary token

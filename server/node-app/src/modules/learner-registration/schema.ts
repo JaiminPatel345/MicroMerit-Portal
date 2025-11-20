@@ -22,10 +22,10 @@ export const verifyOTPSchema = z.object({
 });
 
 // Complete Registration Schema (Page 3)
+// Note: profilePhoto comes from req.file (multipart/form-data), not req.body
 export const completeRegistrationSchema = z.object({
   body: z.object({
     name: z.string().min(1).max(255),
-    profilePhotoUrl: z.string().optional(), // Accept base64 or URL
     password: z.string().min(8).optional(),
     dob: z.string().datetime().optional(), // ISO 8601 date string
     gender: z.enum(['Male', 'Female', 'Others', 'Not to disclose']).optional(),

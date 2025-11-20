@@ -9,7 +9,7 @@ import {
   CompleteRegistrationInput,
 } from './schema';
 import { ConflictError, NotFoundError, ValidationError } from '../../utils/errors';
-import { handleProfilePhotoUpload } from '../../utils/imageUpload';
+import { handleProfilePhotoFileUpload } from '../../utils/imageUpload';
 import { logger } from '../../utils/logger';
 
 export class RegistrationService {
@@ -116,7 +116,8 @@ export class RegistrationService {
    */
   async completeRegistration(
     sessionId: string,
-    input: CompleteRegistrationInput
+    input: CompleteRegistrationInput,
+    profilePhotoFile?: Express.Multer.File
   ) {
     // Find and validate session
     const session = await this.repository.findSessionById(sessionId);
@@ -138,17 +139,17 @@ export class RegistrationService {
       hashedPassword = await hashPassword(input.password);
     }
 
-    // Handle profile photo upload (base64 or URL)
+    // Handle profile photo upload (multipart file upload)
     let profilePhotoUrl: string | undefined;
-    if (input.profilePhotoUrl) {
+    if (profilePhotoFile) {
       try {
         // Generate temporary learner ID for folder structure
         const tempLearnerId = `temp-${sessionId.substring(0, 8)}`;
-        profilePhotoUrl = await handleProfilePhotoUpload(
-          input.profilePhotoUrl,
+        profilePhotoUrl = await handleProfilePhotoFileUpload(
+          profilePhotoFile,
           tempLearnerId
         );
-        logger.info('Profile photo processed', { sessionId, hasPhoto: !!profilePhotoUrl });
+        logger.info('Profile photo uploaded', { sessionId, hasPhoto: !!profilePhotoUrl });
       } catch (error: any) {
         logger.error('Profile photo upload failed', { error: error.message });
         throw new ValidationError(

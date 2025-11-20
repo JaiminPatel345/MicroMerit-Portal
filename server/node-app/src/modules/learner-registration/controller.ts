@@ -76,7 +76,10 @@ export const completeRegistration = async (
       throw new AuthError('Invalid token payload', 401, 'INVALID_TOKEN_PAYLOAD');
     }
 
-    const result = await service.completeRegistration(sessionId, req.body);
+    // Extract profile photo file from multer (if provided)
+    const profilePhotoFile = req.file;
+
+    const result = await service.completeRegistration(sessionId, req.body, profilePhotoFile);
     sendSuccess(res, result, 'Registration completed successfully', 201);
   } catch (error) {
     next(error);

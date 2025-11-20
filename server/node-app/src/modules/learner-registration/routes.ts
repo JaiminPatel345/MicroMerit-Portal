@@ -10,6 +10,7 @@ import {
   verifyOTP,
   completeRegistration,
 } from './controller';
+import { uploadProfilePhoto } from '../../utils/multerConfig';
 
 const router = Router();
 
@@ -37,11 +38,13 @@ router.post(
 
 /**
  * @route   POST /auth/learner/complete-register
- * @desc    Complete learner registration
+ * @desc    Complete learner registration with optional profile photo
  * @access  Requires temporary token from verify-otp
+ * @upload  Accepts multipart/form-data with optional 'profilePhoto' file field
  */
 router.post(
   '/complete-register',
+  uploadProfilePhoto,
   validate(completeRegistrationSchema),
   completeRegistration
 );

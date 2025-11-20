@@ -52,6 +52,26 @@ export const errorHandler = (
     return;
   }
 
+  // Handle Multer errors
+  if (error.name === 'MulterError') {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      sendError(res, 'FILE_TOO_LARGE', 'File size exceeds 5MB limit', 400);
+      return;
+    }
+    if (error.code === 'LIMIT_UNEXPECTED_FILE') {
+      sendError(res, 'INVALID_FILE_FIELD', 'Unexpected file field. Use "profilePhoto" as field name', 400);
+      return;
+    }
+    sendError(res, 'FILE_UPLOAD_ERROR', error.message, 400);
+    return;
+  }
+
+  // Handle custom file filter errors from multer
+  if (error.message && error.message.includes('Only image files are allowed')) {
+    sendError(res, 'INVALID_FILE_TYPE', error.message, 400);
+    return;
+  }
+
   // Handle Zod validation errors
   if (error instanceof ZodError) {
     const errors = error.errors.map((err) => ({

@@ -198,7 +198,6 @@ describe('RegistrationService', () => {
       const sessionId = 'session-123';
       const input = {
         name: 'John Doe',
-        profilePhotoUrl: 'https://example.com/photo.jpg',
         password: 'SecurePass123',
       };
       const mockSession = {
@@ -217,7 +216,7 @@ describe('RegistrationService', () => {
         email: 'john@example.com',
         phone: null,
         hashed_password: 'hashed-password',
-        profileUrl: 'https://example.com/photo.jpg',
+        profileUrl: null,
         other_emails: [],
         status: 'active',
         created_at: new Date(),
@@ -237,7 +236,7 @@ describe('RegistrationService', () => {
         email: 'john@example.com',
         phone: undefined,
         hashedPassword: 'hashed-password',
-        profileUrl: 'https://example.com/photo.jpg',
+        profileUrl: undefined,
         otherEmails: [],
         dob: undefined,
         gender: undefined,
@@ -251,7 +250,6 @@ describe('RegistrationService', () => {
       const sessionId = 'session-789';
       const input = {
         name: 'Alex Smith',
-        profilePhotoUrl: 'https://example.com/alex.jpg',
         password: 'SecurePass123',
         dob: '1995-05-15T00:00:00.000Z',
         gender: 'Male' as const,
@@ -272,7 +270,7 @@ describe('RegistrationService', () => {
         email: 'alex@example.com',
         phone: null,
         hashed_password: 'hashed-password',
-        profileUrl: 'https://example.com/alex.jpg',
+        profileUrl: null,
         other_emails: [],
         dob: new Date('1995-05-15T00:00:00.000Z'),
         gender: 'Male',
@@ -292,7 +290,7 @@ describe('RegistrationService', () => {
         email: 'alex@example.com',
         phone: undefined,
         hashedPassword: 'hashed-password',
-        profileUrl: 'https://example.com/alex.jpg',
+        profileUrl: undefined,
         otherEmails: [],
         dob: new Date('1995-05-15T00:00:00.000Z'),
         gender: 'Male',

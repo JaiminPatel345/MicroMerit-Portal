@@ -1,4 +1,5 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
+import { AuthError } from './errors';
 
 export interface JWTPayload {
   id: number;
@@ -55,8 +56,14 @@ export const generateRefreshToken = (payload: any, expiresIn?: string): string =
 export const verifyAccessToken = (token: string): JWTPayload => {
   try {
     return jwt.verify(token, JWT_SECRET) as JWTPayload;
-  } catch (error) {
-    throw new Error('Invalid or expired access token');
+  } catch (error: any) {
+    if (error.name === 'TokenExpiredError') {
+      throw new AuthError('Authentication token has expired', 401, 'TOKEN_EXPIRED');
+    }
+    if (error.name === 'JsonWebTokenError') {
+      throw new AuthError('Invalid authentication token', 401, 'INVALID_TOKEN');
+    }
+    throw new AuthError('Invalid or expired access token', 401, 'INVALID_TOKEN');
   }
 };
 
@@ -66,8 +73,14 @@ export const verifyAccessToken = (token: string): JWTPayload => {
 export const verifyRefreshToken = (token: string): JWTPayload => {
   try {
     return jwt.verify(token, JWT_REFRESH_SECRET) as JWTPayload;
-  } catch (error) {
-    throw new Error('Invalid or expired refresh token');
+  } catch (error: any) {
+    if (error.name === 'TokenExpiredError') {
+      throw new AuthError('Refresh token has expired', 401, 'REFRESH_TOKEN_EXPIRED');
+    }
+    if (error.name === 'JsonWebTokenError') {
+      throw new AuthError('Invalid refresh token', 401, 'INVALID_REFRESH_TOKEN');
+    }
+    throw new AuthError('Invalid or expired refresh token', 401, 'INVALID_REFRESH_TOKEN');
   }
 };
 

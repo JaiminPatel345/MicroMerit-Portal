@@ -100,6 +100,61 @@ export async function uploadBase64ImageToS3(
 }
 
 /**
+ * Upload image buffer to S3 (from multer file upload)
+ * @param buffer - Image buffer from multer
+ * @param mimeType - MIME type of the image
+ * @param folder - S3 folder path
+ * @returns S3 URL of uploaded image
+ */
+export async function uploadImageBufferToS3(
+  buffer: Buffer,
+  mimeType: string,
+  folder: string = 'profile-photos'
+): Promise<string> {
+  try {
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (buffer.length > maxSize) {
+      throw new Error('Image size exceeds 5MB limit');
+    }
+
+    // Get extension from MIME type
+    const extension = getExtensionFromMimeType(mimeType);
+
+    // Generate unique filename
+    const filename = generateImageFilename(folder, extension);
+
+    // Upload to S3
+    const s3Url = await s3Service.uploadFile(buffer, filename, mimeType);
+
+    logger.info('Image buffer uploaded to S3', { filename, size: buffer.length, mimeType });
+
+    return s3Url;
+  } catch (error: any) {
+    logger.error('Failed to upload image buffer to S3', { error: error.message });
+    throw new Error(`Image upload failed: ${error.message}`);
+  }
+}
+
+/**
+ * Handle profile photo upload from multer file
+ * @param file - Multer file object
+ * @param userId - User ID for folder organization
+ * @returns S3 URL of uploaded image or undefined if no file
+ */
+export async function handleProfilePhotoFileUpload(
+  file: Express.Multer.File | undefined,
+  userId: string | number
+): Promise<string | undefined> {
+  if (!file) {
+    return undefined;
+  }
+
+  const folder = `profile-photos/learner-${userId}`;
+  return await uploadImageBufferToS3(file.buffer, file.mimetype, folder);
+}
+
+/**
  * Handle profile photo upload
  * If input is base64, upload to S3 and return URL
  * If input is already a URL, validate and return it
