@@ -8,9 +8,6 @@ import {
   VerifyOTPInput,
   CompleteRegistrationInput,
 } from './schema';
-import { ConflictError, NotFoundError, ValidationError } from '../../utils/errors';
-import { handleProfilePhotoUpload } from '../../utils/imageUpload';
-import { logger } from '../../utils/logger';
 
 export class RegistrationService {
   private repository: RegistrationRepository;
@@ -33,14 +30,14 @@ export class RegistrationService {
     if (email) {
       const exists = await this.repository.isEmailRegistered(email);
       if (exists) {
-        throw new ConflictError('Email already registered', 409, 'EMAIL_ALREADY_REGISTERED');
+        throw new Error('Email already registered');
       }
     }
 
     if (phone) {
       const exists = await this.repository.isPhoneRegistered(phone);
       if (exists) {
-        throw new ConflictError('Phone number already registered', 409, 'PHONE_ALREADY_REGISTERED');
+        throw new Error('Phone number already registered');
       }
     }
 
@@ -74,26 +71,28 @@ export class RegistrationService {
   async verifyOTP(input: VerifyOTPInput) {
     const { sessionId, otp } = input;
 
+    
+
     // Find session
     const session = await this.repository.findSessionById(sessionId);
     if (!session) {
-      throw new NotFoundError('Invalid session ID', 404, 'SESSION_NOT_FOUND');
+      throw new Error('Invalid session ID');
     }
 
     // Check if already verified
     if (session.is_verified) {
-      throw new ValidationError('Session already verified', 400, 'SESSION_ALREADY_VERIFIED');
+      throw new Error('Session already verified');
     }
 
     // Check if expired
     if (new Date() > session.expires_at) {
-      throw new ValidationError('OTP expired', 400, 'OTP_EXPIRED');
+      throw new Error('OTP expired');
     }
 
     // Verify OTP
     const isValid = await verifyOTP(otp, session.otp_hash);
     if (!isValid) {
-      throw new ValidationError('Invalid OTP', 400, 'INVALID_OTP');
+      throw new Error('Invalid OTP');
     }
 
     // Mark as verified
@@ -121,15 +120,15 @@ export class RegistrationService {
     // Find and validate session
     const session = await this.repository.findSessionById(sessionId);
     if (!session) {
-      throw new NotFoundError('Invalid session ID', 404, 'SESSION_NOT_FOUND');
+      throw new Error('Invalid session ID');
     }
 
     if (!session.is_verified) {
-      throw new ValidationError('Session not verified', 400, 'SESSION_NOT_VERIFIED');
+      throw new Error('Session not verified');
     }
 
     if (new Date() > session.expires_at) {
-      throw new ValidationError('Session expired', 400, 'SESSION_EXPIRED');
+      throw new Error('Session expired');
     }
 
     // Hash password if provided
@@ -138,41 +137,13 @@ export class RegistrationService {
       hashedPassword = await hashPassword(input.password);
     }
 
-    // Handle profile photo upload (base64 or URL)
-    let profilePhotoUrl: string | undefined;
-    if (input.profilePhotoUrl) {
-      try {
-        // Generate temporary learner ID for folder structure
-        const tempLearnerId = `temp-${sessionId.substring(0, 8)}`;
-        profilePhotoUrl = await handleProfilePhotoUpload(
-          input.profilePhotoUrl,
-          tempLearnerId
-        );
-        logger.info('Profile photo processed', { sessionId, hasPhoto: !!profilePhotoUrl });
-      } catch (error: any) {
-        logger.error('Profile photo upload failed', { error: error.message });
-        throw new ValidationError(
-          `Profile photo upload failed: ${error.message}`,
-          400,
-          'PROFILE_PHOTO_UPLOAD_FAILED'
-        );
-      }
-    }
-
     // Create learner
     const learner = await this.repository.createLearner({
       email: session.email || undefined,
       phone: session.phone || undefined,
       hashedPassword,
-      profileUrl: profilePhotoUrl,
-      otherEmails: [], // Initialize with empty array
-    });
-
-    logger.info('Learner registration completed', { 
-      learnerId: learner.id, 
-      email: learner.email,
-      phone: learner.phone,
-      hasProfilePhoto: !!profilePhotoUrl
+      profileUrl: input.profilePhotoUrl,
+      otherEmails: (input as any).otherEmails || undefined,
     });
 
     // Generate tokens
