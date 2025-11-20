@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { validateEmail, validatePassword } from "../../utils/formValidation";
+import { loginIssuer } from "../../services/authServices";
+import { issuerLoginSuccess } from "../../store/authIssuerSlice";
+import { useDispatch } from "react-redux";
 
 export default function IssuerLogin() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const [form, setForm] = useState({
     email: "",
@@ -44,20 +48,24 @@ export default function IssuerLogin() {
     setLoginError("");
 
     try {
-      // SIMULATED LOGIN API
-      await new Promise((resolve, reject) => {
-        setTimeout(() => {
-          if (form.email === "issuer@test.com" && form.password === "Password123") {
-            resolve();
-          } else {
-            reject(new Error("Invalid email or password"));
-          }
-        }, 1200);
-      });
 
-      navigate("/issuer/dashboard"); // change as needed
+      const response = await loginIssuer.login({
+        email: form.email,
+        password: form.password,
+      });
+      console.log(response);
+        
+      if(response?.data?.success === true){
+        dispatch(issuerLoginSuccess({
+          issuer: response.data.data.issuer,
+          accessToken: response.data.data.tokens.access,
+          refreshToken: response.data.data.tokens.refresh
+        }));
+        navigate("/issuer/dashboard"); 
+      }
+
     } catch (err) {
-      setLoginError(err.message);
+      setLoginError(err.response?.data?.message || "Login failed. Please try again.");
     }
 
     setLoading(false);

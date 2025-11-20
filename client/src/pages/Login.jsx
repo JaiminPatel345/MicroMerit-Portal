@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Phone, Lock, Chrome, Eye, EyeOff } from 'lucide-react';
-
+import { loginLearner } from '../services/authServices';
+import { learnerLoginSuccess } from '../store/authLearnerSlice';
+import { useDispatch } from 'react-redux';
 const Login = () => {
   const navigate = useNavigate();
   const [loginMethod, setLoginMethod] = useState(null);
@@ -12,6 +14,7 @@ const Login = () => {
     password: ''
   });
   const [errors, setErrors] = useState({});
+  const dispatch = useDispatch();
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -32,10 +35,6 @@ const Login = () => {
       } else if (!validateEmail(formData.email)) {
         newErrors.email = 'Please enter a valid email address';
       }
-
-      if (!formData.password) {
-        newErrors.password = 'Password is required';
-      }
     }
 
     if (loginMethod === 'mobile') {
@@ -45,6 +44,10 @@ const Login = () => {
         newErrors.mobile = 'Please enter a valid 10-digit mobile number';
       }
     }
+
+     if (!formData.password) {
+        newErrors.password = 'Password is required';
+      }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -64,18 +67,37 @@ const Login = () => {
     if (!validateForm()) {
       return;
     }
+    try{
+
+    
 
     if (loginMethod === 'mobile') {
-      navigate('/verify-otp', {
-        state: {
-          identifier: formData.mobile,
-          type: 'mobile',
-          verificationType: 'login'
-        }
-      });
-    } else if (loginMethod === 'email') {
-      navigate('/');
+    
+      const response = await loginLearner.login({ phone: formData.mobile , password: formData.password });
+      if(response?.data?.success === true){
+        dispatch(learnerLoginSuccess({
+          learner: response.data.data.learner,
+          accessToken: response.data.data.tokens.accessToken,
+          refreshToken: response.data.data.tokens.refreshToken
+        }));
+      navigate('/dashboard');
     }
+    } else if (loginMethod === 'email') {
+
+      const response = await loginLearner.login({ email: formData.email, password: formData.password });
+      if(response?.data?.success === true){
+        dispatch(learnerLoginSuccess({
+          learner: response.data.data.learner,
+          accessToken: response.data.data.tokens.accessToken,
+          refreshToken: response.data.data.tokens.refreshToken
+        }));
+      navigate('/dashboard');
+      }
+    }
+
+  }catch(err){
+     setErrors({submit : err?.response?.data?.message || 'Login failed. Please try again.'})
+  }
   };
 
   const handleGoogleLogin = () => {
@@ -106,10 +128,11 @@ const Login = () => {
                 </div>
                 <div className="text-left">
                   <p className="font-semibold text-gray-900">Email & Password</p>
-                  <p className="text-sm text-gray-500">Sign in with your email</p>
+                  <p className="text-sm text-gray-500">Login with your email</p>
                 </div>
               </div>
             </button>
+
 
             <button
               onClick={() => setLoginMethod('mobile')}
@@ -121,7 +144,7 @@ const Login = () => {
                 </div>
                 <div className="text-left">
                   <p className="font-semibold text-gray-900">Mobile Number</p>
-                  <p className="text-sm text-gray-500">Sign in with OTP</p>
+                  <p className="text-sm text-gray-500">Login with your mobile number</p>
                 </div>
               </div>
             </button>
@@ -174,10 +197,16 @@ const Login = () => {
             <span className="mr-2">←</span> Back
           </button>
           <h2 className="text-4xl font-bold text-gray-900 mb-2">
-            {loginMethod === 'email' ? 'Sign In with Email' : 'Sign In with Mobile'}
+            {loginMethod === 'email' ? 'Login with Email' : 'Login with Mobile'}
           </h2>
           <p className="text-gray-600">Enter your credentials to continue</p>
         </div>
+
+        {errors.submit && (
+          <p className="text-red-600  mb-4 font-medium">
+            {errors.submit}
+          </p>
+        )}
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -264,48 +293,97 @@ const Login = () => {
             )}
 
             {loginMethod === 'mobile' && (
-              <div>
-                <label htmlFor="mobile" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Mobile Number
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Phone className="h-5 w-5 text-gray-400" />
+                  <>
+                    {/* Mobile Number */}
+                    <div>
+                      <label htmlFor="mobile" className="block text-sm font-semibold text-gray-700 mb-2">
+                        Mobile Number
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Phone className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                          type="tel"
+                          id="mobile"
+                          name="mobile"
+                          value={formData.mobile}
+                          onChange={handleInputChange}
+                          className={`block w-full pl-10 pr-3 py-3 border ${
+                            errors.mobile ? 'border-red-500' : 'border-gray-300'
+                          } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-transparent`}
+                          placeholder="10-digit mobile number"
+                          maxLength="10"
+                        />
+                      </div>
+                      {errors.mobile && (
+                        <p className="mt-1 text-sm text-red-600">{errors.mobile}</p>
+                      )}
+                    </div>
+
+                    {/* Password */}
+                    <div>
+                      <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+                        Password
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Lock className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          id="password"
+                          name="password"
+                          value={formData.password}
+                          onChange={handleInputChange}
+                          className={`block w-full pl-10 pr-10 py-3 border ${
+                            errors.password ? 'border-red-500' : 'border-gray-300'
+                          } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-transparent`}
+                          placeholder="Enter your password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                          ) : (
+                            <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                          )}
+                        </button>
+                      </div>
+                      {errors.password && (
+                        <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                      )}
+                    </div>
+                      <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <input
+                      id="remember"
+                      name="remember"
+                      type="checkbox"
+                      className="h-4 w-4 text-blue-chill-600 focus:ring-blue-chill-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="remember" className="ml-2 block text-sm text-gray-700">
+                      Remember me
+                    </label>
                   </div>
-                  <input
-                    type="tel"
-                    id="mobile"
-                    name="mobile"
-                    value={formData.mobile}
-                    onChange={handleInputChange}
-                    className={`block w-full pl-10 pr-3 py-3 border ${
-                      errors.mobile ? 'border-red-500' : 'border-gray-300'
-                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-transparent`}
-                    placeholder="10-digit mobile number"
-                    maxLength="10"
-                  />
+                  <a href="/forgot-password" className="text-sm text-blue-chill-600 hover:text-blue-chill-700 font-medium">
+                    Forgot password?
+                  </a>
                 </div>
-                {errors.mobile && (
-                  <p className="mt-1 text-sm text-red-600">{errors.mobile}</p>
-                )}
-              </div>
-            )}
+                  </>
+            )}    
+
 
             <button
               type="submit"
               className="w-full bg-blue-chill-600 text-white py-3 px-4 rounded-lg hover:bg-blue-chill-700 transition font-semibold text-lg shadow-lg hover:shadow-xl"
             >
-              {loginMethod === 'mobile' ? 'Send OTP' : 'Sign In'}
+              {'LogIn'}
             </button>
           </form>
-
-          {loginMethod === 'mobile' && (
-            <div className="mt-6 p-4 bg-blue-chill-50 rounded-lg">
-              <p className="text-sm text-gray-700 text-center">
-                You'll receive a 6-digit OTP on your mobile number
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>

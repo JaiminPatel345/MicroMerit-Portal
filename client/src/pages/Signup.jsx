@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Phone, Lock, Chrome } from 'lucide-react';
+import { oauthGoogleLogin, signUpLeaner } from '../services/authServices';
+
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -8,8 +10,6 @@ const Signup = () => {
   const [formData, setFormData] = useState({
     email: '',
     mobile: '',
-    password: '',
-    confirmPassword: ''
   });
   const [errors, setErrors] = useState({});
 
@@ -31,16 +31,6 @@ const Signup = () => {
         newErrors.email = 'Email is required';
       } else if (!validateEmail(formData.email)) {
         newErrors.email = 'Please enter a valid email address';
-      }
-
-      if (!formData.password) {
-        newErrors.password = 'Password is required';
-      } else if (formData.password.length < 8) {
-        newErrors.password = 'Password must be at least 8 characters';
-      }
-
-      if (formData.password !== formData.confirmPassword) {
-        newErrors.confirmPassword = 'Passwords do not match';
       }
     }
 
@@ -72,31 +62,71 @@ const Signup = () => {
     }
 
     if (loginMethod === 'mobile') {
-      navigate('/verify-otp', {
-        state: {
-          identifier: formData.mobile,
-          type: 'mobile',
-          verificationType: 'signup'
+
+      try{
+
+        const response = await signUpLeaner.start({ phone: formData.mobile });
+        if(response?.data?.success === true){
+          navigate('/verify-otp', {
+            state: {
+              identifier: formData.mobile,
+              type: 'mobile',
+              verificationType: 'signup',
+              sessionId : response.data.data.sessionId
+  
+            }
+          });
         }
-      });
-    } else if (loginMethod === 'email') {
-      navigate('/verify-otp', {
-        state: {
-          identifier: formData.email,
-          type: 'email',
-          password: formData.password,
-          verificationType: 'signup'
-        }
-      });
+
+    
+      }catch(err){  
+        setErrors({ mobile: err.response?.data?.message || 'Mobile signup failed. Please try again.' });
+        console.error('Error during mobile signup:', err);
+      }
+      }
+       else if (loginMethod === 'email') {
+
+        try{
+
+      const response = await signUpLeaner.start({ email: formData.email});
+      if(response?.data?.success === true){
+
+        navigate('/verify-otp', {
+          state: {
+            identifier: formData.email,
+            type: 'email',
+            verificationType: 'signup',
+            sessionId : response.data.data.sessionId
+          }
+        });
+      }
+        
+    }catch(err){
+      setErrors({ email: err.response?.data?.message || 'Email signup failed. Please try again.' });
+      console.error('Error during email signup:', err);
+    }
     }
   };
 
-  const handleGoogleSignup = () => {
-    navigate('/profile-builder', {
-      state: {
-        loginMethod: 'google'
+  const handleGoogleSignup = async() => {
+    try{
+      const response = await oauthGoogleLogin.oauth();
+      console.log('Google OAuth response:', response);
+      navigate(response?.data?.data?.authUrl);
+      if (response.success) {
+        navigate('/profile-builder', {
+          state: {
+            loginMethod: 'google',
+            userData: response.user
+          }
+        });
       }
-    });
+    }catch(err){
+      setErrors({ general: 'Google OAuth signup failed. Please try again.' });
+      console.error('Google OAuth signup failed:', err);
+     }
+
+      
   };
 
   const handleDigiLockerSignup = () => {
@@ -126,7 +156,7 @@ const Signup = () => {
                   <Mail className="w-6 h-6 text-blue-chill-600" />
                 </div>
                 <div className="text-left">
-                  <p className="font-semibold text-gray-900">Email & Password</p>
+                  <p className="font-semibold text-gray-900">Email </p>
                   <p className="text-sm text-gray-500">Sign up with your email</p>
                 </div>
               </div>
@@ -226,56 +256,6 @@ const Signup = () => {
                   </div>
                   {errors.email && (
                     <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Lock className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      type="password"
-                      id="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      className={`block w-full pl-10 pr-3 py-3 border ${
-                        errors.password ? 'border-red-500' : 'border-gray-300'
-                      } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-transparent`}
-                      placeholder="Min. 8 characters"
-                    />
-                  </div>
-                  {errors.password && (
-                    <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-700 mb-2">
-                    Confirm Password
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Lock className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      type="password"
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange}
-                      className={`block w-full pl-10 pr-3 py-3 border ${
-                        errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                      } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-transparent`}
-                      placeholder="Re-enter password"
-                    />
-                  </div>
-                  {errors.confirmPassword && (
-                    <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
                   )}
                 </div>
               </>

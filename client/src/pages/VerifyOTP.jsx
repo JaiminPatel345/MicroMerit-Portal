@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Phone, ArrowLeft } from 'lucide-react';
-
+import { signUpLeaner, signInIssuer } from '../services/authServices';
+import { useDispatch } from 'react-redux';
+import { issuerLoginSuccess } from '../store/authIssuerSlice';
+import {  learnerLoginSuccess } from '../store/authLearnerSlice';
 const VerifyOTP = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -10,8 +13,9 @@ const VerifyOTP = () => {
   const [resendTimer, setResendTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
   const inputRefs = useRef([]);
-
-  const { identifier, type, password, verificationType } = location.state || {};
+  const dispatch = useDispatch();
+  const { identifier, type, verificationType , sessionId } = location.state || {};
+  // console.log(sessionId)
 
   useEffect(() => {
     if (!identifier || !type) {
@@ -72,16 +76,49 @@ const VerifyOTP = () => {
       setError('Please enter a valid 6-digit OTP');
       return;
     }
+ 
+    try{
 
-    navigate('/profile-builder', {
-      state: {
-        identifier,
-        type,
-        password,
-        loginMethod: type,
-        otpVerified: true
+      if(type === 'issuer'){
+        const response = await signInIssuer.verify({ sessionId , otp: otpCode });
+
+        if(response?.data?.success === true){
+           dispatch(issuerLoginSuccess({
+                    issuer: response.data.data.issuer,
+                    accessToken: response.data.data.tokens.access,
+                    refreshToken: response.data.data.tokens.refresh
+                  }));
+          navigate('/issuer/dashboard');
+        } 
+        
+        console.log(response);
       }
-    });
+      else{
+      const response = await signUpLeaner.verify({ sessionId , otp: otpCode });
+
+      if(response?.data?.success === true){
+        dispatch(learnerLoginSuccess({
+          learner: response.data.data.learner,
+          accessToken: response.data.data.tokens.access,
+          refreshToken: response.data.data.tokens.refresh
+        }));
+        navigate('/profile-builder', {
+          state: {
+            identifier,
+            type,
+            loginMethod: type,
+            tempToken: response?.data?.data?.tempToken
+          }
+        });
+      }
+     }
+    }catch(err){
+      setError(err.response?.data?.message || 'OTP verification failed. Please try again.');
+      return;
+    }
+
+    
+
   };
 
   const handleResendOTP = async () => {
@@ -120,6 +157,7 @@ const VerifyOTP = () => {
             <span className="font-semibold text-gray-900">{identifier}</span>
           </p>
         </div>
+
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <form onSubmit={handleVerifyOTP} className="space-y-6">
