@@ -99,6 +99,7 @@ export class RegistrationRepository {
    * Create a new learner
    */
   async createLearner(data: {
+    name?: string;
     email?: string;
     phone?: string;
     hashedPassword?: string;
@@ -110,6 +111,7 @@ export class RegistrationRepository {
   }): Promise<any> {
     return prisma.learner.create({
       data: {
+        name: data.name,
         email: data.email,
         phone: data.phone,
         hashed_password: data.hashedPassword,

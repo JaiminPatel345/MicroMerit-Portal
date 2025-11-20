@@ -39,6 +39,7 @@ export type LearnerLoginInput = z.infer<typeof learnerLoginSchema>;
  * Note: profilePhoto comes from req.file (multipart/form-data), not req.body
  */
 export const updateLearnerProfileSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
   email: z.string().email('Invalid email address').optional(),
   phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number').optional(),
   external_digilocker_id: z.string().optional(),

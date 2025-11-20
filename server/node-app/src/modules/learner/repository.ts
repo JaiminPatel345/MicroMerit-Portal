@@ -2,6 +2,7 @@ import { prisma } from '../../utils/prisma';
 import { learner } from '@prisma/client';
 
 export interface CreateLearnerDTO {
+  name?: string;
   email?: string;
   phone?: string;
   hashed_password?: string;
@@ -14,6 +15,7 @@ export interface CreateLearnerDTO {
 }
 
 export interface UpdateLearnerDTO {
+  name?: string;
   email?: string;
   phone?: string;
   profileFolder?: string;

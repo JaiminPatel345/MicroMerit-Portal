@@ -8,6 +8,7 @@ import { handleProfilePhotoFileUpload } from '../../utils/imageUpload';
 
 export interface LearnerResponse {
   id: number;
+  name?: string | null;
   email?: string | null;
   phone?: string | null;
   profileFolder?: string | null;
@@ -202,6 +203,7 @@ export class LearnerService {
 
     // Prepare update data
     const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
     if (data.email !== undefined) updateData.email = data.email;
     if (data.phone !== undefined) updateData.phone = data.phone;
     if (data.external_digilocker_id !== undefined) updateData.external_digilocker_id = data.external_digilocker_id;

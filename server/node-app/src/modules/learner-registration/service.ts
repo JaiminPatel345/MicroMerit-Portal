@@ -166,6 +166,7 @@ export class RegistrationService {
 
     // Create learner
     const learner = await this.repository.createLearner({
+      name: input.name,
       email: session.email || undefined,
       phone: session.phone || undefined,
       hashedPassword,
@@ -196,6 +197,7 @@ export class RegistrationService {
       message: 'Registration completed successfully',
       learner: {
         id: learner.id,
+        name: learner.name,
         email: learner.email,
         phone: learner.phone,
         profileUrl: learner.profileUrl,
