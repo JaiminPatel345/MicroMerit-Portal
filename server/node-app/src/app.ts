@@ -1,7 +1,8 @@
 import express, { Application } from 'express';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import { errorHandler, notFoundHandler } from './middleware/error';
 import { generalRateLimiter } from './middleware/rateLimit';
+import { addSignedUrlsMiddleware } from './middleware/signedUrls';
 import { logger } from './utils/logger';
 
 // Import routes
@@ -12,8 +13,6 @@ import credentialRoutes from './modules/credential/routes';
 import pdfRoutes from './modules/pdf/routes';
 import verificationRoutes from './modules/verification/routes';
 
-// Load environment variables
-dotenv.config();
 
 const app: Application = express();
 
@@ -26,6 +25,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Apply rate limiting
 app.use(generalRateLimiter);
+
+// Apply signed URL middleware to automatically convert S3 URLs in responses
+app.use(addSignedUrlsMiddleware);
 
 // CORS configuration
 app.use((req, res, next) => {
