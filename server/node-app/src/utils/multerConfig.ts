@@ -6,7 +6,10 @@ import multer from 'multer';
 export const imageUpload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB max file size
+    fileSize: 15 * 1024 * 1024, // 15MB max file size
+    fieldSize: 10 * 1024 * 1024, // 10MB max field size (for text fields)
+    fields: 20, // Max number of non-file fields
+    fieldNameSize: 200, // Max field name size
   },
   fileFilter: (req: any, file: any, cb: any) => {
     // Accept only image files

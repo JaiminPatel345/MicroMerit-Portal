@@ -4,7 +4,7 @@ import { Mail, Phone, ArrowLeft } from 'lucide-react';
 import { signUpLeaner, signInIssuer } from '../services/authServices';
 import { useDispatch } from 'react-redux';
 import { issuerLoginSuccess } from '../store/authIssuerSlice';
-import {  learnerLoginSuccess } from '../store/authLearnerSlice';
+import { learnerLoginSuccess } from '../store/authLearnerSlice';
 const VerifyOTP = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -14,7 +14,7 @@ const VerifyOTP = () => {
   const [canResend, setCanResend] = useState(false);
   const inputRefs = useRef([]);
   const dispatch = useDispatch();
-  const { identifier, type, verificationType , sessionId } = location.state || {};
+  const { identifier, type, verificationType, sessionId } = location.state || {};
   // console.log(sessionId)
 
   useEffect(() => {
@@ -76,48 +76,45 @@ const VerifyOTP = () => {
       setError('Please enter a valid 6-digit OTP');
       return;
     }
- 
-    try{
 
-      if(type === 'issuer'){
-        const response = await signInIssuer.verify({ sessionId , otp: otpCode });
+    try {
 
-        if(response?.data?.success === true){
-           dispatch(issuerLoginSuccess({
-                    issuer: response.data.data.issuer,
-                    accessToken: response.data.data.tokens.access,
-                    refreshToken: response.data.data.tokens.refresh
-                  }));
+      if (type === 'issuer') {
+        const response = await signInIssuer.verify({ sessionId, otp: otpCode });
+
+        if (response?.data?.success === true) {
+          dispatch(issuerLoginSuccess({
+            issuer: response.data.data.issuer,
+            accessToken: response.data.data.tokens.accessToken,
+            refreshToken: response.data.data.tokens.refreshToken
+          }));
           navigate('/issuer/dashboard');
-        } 
-        
+        }
+
         console.log(response);
       }
-      else{
-      const response = await signUpLeaner.verify({ sessionId , otp: otpCode });
+      else {
+        const response = await signUpLeaner.verify({ sessionId, otp: otpCode });
 
-      if(response?.data?.success === true){
-        dispatch(learnerLoginSuccess({
-          learner: response.data.data.learner,
-          accessToken: response.data.data.tokens.access,
-          refreshToken: response.data.data.tokens.refresh
-        }));
-        navigate('/profile-builder', {
-          state: {
-            identifier,
-            type,
-            loginMethod: type,
-            tempToken: response?.data?.data?.tempToken
-          }
-        });
+        if (response?.data?.success === true) {
+          // For learner signup, verify-otp returns tempToken, not full auth tokens.
+          // We proceed to ProfileBuilder to complete registration.
+          navigate('/profile-builder', {
+            state: {
+              identifier,
+              type,
+              loginMethod: type,
+              tempToken: response?.data?.data?.tempToken
+            }
+          });
+        }
       }
-     }
-    }catch(err){
+    } catch (err) {
       setError(err.response?.data?.message || 'OTP verification failed. Please try again.');
       return;
     }
 
-    
+
 
   };
 

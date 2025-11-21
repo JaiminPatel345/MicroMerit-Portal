@@ -10,7 +10,10 @@ import IssuerSignUp from './pages/issuer/Signup';
 import IssuerLogin from './pages/issuer/Login';
 import IssuerDashboard from './pages/issuer/Dashboard';
 import Dashboard from './pages/Dashboard';
-const HideHeaderRoutes = ["/login", "/signup", "/verify-otp", "/profile-builder", "/issuer/login", "/issuer/signup"];
+import GoogleCallback from './pages/GoogleCallback';
+
+const HideHeaderRoutes = ["/login", "/signup", "/verify-otp", "/profile-builder", "/issuer/login", "/issuer/signup", "/google-callback"];
+
 import { Provider } from 'react-redux';
 import { store, persistor } from './store/store';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -21,28 +24,29 @@ function Layout() {
   const hideHeader = HideHeaderRoutes.includes(location.pathname);
 
   return (
-      <div className="flex flex-col min-h-screen">
-        <Provider store={store}>
-           <PersistGate loading={null} persistor={persistor}>
-         {!hideHeader && <Header />}
+    <div className="flex flex-col min-h-screen">
+      <Provider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
+          {!hideHeader && <Header />}
 
-        <main className="flex-grow">
-          <Routes>
+          <main className="flex-grow">
+            <Routes>
 
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/profile-builder" element={<ProfileBuilder />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/verify-otp" element={<VerifyOTP />} />
-            <Route path='/issuer/signup' element={ <IssuerSignUp  />} />
-            <Route path='/issuer/login' element={ <IssuerLogin  />} />
-            <Route path='/issuer/dashboard' element={ <IssuerDashboard  />} />
-          </Routes>
-        </main>
-         </PersistGate>
-        </Provider>
-      </div>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/profile-builder" element={<ProfileBuilder />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/verify-otp" element={<VerifyOTP />} />
+              <Route path='/issuer/signup' element={<IssuerSignUp />} />
+              <Route path='/issuer/login' element={<IssuerLogin />} />
+              <Route path='/issuer/dashboard' element={<IssuerDashboard />} />
+              <Route path="/google-callback" element={<GoogleCallback />} />
+            </Routes>
+          </main>
+        </PersistGate>
+      </Provider>
+    </div>
 
   );
 }

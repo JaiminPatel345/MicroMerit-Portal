@@ -63,70 +63,62 @@ const Signup = () => {
 
     if (loginMethod === 'mobile') {
 
-      try{
+      try {
 
         const response = await signUpLeaner.start({ phone: formData.mobile });
-        if(response?.data?.success === true){
+        if (response?.data?.success === true) {
           navigate('/verify-otp', {
             state: {
               identifier: formData.mobile,
               type: 'mobile',
               verificationType: 'signup',
-              sessionId : response.data.data.sessionId
-  
+              sessionId: response.data.data.sessionId
+
             }
           });
         }
 
-    
-      }catch(err){  
+
+      } catch (err) {
         setErrors({ mobile: err.response?.data?.message || 'Mobile signup failed. Please try again.' });
         console.error('Error during mobile signup:', err);
       }
-      }
-       else if (loginMethod === 'email') {
-
-        try{
-
-      const response = await signUpLeaner.start({ email: formData.email});
-      if(response?.data?.success === true){
-
-        navigate('/verify-otp', {
-          state: {
-            identifier: formData.email,
-            type: 'email',
-            verificationType: 'signup',
-            sessionId : response.data.data.sessionId
-          }
-        });
-      }
-        
-    }catch(err){
-      setErrors({ email: err.response?.data?.message || 'Email signup failed. Please try again.' });
-      console.error('Error during email signup:', err);
     }
+    else if (loginMethod === 'email') {
+
+      try {
+
+        const response = await signUpLeaner.start({ email: formData.email });
+        if (response?.data?.success === true) {
+
+          navigate('/verify-otp', {
+            state: {
+              identifier: formData.email,
+              type: 'email',
+              verificationType: 'signup',
+              sessionId: response.data.data.sessionId
+            }
+          });
+        }
+
+      } catch (err) {
+        setErrors({ email: err.response?.data?.message || 'Email signup failed. Please try again.' });
+        console.error('Error during email signup:', err);
+      }
     }
   };
 
-  const handleGoogleSignup = async() => {
-    try{
+  const handleGoogleSignup = async () => {
+    try {
       const response = await oauthGoogleLogin.oauth();
       console.log('Google OAuth response:', response);
-      navigate(response?.data?.data?.authUrl);
-      if (response.success) {
-        navigate('/profile-builder', {
-          state: {
-            loginMethod: 'google',
-            userData: response.user
-          }
-        });
+      if (response?.data?.success) {
+        window.location.href = response.data.data.authUrl;
       }
-    }catch(err){
+    } catch (err) {
       setErrors({ general: 'Google OAuth signup failed. Please try again.' });
       console.error('Google OAuth signup failed:', err);
-     }
-
-      
+    }
   };
 
   const handleDigiLockerSignup = () => {
@@ -248,9 +240,8 @@ const Signup = () => {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className={`block w-full pl-10 pr-3 py-3 border ${
-                        errors.email ? 'border-red-500' : 'border-gray-300'
-                      } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-transparent`}
+                      className={`block w-full pl-10 pr-3 py-3 border ${errors.email ? 'border-red-500' : 'border-gray-300'
+                        } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-transparent`}
                       placeholder="you@example.com"
                     />
                   </div>
@@ -276,9 +267,8 @@ const Signup = () => {
                     name="mobile"
                     value={formData.mobile}
                     onChange={handleInputChange}
-                    className={`block w-full pl-10 pr-3 py-3 border ${
-                      errors.mobile ? 'border-red-500' : 'border-gray-300'
-                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-transparent`}
+                    className={`block w-full pl-10 pr-3 py-3 border ${errors.mobile ? 'border-red-500' : 'border-gray-300'
+                      } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-transparent`}
                     placeholder="10-digit mobile number"
                     maxLength="10"
                   />

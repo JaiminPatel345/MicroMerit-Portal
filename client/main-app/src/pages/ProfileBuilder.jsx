@@ -1,21 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Mail, Phone, Calendar, Upload, CheckCircle, Lock } from 'lucide-react';
+import { useDispatch } from 'react-redux';
+import { learnerLoginSuccess } from '../store/authLearnerSlice';
 import { completeProfile } from '../services/authServices';
 const ProfileBuilder = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
   const { identifier, type, loginMethod, tempToken } = location.state || {};
 
   const [formData, setFormData] = useState({
     fullName: '',
-    email: type === 'email' ? identifier : '',
-    phone: type === 'phone' ? identifier : '',
+    email: '',
+    phone: '',
     dateOfBirth: '',
     gender: '',
     password: '',
-    confirmPassword: '',
-    profilePhotoUrl: ''
+    confirmPassword: ''
   });
 
   const [consents, setConsents] = useState({
@@ -27,6 +29,7 @@ const ProfileBuilder = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [profilePreview, setProfilePreview] = useState(null);
+  const [profilePhotoFile, setProfilePhotoFile] = useState(null);
 
   useEffect(() => {
     if (loginMethod === 'google' || loginMethod === 'digilocker') {
@@ -37,27 +40,11 @@ const ProfileBuilder = () => {
     }
   }, [identifier, type, loginMethod, navigate]);
 
-  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const validatephone = (phone) => /^[6-9]\d{9}$/.test(phone);
-
   const validateForm = () => {
     const newErrors = {};
 
     if (!formData.fullName.trim()) {
       newErrors.fullName = 'Full name is required';
-    }
-    
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!validateEmail(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    // PHONE — compulsory + must be valid
-    if (!formData.phone) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!validatephone(formData.phone)) {
-      newErrors.phone = 'Please enter a valid 10-digit phone number';
     }
 
     if (formData.dateOfBirth) {
@@ -105,42 +92,100 @@ const ProfileBuilder = () => {
       setErrors((prev) => ({ ...prev, profilePic: 'File size must be less than 5MB' }));
       return;
     }
+    
+    // Store the actual file for upload
+    setProfilePhotoFile(file);
+    
+    // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setProfilePreview(reader.result);
-      setFormData((prev) => ({ ...prev, profilePhotoUrl: reader.result }));
     };
     reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('Form submitted');
+    console.log('Form data:', formData);
+    console.log('Temp token:', tempToken);
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      console.log('Validation failed:', errors);
+      return;
+    }
 
-    try{
+    console.log('Validation passed, preparing request...');
+
+    try {
       setLoading(true);
-      const response = await completeProfile.complete({
-        name: formData.fullName,
-        email: formData.email,
-        phone: formData.phone,
-        dateOfBirth: formData.dateOfBirth,
-        gender: formData.gender,
-        profilePhotoUrl: formData.profilePhotoUrl,
-        password: formData.password,
-      }, {        headers: {
-          'Authorization': `Bearer ${tempToken}`
-        }
-        });
       
-      if(response?.data?.success === true){
-        navigate('/dashboard');
+      // Create FormData for multipart/form-data submission (binary file upload)
+      const submitData = new FormData();
+      submitData.append('name', formData.fullName);
+      
+      // Password is optional
+      if (formData.password && formData.password.trim()) {
+        submitData.append('password', formData.password.trim());
       }
       
-    }catch(err){
-      setErrors((prev) => ({ ...prev, submit: err?.response?.data?.message || 'Failed to complete profile. Please try again.' }));
+      // Add optional fields only if they have values
+      // Backend expects 'dob' as ISO datetime string
+      if (formData.dateOfBirth) {
+        const dobDate = new Date(formData.dateOfBirth);
+        submitData.append('dob', dobDate.toISOString());
+      }
+      
+      // Map frontend gender values to backend enum
+      if (formData.gender) {
+        const genderMap = {
+          'male': 'Male',
+          'female': 'Female',
+          'other': 'Others',
+          'prefer_not_to_say': 'Not to disclose'
+        };
+        submitData.append('gender', genderMap[formData.gender] || formData.gender);
+      }
+      
+      // Append the actual File object (binary data, not base64)
+      if (profilePhotoFile) {
+        submitData.append('profilePhoto', profilePhotoFile);
+        console.log('Profile photo attached:', profilePhotoFile.name, profilePhotoFile.size, 'bytes');
+      }
+      
+      // Log FormData entries
+      console.log('FormData contents:');
+      for (let pair of submitData.entries()) {
+        console.log(pair[0] + ':', pair[1]);
+      }
+      
+      console.log('Sending request to backend...');
+      const response = await completeProfile.complete(submitData, {
+        headers: {
+          'Authorization': `Bearer ${tempToken}`
+        }
+      });
+
+      console.log('Response received:', response);
+
+      if (response?.data?.success === true) {
+        console.log('Registration successful, redirecting to dashboard...');
+        dispatch(learnerLoginSuccess({
+          learner: response.data.data.learner,
+          accessToken: response.data.data.accessToken,
+          refreshToken: response.data.data.refreshToken
+        }));
+        navigate('/dashboard');
+      } else {
+        console.log('Unexpected response format:', response);
+      }
+
+    } catch (err) {
       console.error('Profile completion error:', err);
-    }finally{
+      console.error('Error response:', err?.response);
+      console.error('Error data:', err?.response?.data);
+      setErrors((prev) => ({ ...prev, submit: err?.response?.data?.message || 'Failed to complete profile. Please try again.' }));
+    } finally {
       setLoading(false);
     }
   };
@@ -200,67 +245,14 @@ const ProfileBuilder = () => {
                     name="fullName"
                     value={formData.fullName}
                     onChange={handleInputChange}
-                    className={`block w-full pl-10 pr-3 py-3 border ${
-                      errors.fullName ? 'border-red-500' : 'border-gray-300'
-                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500`}
+                    className={`block w-full pl-10 pr-3 py-3 border ${errors.fullName ? 'border-red-500' : 'border-gray-300'
+                      } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500`}
                     placeholder="Enter your full name"
                   />
                 </div>
                 {errors.fullName && <p className="mt-1 text-sm text-red-600">{errors.fullName}</p>}
               </div>
 
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Email Address {<span className="text-red-500">*</span>}
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    disabled={type === 'email'}
-                    className={`block w-full pl-10 pr-3 py-3 border ${
-                      errors.email ? 'border-red-500' : 'border-gray-300'
-                    } rounded-lg focus:ring-2 focus:ring-blue-chill-500 ${
-                      type === 'email' ? 'bg-gray-100' : ''
-                    }`}
-                    placeholder="you@example.com"
-                  />
-                </div>
-                {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
-              </div>
-
-              {/* phone */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Phone Number { <span className="text-red-500">*</span>}
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Phone className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    disabled={type === 'phone'}
-                    className={`block w-full pl-10 pr-3 py-3 border ${
-                      errors.phone ? 'border-red-500' : 'border-gray-300'
-                    } rounded-lg focus:ring-2 focus:ring-blue-chill-500 ${
-                      type === 'phone' ? 'bg-gray-100' : ''
-                    }`}
-                    placeholder="10-digit phone number"
-                    maxLength="10"
-                  />
-                </div>
-                {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
-              </div>
 
               {/* DOB */}
               <div>
@@ -274,9 +266,8 @@ const ProfileBuilder = () => {
                     name="dateOfBirth"
                     value={formData.dateOfBirth}
                     onChange={handleInputChange}
-                    className={`block w-full pl-10 pr-3 py-3 border ${
-                      errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
-                    } rounded-lg focus:ring-2 focus:ring-blue-chill-500`}
+                    className={`block w-full pl-10 pr-3 py-3 border ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
+                      } rounded-lg focus:ring-2 focus:ring-blue-chill-500`}
                   />
                 </div>
                 {errors.dateOfBirth && <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth}</p>}
@@ -313,9 +304,8 @@ const ProfileBuilder = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className={`block w-full pl-10 pr-3 py-3 border ${
-                      errors.password ? 'border-red-500' : 'border-gray-300'
-                    } rounded-lg focus:ring-2 focus:ring-blue-chill-500`}
+                    className={`block w-full pl-10 pr-3 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'
+                      } rounded-lg focus:ring-2 focus:ring-blue-chill-500`}
                     placeholder="Enter your password"
                   />
                 </div>
@@ -336,9 +326,8 @@ const ProfileBuilder = () => {
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
-                    className={`block w-full pl-10 pr-3 py-3 border ${
-                      errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                    } rounded-lg focus:ring-2 focus:ring-blue-chill-500`}
+                    className={`block w-full pl-10 pr-3 py-3 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                      } rounded-lg focus:ring-2 focus:ring-blue-chill-500`}
                     placeholder="Re-enter password"
                   />
                 </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Phone, Lock, Chrome, Eye, EyeOff } from 'lucide-react';
-import { loginLearner } from '../services/authServices';
+import { loginLearner, oauthGoogleLogin } from '../services/authServices';
 import { learnerLoginSuccess } from '../store/authLearnerSlice';
 import { useDispatch } from 'react-redux';
 const Login = () => {
@@ -45,9 +45,9 @@ const Login = () => {
       }
     }
 
-     if (!formData.password) {
-        newErrors.password = 'Password is required';
-      }
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -67,41 +67,48 @@ const Login = () => {
     if (!validateForm()) {
       return;
     }
-    try{
+    try {
 
-    
 
-    if (loginMethod === 'mobile') {
-    
-      const response = await loginLearner.login({ phone: formData.mobile , password: formData.password });
-      if(response?.data?.success === true){
-        dispatch(learnerLoginSuccess({
-          learner: response.data.data.learner,
-          accessToken: response.data.data.tokens.accessToken,
-          refreshToken: response.data.data.tokens.refreshToken
-        }));
-      navigate('/dashboard');
-    }
-    } else if (loginMethod === 'email') {
 
-      const response = await loginLearner.login({ email: formData.email, password: formData.password });
-      if(response?.data?.success === true){
-        dispatch(learnerLoginSuccess({
-          learner: response.data.data.learner,
-          accessToken: response.data.data.tokens.accessToken,
-          refreshToken: response.data.data.tokens.refreshToken
-        }));
-      navigate('/dashboard');
+      if (loginMethod === 'mobile') {
+
+        const response = await loginLearner.login({ phone: formData.mobile, password: formData.password });
+        if (response?.data?.success === true) {
+          dispatch(learnerLoginSuccess({
+            learner: response.data.data.learner,
+            accessToken: response.data.data.tokens.accessToken,
+            refreshToken: response.data.data.tokens.refreshToken
+          }));
+          navigate('/dashboard');
+        }
+      } else if (loginMethod === 'email') {
+
+        const response = await loginLearner.login({ email: formData.email, password: formData.password });
+        if (response?.data?.success === true) {
+          dispatch(learnerLoginSuccess({
+            learner: response.data.data.learner,
+            accessToken: response.data.data.tokens.accessToken,
+            refreshToken: response.data.data.tokens.refreshToken
+          }));
+          navigate('/dashboard');
+        }
       }
-    }
 
-  }catch(err){
-     setErrors({submit : err?.response?.data?.message || 'Login failed. Please try again.'})
-  }
+    } catch (err) {
+      setErrors({ submit: err?.response?.data?.message || 'Login failed. Please try again.' })
+    }
   };
 
-  const handleGoogleLogin = () => {
-    navigate('/');
+  const handleGoogleLogin = async () => {
+    try {
+      const response = await oauthGoogleLogin.oauth();
+      if (response.data.success) {
+        window.location.href = response.data.data.authUrl;
+      }
+    } catch (error) {
+      console.error("Google login failed", error);
+    }
   };
 
   const handleDigiLockerLogin = () => {
@@ -226,9 +233,8 @@ const Login = () => {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className={`block w-full pl-10 pr-3 py-3 border ${
-                        errors.email ? 'border-red-500' : 'border-gray-300'
-                      } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-transparent`}
+                      className={`block w-full pl-10 pr-3 py-3 border ${errors.email ? 'border-red-500' : 'border-gray-300'
+                        } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-transparent`}
                       placeholder="you@example.com"
                     />
                   </div>
@@ -251,9 +257,8 @@ const Login = () => {
                       name="password"
                       value={formData.password}
                       onChange={handleInputChange}
-                      className={`block w-full pl-10 pr-10 py-3 border ${
-                        errors.password ? 'border-red-500' : 'border-gray-300'
-                      } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-transparent`}
+                      className={`block w-full pl-10 pr-10 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'
+                        } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-transparent`}
                       placeholder="Enter your password"
                     />
                     <button
@@ -293,71 +298,69 @@ const Login = () => {
             )}
 
             {loginMethod === 'mobile' && (
-                  <>
-                    {/* Mobile Number */}
-                    <div>
-                      <label htmlFor="mobile" className="block text-sm font-semibold text-gray-700 mb-2">
-                        Mobile Number
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Phone className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <input
-                          type="tel"
-                          id="mobile"
-                          name="mobile"
-                          value={formData.mobile}
-                          onChange={handleInputChange}
-                          className={`block w-full pl-10 pr-3 py-3 border ${
-                            errors.mobile ? 'border-red-500' : 'border-gray-300'
-                          } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-transparent`}
-                          placeholder="10-digit mobile number"
-                          maxLength="10"
-                        />
-                      </div>
-                      {errors.mobile && (
-                        <p className="mt-1 text-sm text-red-600">{errors.mobile}</p>
-                      )}
+              <>
+                {/* Mobile Number */}
+                <div>
+                  <label htmlFor="mobile" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Mobile Number
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Phone className="h-5 w-5 text-gray-400" />
                     </div>
+                    <input
+                      type="tel"
+                      id="mobile"
+                      name="mobile"
+                      value={formData.mobile}
+                      onChange={handleInputChange}
+                      className={`block w-full pl-10 pr-3 py-3 border ${errors.mobile ? 'border-red-500' : 'border-gray-300'
+                        } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-transparent`}
+                      placeholder="10-digit mobile number"
+                      maxLength="10"
+                    />
+                  </div>
+                  {errors.mobile && (
+                    <p className="mt-1 text-sm text-red-600">{errors.mobile}</p>
+                  )}
+                </div>
 
-                    {/* Password */}
-                    <div>
-                      <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
-                        Password
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Lock className="h-5 w-5 text-gray-400" />
-                        </div>
-                        <input
-                          type={showPassword ? 'text' : 'password'}
-                          id="password"
-                          name="password"
-                          value={formData.password}
-                          onChange={handleInputChange}
-                          className={`block w-full pl-10 pr-10 py-3 border ${
-                            errors.password ? 'border-red-500' : 'border-gray-300'
-                          } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-transparent`}
-                          placeholder="Enter your password"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                          ) : (
-                            <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                          )}
-                        </button>
-                      </div>
-                      {errors.password && (
-                        <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-                      )}
+                {/* Password */}
+                <div>
+                  <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="h-5 w-5 text-gray-400" />
                     </div>
-                      <div className="flex items-center justify-between">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      id="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      className={`block w-full pl-10 pr-10 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'
+                        } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-transparent`}
+                      placeholder="Enter your password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      ) : (
+                        <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <input
                       id="remember"
@@ -373,8 +376,8 @@ const Login = () => {
                     Forgot password?
                   </a>
                 </div>
-                  </>
-            )}    
+              </>
+            )}
 
 
             <button
