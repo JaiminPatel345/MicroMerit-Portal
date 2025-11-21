@@ -45,3 +45,22 @@ export const unblockIssuerSchema = z.object({
 });
 
 export type UnblockIssuerInput = z.infer<typeof unblockIssuerSchema>;
+
+/**
+ * List learners query schema
+ */
+export const listLearnersQuerySchema = z.object({
+  status: z.string().optional(),
+  search: z.string().optional(),
+});
+
+export type ListLearnersQuery = z.infer<typeof listLearnersQuerySchema>;
+
+/**
+ * Get learner details param schema
+ */
+export const getLearnerParamSchema = z.object({
+  id: z.string().regex(/^\d+$/, 'ID must be a number'),
+});
+
+export type GetLearnerParam = z.infer<typeof getLearnerParamSchema>;

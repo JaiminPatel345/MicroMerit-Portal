@@ -36,6 +36,11 @@ async function convertUrlsInObject(obj: any): Promise<any> {
     return await convertIfS3Url(obj);
   }
 
+  // If it's a Date object, return as-is (don't convert to empty object)
+  if (obj instanceof Date) {
+    return obj;
+  }
+
   // If it's an array, process each element
   if (Array.isArray(obj)) {
     return Promise.all(obj.map(item => convertUrlsInObject(item)));

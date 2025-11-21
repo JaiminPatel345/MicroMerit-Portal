@@ -66,5 +66,28 @@ resourceRouter.post(
   asyncHandler(adminController.unblockIssuer.bind(adminController))
 );
 
+// Learner management
+resourceRouter.get(
+  '/learners',
+  authenticateToken,
+  requireAdmin,
+  asyncHandler(adminController.listLearners.bind(adminController))
+);
+
+resourceRouter.get(
+  '/learners/:id',
+  authenticateToken,
+  requireAdmin,
+  asyncHandler(adminController.getLearnerDetails.bind(adminController))
+);
+
+// Analytics
+resourceRouter.get(
+  '/analytics',
+  authenticateToken,
+  requireAdmin,
+  asyncHandler(adminController.getAnalytics.bind(adminController))
+);
+
 export { authRouter as adminAuthRoutes, resourceRouter as adminResourceRoutes };
 export default authRouter; // Default export for backward compatibility

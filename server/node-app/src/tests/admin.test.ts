@@ -239,4 +239,237 @@ describe('Admin Service', () => {
       expect(issuerRepository.unblock).toHaveBeenCalledWith(10);
     });
   });
+
+  describe('listLearners', () => {
+    it('should list all learners without filters', async () => {
+      const mockLearners = [
+        {
+          id: 1,
+          name: 'John Doe',
+          email: 'john@example.com',
+          phone: '+1234567890',
+          hashed_password: 'hash',
+          status: 'active',
+          profileFolder: null,
+          profileUrl: null,
+          external_digilocker_id: null,
+          other_emails: [],
+          dob: null,
+          gender: null,
+          created_at: new Date(),
+        },
+        {
+          id: 2,
+          name: 'Jane Smith',
+          email: 'jane@example.com',
+          phone: '+9876543210',
+          hashed_password: 'hash',
+          status: 'active',
+          profileFolder: null,
+          profileUrl: null,
+          external_digilocker_id: null,
+          other_emails: [],
+          dob: null,
+          gender: null,
+          created_at: new Date(),
+        },
+      ];
+
+      (adminRepository.findAllLearners as jest.Mock).mockResolvedValue(mockLearners);
+
+      const result = await adminService.listLearners();
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).not.toHaveProperty('hashed_password');
+      expect(result[0]?.email).toBe('john@example.com');
+    });
+
+    it('should list learners with status filter', async () => {
+      const mockLearners = [
+        {
+          id: 1,
+          name: 'John Doe',
+          email: 'john@example.com',
+          phone: '+1234567890',
+          hashed_password: 'hash',
+          status: 'active',
+          profileFolder: null,
+          profileUrl: null,
+          external_digilocker_id: null,
+          other_emails: [],
+          dob: null,
+          gender: null,
+          created_at: new Date(),
+        },
+      ];
+
+      (adminRepository.findAllLearners as jest.Mock).mockResolvedValue(mockLearners);
+
+      const result = await adminService.listLearners({ status: 'active' });
+
+      expect(result).toHaveLength(1);
+      expect(adminRepository.findAllLearners).toHaveBeenCalledWith({ status: 'active' });
+    });
+
+    it('should list learners with search filter', async () => {
+      const mockLearners = [
+        {
+          id: 1,
+          name: 'John Doe',
+          email: 'john@example.com',
+          phone: '+1234567890',
+          hashed_password: 'hash',
+          status: 'active',
+          profileFolder: null,
+          profileUrl: null,
+          external_digilocker_id: null,
+          other_emails: [],
+          dob: null,
+          gender: null,
+          created_at: new Date(),
+        },
+      ];
+
+      (adminRepository.findAllLearners as jest.Mock).mockResolvedValue(mockLearners);
+
+      const result = await adminService.listLearners({ search: 'john' });
+
+      expect(result).toHaveLength(1);
+      expect(adminRepository.findAllLearners).toHaveBeenCalledWith({ search: 'john' });
+    });
+  });
+
+  describe('getLearnerDetails', () => {
+    it('should get learner details successfully', async () => {
+      const mockLearner = {
+        id: 1,
+        name: 'John Doe',
+        email: 'john@example.com',
+        phone: '+1234567890',
+        hashed_password: 'hash',
+        status: 'active',
+        profileFolder: null,
+        profileUrl: null,
+        external_digilocker_id: null,
+        other_emails: ['john.doe@gmail.com'],
+        dob: new Date('1995-05-15'),
+        gender: 'Male',
+        created_at: new Date(),
+        credentials: [
+          {
+            id: 101,
+            credential_uid: 'CRED-001',
+            status: 'claimed',
+            issued_at: new Date(),
+            claimed_at: new Date(),
+            metadata: { courseName: 'Web Development' },
+            issuer: {
+              id: 5,
+              name: 'MIT University',
+              email: 'admin@mit.edu',
+              logo_url: 'https://example.com/logo.png',
+              type: 'university',
+            },
+            blockchain_record: {
+              id: 50,
+              blockchain_tx_id: '0x123abc',
+              hash_value: 'hash123',
+              stored_at: new Date(),
+            },
+            pdf_certificate: {
+              id: 60,
+              pdf_url: 'https://example.com/cert.pdf',
+              qr_code_url: 'https://example.com/qr.png',
+              created_at: new Date(),
+            },
+          },
+        ],
+      };
+
+      (adminRepository.findLearnerById as jest.Mock).mockResolvedValue(mockLearner);
+
+      const result = await adminService.getLearnerDetails(1);
+
+      expect(result).not.toHaveProperty('hashed_password');
+      expect(result.name).toBe('John Doe');
+      expect(result.credentials).toHaveLength(1);
+      expect(result.credentials[0]?.credential_uid).toBe('CRED-001');
+    });
+
+    it('should throw error if learner not found', async () => {
+      (adminRepository.findLearnerById as jest.Mock).mockResolvedValue(null);
+
+      await expect(adminService.getLearnerDetails(999)).rejects.toThrow('Learner not found');
+    });
+  });
+
+  describe('getPlatformAnalytics', () => {
+    it('should get platform analytics successfully', async () => {
+      const mockPlatformStats = {
+        totalLearners: 1500,
+        activeLearners: 1350,
+        totalIssuers: 50,
+        approvedIssuers: 45,
+        totalCredentials: 5000,
+      };
+
+      const mockCredentialStats = {
+        issued: 2000,
+        claimed: 2800,
+        revoked: 200,
+      };
+
+      const mockIssuerStats = {
+        pending: 5,
+        approved: 45,
+        rejected: 10,
+        blocked: 2,
+      };
+
+      const mockLearnerStats = {
+        active: 1350,
+        inactive: 150,
+        total: 1500,
+      };
+
+      const mockRecentCredentials = [
+        {
+          id: 5000,
+          credential_uid: 'CRED-5000',
+          status: 'claimed',
+          issued_at: new Date(),
+          claimed_at: new Date(),
+          metadata: {},
+          issuer: {
+            id: 5,
+            name: 'MIT University',
+            logo_url: 'https://example.com/logo.png',
+            type: 'university',
+          },
+          learner: {
+            id: 100,
+            name: 'Alice Johnson',
+            email: 'alice@example.com',
+          },
+        },
+      ];
+
+      (adminRepository.getPlatformStats as jest.Mock).mockResolvedValue(mockPlatformStats);
+      (adminRepository.getCredentialStats as jest.Mock).mockResolvedValue(mockCredentialStats);
+      (adminRepository.getIssuerStats as jest.Mock).mockResolvedValue(mockIssuerStats);
+      (adminRepository.getLearnerStats as jest.Mock).mockResolvedValue(mockLearnerStats);
+      (adminRepository.getRecentCredentials as jest.Mock).mockResolvedValue(
+        mockRecentCredentials
+      );
+
+      const result = await adminService.getPlatformAnalytics();
+
+      expect(result.overview).toEqual(mockPlatformStats);
+      expect(result.credentials).toEqual(mockCredentialStats);
+      expect(result.issuers).toEqual(mockIssuerStats);
+      expect(result.learners).toEqual(mockLearnerStats);
+      expect(result.recentActivity).toHaveLength(1);
+      expect(result.recentActivity[0]?.credential_uid).toBe('CRED-5000');
+    });
+  });
 });
