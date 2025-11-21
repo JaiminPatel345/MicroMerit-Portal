@@ -1,4 +1,10 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { 
+  S3Client, 
+  PutObjectCommand, 
+  GetObjectCommand, 
+  DeleteObjectCommand
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { logger } from './logger';
 
 /**
@@ -121,6 +127,40 @@ class S3Service {
   extractKeyFromUrl(url: string): string {
     const match = url.match(/\.amazonaws\.com\/(.+)$/);
     return match?.[1] || url;
+  }
+
+  /**
+   * Generate a signed URL for temporary access to a private S3 object
+   * @param key - S3 object key
+   * @param expiresIn - URL expiration time in seconds (default: 3600 = 1 hour)
+   * @returns Signed URL
+   */
+  async getSignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      });
+
+      const signedUrl = await getSignedUrl(this.client, command, { expiresIn });
+      logger.info(`Generated signed URL for key: ${key}, expires in ${expiresIn}s`);
+      
+      return signedUrl;
+    } catch (error) {
+      logger.error('Error generating signed URL:', error);
+      throw new Error('Failed to generate signed URL');
+    }
+  }
+
+  /**
+   * Generate a signed URL from a full S3 URL
+   * @param s3Url - Full S3 URL
+   * @param expiresIn - URL expiration time in seconds (default: 3600 = 1 hour)
+   * @returns Signed URL
+   */
+  async getSignedUrlFromS3Url(s3Url: string, expiresIn: number = 3600): Promise<string> {
+    const key = this.extractKeyFromUrl(s3Url);
+    return this.getSignedUrl(key, expiresIn);
   }
 }
 

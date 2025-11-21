@@ -227,6 +227,87 @@ export class AdminService {
     const issuers = await issuerRepository.findAll(filters);
     return issuers.map(issuer => this.sanitizeIssuer(issuer));
   }
+
+  /**
+   * List all learners with optional filters
+   */
+  async listLearners(filters?: {
+    status?: string;
+    search?: string;
+  }): Promise<Omit<any, 'hashed_password'>[]> {
+    const learners = await adminRepository.findAllLearners(filters);
+    return learners.map(learner => {
+      const { hashed_password, ...sanitized } = learner;
+      return sanitized;
+    });
+  }
+
+  /**
+   * Get learner details by ID
+   */
+  async getLearnerDetails(learnerId: number) {
+    const learner = await adminRepository.findLearnerById(learnerId);
+    if (!learner) {
+      throw new Error('Learner not found');
+    }
+
+    const { hashed_password, ...sanitizedLearner } = learner;
+    
+    // Sanitize issuer data in credentials
+    const sanitizedCredentials = sanitizedLearner.credentials.map(cred => ({
+      ...cred,
+      issuer: {
+        ...cred.issuer,
+      },
+    }));
+
+    return {
+      ...sanitizedLearner,
+      credentials: sanitizedCredentials,
+    };
+  }
+
+  /**
+   * Get platform analytics
+   */
+  async getPlatformAnalytics() {
+    const [platformStats, credentialStats, issuerStats, learnerStats, recentCredentials] =
+      await Promise.all([
+        adminRepository.getPlatformStats(),
+        adminRepository.getCredentialStats(),
+        adminRepository.getIssuerStats(),
+        adminRepository.getLearnerStats(),
+        adminRepository.getRecentCredentials(10),
+      ]);
+
+    // Sanitize recent credentials
+    const sanitizedRecentCredentials = recentCredentials.map(cred => ({
+      ...cred,
+      issuer: cred.issuer
+        ? {
+            id: cred.issuer.id,
+            name: cred.issuer.name,
+            logo_url: cred.issuer.logo_url,
+            type: cred.issuer.type,
+          }
+        : null,
+      learner: cred.learner
+        ? {
+            id: cred.learner.id,
+            name: cred.learner.name,
+            email: cred.learner.email,
+          }
+        : null,
+    }));
+
+    return {
+      overview: platformStats,
+      credentials: credentialStats,
+      issuers: issuerStats,
+      learners: learnerStats,
+      recentActivity: sanitizedRecentCredentials,
+    };
+  }
 }
 
 export const adminService = new AdminService();

@@ -50,6 +50,10 @@ tags:
     description: Admin profile management
   - name: Issuer Management
     description: Manage issuers (approve, reject, block, unblock)
+  - name: Learner Management
+    description: View and manage learners
+  - name: Analytics
+    description: Platform analytics and statistics
 
 paths:
   # ==================== AUTHENTICATION ====================
@@ -507,6 +511,241 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  # ==================== LEARNER MANAGEMENT ====================
+  /admin/learners:
+    get:
+      tags: [Learner Management]
+      summary: List all learners
+      description: |
+        Retrieve all learners with optional filtering.
+        
+        **Filters:**
+        - **status**: Filter by learner status (active, inactive, etc.)
+        - **search**: Search by name, email, or phone
+        
+        **Examples:**
+        - `/admin/learners` - All learners
+        - `/admin/learners?status=active` - Active learners only
+        - `/admin/learners?search=john` - Search for "john" in name, email, or phone
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filter by learner status
+          schema:
+            type: string
+            example: active
+        - name: search
+          in: query
+          required: false
+          description: Search by name, email, or phone
+          schema:
+            type: string
+            example: john
+      responses:
+        '200':
+          description: Learners retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LearnerProfile'
+              example:
+                success: true
+                data:
+                  - id: 1
+                    name: "John Doe"
+                    email: "john@example.com"
+                    phone: "+1234567890"
+                    status: "active"
+                    profileUrl: "https://example.com/profile.jpg"
+                    dob: "1995-05-15"
+                    gender: "Male"
+                    created_at: "2024-01-01T12:00:00Z"
+                  - id: 2
+                    name: "Jane Smith"
+                    email: "jane@example.com"
+                    phone: "+9876543210"
+                    status: "active"
+                    profileUrl: null
+                    dob: "1998-08-20"
+                    gender: "Female"
+                    created_at: "2024-01-02T12:00:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /admin/learners/{id}:
+    get:
+      tags: [Learner Management]
+      summary: Get learner details
+      description: |
+        Retrieve detailed information about a specific learner, including all their credentials.
+        
+        **Includes:**
+        - Basic learner information
+        - Complete list of credentials
+        - Issuer information for each credential
+        - Blockchain records and PDF certificates
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Learner ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Learner details retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/LearnerDetails'
+              example:
+                success: true
+                data:
+                  id: 1
+                  name: "John Doe"
+                  email: "john@example.com"
+                  phone: "+1234567890"
+                  status: "active"
+                  profileUrl: "https://example.com/profile.jpg"
+                  dob: "1995-05-15"
+                  gender: "Male"
+                  other_emails: ["john.doe@gmail.com"]
+                  created_at: "2024-01-01T12:00:00Z"
+                  credentials:
+                    - id: 101
+                      credential_uid: "CRED-001"
+                      status: "claimed"
+                      issued_at: "2024-03-01T12:00:00Z"
+                      claimed_at: "2024-03-02T10:00:00Z"
+                      metadata:
+                        courseName: "Web Development"
+                        grade: "A"
+                      issuer:
+                        id: 5
+                        name: "MIT University"
+                        email: "admin@mit.edu"
+                        logo_url: "https://example.com/mit-logo.png"
+                        type: "university"
+                      blockchain_record:
+                        id: 50
+                        blockchain_tx_id: "0x123abc..."
+                        hash_value: "hash123"
+                        stored_at: "2024-03-01T12:05:00Z"
+                      pdf_certificate:
+                        id: 60
+                        pdf_url: "https://example.com/cert.pdf"
+                        qr_code_url: "https://example.com/qr.png"
+                        created_at: "2024-03-01T12:10:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Learner not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: Learner not found
+                statusCode: 404
+
+  # ==================== ANALYTICS ====================
+  /admin/analytics:
+    get:
+      tags: [Analytics]
+      summary: Get platform analytics
+      description: |
+        Retrieve comprehensive platform analytics and statistics.
+        
+        **Includes:**
+        - Overview statistics (total learners, issuers, credentials)
+        - Credential statistics by status
+        - Issuer statistics by status
+        - Learner statistics
+        - Recent credential activity
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Analytics retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/PlatformAnalytics'
+              example:
+                success: true
+                data:
+                  overview:
+                    totalLearners: 1500
+                    activeLearners: 1350
+                    totalIssuers: 50
+                    approvedIssuers: 45
+                    totalCredentials: 5000
+                  credentials:
+                    issued: 2000
+                    claimed: 2800
+                    revoked: 200
+                  issuers:
+                    pending: 5
+                    approved: 45
+                    rejected: 10
+                    blocked: 2
+                  learners:
+                    active: 1350
+                    inactive: 150
+                    total: 1500
+                  recentActivity:
+                    - id: 5000
+                      credential_uid: "CRED-5000"
+                      status: "claimed"
+                      issued_at: "2024-11-20T15:30:00Z"
+                      claimed_at: "2024-11-20T16:00:00Z"
+                      issuer:
+                        id: 5
+                        name: "MIT University"
+                        logo_url: "https://example.com/mit-logo.png"
+                        type: "university"
+                      learner:
+                        id: 100
+                        name: "Alice Johnson"
+                        email: "alice@example.com"
+                    - id: 4999
+                      credential_uid: "CRED-4999"
+                      status: "issued"
+                      issued_at: "2024-11-20T14:00:00Z"
+                      claimed_at: null
+                      issuer:
+                        id: 8
+                        name: "Harvard University"
+                        logo_url: "https://example.com/harvard-logo.png"
+                        type: "university"
+                      learner: null
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
 components:
   securitySchemes:
     BearerAuth:
@@ -636,6 +875,263 @@ components:
         statusCode:
           type: integer
           example: 400
+
+    LearnerProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          nullable: true
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          nullable: true
+          example: "john@example.com"
+        phone:
+          type: string
+          nullable: true
+          example: "+1234567890"
+        profileFolder:
+          type: string
+          nullable: true
+          example: "profiles/user123"
+        profileUrl:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://example.com/profile.jpg"
+        external_digilocker_id:
+          type: string
+          nullable: true
+          example: "DL123456"
+        status:
+          type: string
+          example: "active"
+        other_emails:
+          type: array
+          items:
+            type: string
+          example: ["john.doe@gmail.com", "johndoe@yahoo.com"]
+        dob:
+          type: string
+          format: date
+          nullable: true
+          example: "1995-05-15"
+        gender:
+          type: string
+          nullable: true
+          example: "Male"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00Z"
+
+    LearnerDetails:
+      allOf:
+        - $ref: '#/components/schemas/LearnerProfile'
+        - type: object
+          properties:
+            credentials:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 101
+                  credential_uid:
+                    type: string
+                    example: "CRED-001"
+                  status:
+                    type: string
+                    enum: [issued, claimed, revoked]
+                    example: "claimed"
+                  issued_at:
+                    type: string
+                    format: date-time
+                    example: "2024-03-01T12:00:00Z"
+                  claimed_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    example: "2024-03-02T10:00:00Z"
+                  metadata:
+                    type: object
+                    example:
+                      courseName: "Web Development"
+                      grade: "A"
+                  issuer:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 5
+                      name:
+                        type: string
+                        example: "MIT University"
+                      email:
+                        type: string
+                        example: "admin@mit.edu"
+                      logo_url:
+                        type: string
+                        nullable: true
+                        example: "https://example.com/mit-logo.png"
+                      type:
+                        type: string
+                        example: "university"
+                  blockchain_record:
+                    type: object
+                    nullable: true
+                    properties:
+                      id:
+                        type: integer
+                        example: 50
+                      blockchain_tx_id:
+                        type: string
+                        example: "0x123abc..."
+                      hash_value:
+                        type: string
+                        example: "hash123"
+                      stored_at:
+                        type: string
+                        format: date-time
+                        example: "2024-03-01T12:05:00Z"
+                  pdf_certificate:
+                    type: object
+                    nullable: true
+                    properties:
+                      id:
+                        type: integer
+                        example: 60
+                      pdf_url:
+                        type: string
+                        example: "https://example.com/cert.pdf"
+                      qr_code_url:
+                        type: string
+                        nullable: true
+                        example: "https://example.com/qr.png"
+                      created_at:
+                        type: string
+                        format: date-time
+                        example: "2024-03-01T12:10:00Z"
+
+    PlatformAnalytics:
+      type: object
+      properties:
+        overview:
+          type: object
+          properties:
+            totalLearners:
+              type: integer
+              example: 1500
+            activeLearners:
+              type: integer
+              example: 1350
+            totalIssuers:
+              type: integer
+              example: 50
+            approvedIssuers:
+              type: integer
+              example: 45
+            totalCredentials:
+              type: integer
+              example: 5000
+        credentials:
+          type: object
+          properties:
+            issued:
+              type: integer
+              example: 2000
+            claimed:
+              type: integer
+              example: 2800
+            revoked:
+              type: integer
+              example: 200
+        issuers:
+          type: object
+          properties:
+            pending:
+              type: integer
+              example: 5
+            approved:
+              type: integer
+              example: 45
+            rejected:
+              type: integer
+              example: 10
+            blocked:
+              type: integer
+              example: 2
+        learners:
+          type: object
+          properties:
+            active:
+              type: integer
+              example: 1350
+            inactive:
+              type: integer
+              example: 150
+            total:
+              type: integer
+              example: 1500
+        recentActivity:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 5000
+              credential_uid:
+                type: string
+                example: "CRED-5000"
+              status:
+                type: string
+                example: "claimed"
+              issued_at:
+                type: string
+                format: date-time
+                example: "2024-11-20T15:30:00Z"
+              claimed_at:
+                type: string
+                format: date-time
+                nullable: true
+                example: "2024-11-20T16:00:00Z"
+              issuer:
+                type: object
+                nullable: true
+                properties:
+                  id:
+                    type: integer
+                    example: 5
+                  name:
+                    type: string
+                    example: "MIT University"
+                  logo_url:
+                    type: string
+                    nullable: true
+                    example: "https://example.com/mit-logo.png"
+                  type:
+                    type: string
+                    example: "university"
+              learner:
+                type: object
+                nullable: true
+                properties:
+                  id:
+                    type: integer
+                    example: 100
+                  name:
+                    type: string
+                    example: "Alice Johnson"
+                  email:
+                    type: string
+                    example: "alice@example.com"
 
   responses:
     ValidationError:

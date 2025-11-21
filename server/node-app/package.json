@@ -11,6 +11,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:s3": "tsx src/scripts/test-s3-upload.ts",
+    "test:signed-urls": "tsx src/scripts/test-signed-urls.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
@@ -45,6 +46,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.933.0",
+    "@aws-sdk/s3-request-presigner": "3.933.0",
     "@prisma/client": "^5.19.0",
     "axios": "^1.13.2",
     "bcrypt": "^5.1.1",

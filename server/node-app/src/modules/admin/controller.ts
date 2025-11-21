@@ -193,6 +193,76 @@ export class AdminController {
       sendError(res, error.message, 'Failed to retrieve issuers', 400);
     }
   }
+
+  /**
+   * List all learners
+   * GET /admin/learners
+   */
+  async listLearners(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        sendError(res, 'User not authenticated', 'Authentication required', 401);
+        return;
+      }
+
+      const status = req.query.status as string | undefined;
+      const search = req.query.search as string | undefined;
+
+      const learners = await adminService.listLearners({ status, search });
+      
+      sendSuccess(res, learners, 'Learners retrieved successfully');
+    } catch (error: any) {
+      logger.error('List learners failed', { error: error.message });
+      sendError(res, error.message, 'Failed to retrieve learners', 400);
+    }
+  }
+
+  /**
+   * Get learner details
+   * GET /admin/learners/:id
+   */
+  async getLearnerDetails(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        sendError(res, 'User not authenticated', 'Authentication required', 401);
+        return;
+      }
+
+      const learnerId = parseInt(req.params.id || '0', 10);
+      if (!learnerId) {
+        sendError(res, 'Invalid learner ID', 'Bad request', 400);
+        return;
+      }
+
+      const learner = await adminService.getLearnerDetails(learnerId);
+      
+      sendSuccess(res, learner, 'Learner details retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get learner details failed', { error: error.message });
+      const statusCode = error.message === 'Learner not found' ? 404 : 400;
+      sendError(res, error.message, 'Failed to retrieve learner details', statusCode);
+    }
+  }
+
+  /**
+   * Get platform analytics
+   * GET /admin/analytics
+   */
+  async getAnalytics(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        sendError(res, 'User not authenticated', 'Authentication required', 401);
+        return;
+      }
+
+      const analytics = await adminService.getPlatformAnalytics();
+      
+      sendSuccess(res, analytics, 'Analytics retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get analytics failed', { error: error.message });
+      sendError(res, error.message, 'Failed to retrieve analytics', 400);
+    }
+  }
 }
 
 export const adminController = new AdminController();
