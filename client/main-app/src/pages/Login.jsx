@@ -102,12 +102,18 @@ const Login = () => {
 
   const handleGoogleLogin = async () => {
     try {
+      console.log('Google login - Starting OAuth flow');
       const response = await oauthGoogleLogin.oauth();
+      console.log('Google login - OAuth response:', response);
       if (response.data.success) {
+        console.log('Google login - Redirecting to:', response.data.data.authUrl);
         window.location.href = response.data.data.authUrl;
+      } else {
+        console.log('Google login - Response not successful:', response);
       }
     } catch (error) {
       console.error("Google login failed", error);
+      console.error("Error response:", error?.response);
     }
   };
 

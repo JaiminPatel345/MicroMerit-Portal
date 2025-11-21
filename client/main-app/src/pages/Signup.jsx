@@ -110,14 +110,19 @@ const Signup = () => {
 
   const handleGoogleSignup = async () => {
     try {
+      console.log('Google signup - Starting OAuth flow');
       const response = await oauthGoogleLogin.oauth();
-      console.log('Google OAuth response:', response);
+      console.log('Google signup - OAuth response:', response);
       if (response?.data?.success) {
+        console.log('Google signup - Redirecting to:', response.data.data.authUrl);
         window.location.href = response.data.data.authUrl;
+      } else {
+        console.log('Google signup - Response not successful:', response);
       }
     } catch (err) {
       setErrors({ general: 'Google OAuth signup failed. Please try again.' });
       console.error('Google OAuth signup failed:', err);
+      console.error('Error response:', err?.response);
     }
   };
 
