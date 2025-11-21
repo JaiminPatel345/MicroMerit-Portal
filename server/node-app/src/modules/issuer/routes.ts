@@ -5,6 +5,10 @@ import { authenticateToken } from '../../middleware/auth';
 import { requireIssuer } from '../../middleware/role';
 import { asyncHandler } from '../../middleware/error';
 import { authRateLimiter, registrationRateLimiter, apiKeyRateLimiter } from '../../middleware/rateLimit';
+import { imageUpload } from '../../utils/multerConfig';
+
+// Multer middleware for logo upload
+const uploadLogo: any = imageUpload.single('logo');
 
 // Auth routes (login, register, refresh) - mounted at /auth/issuer
 const authRouter = Router();
@@ -46,6 +50,7 @@ resourceRouter.put(
   '/profile',
   authenticateToken,
   requireIssuer,
+  uploadLogo,
   asyncHandler(issuerController.updateMe.bind(issuerController))
 );
 

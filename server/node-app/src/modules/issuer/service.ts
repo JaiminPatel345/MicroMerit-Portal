@@ -6,6 +6,7 @@ import { IssuerRegistrationInput, IssuerLoginInput, UpdateIssuerProfileInput, St
 import { logger } from '../../utils/logger';
 import { generateOTP, hashOTP, verifyOTP, getOTPExpiry } from '../../utils/otp';
 import { sendOTP } from '../../utils/notification';
+import { uploadImageBufferToS3 } from '../../utils/imageUpload';
 
 export interface IssuerResponse {
   id: number;
@@ -298,8 +299,31 @@ export class IssuerService {
   /**
    * Update issuer profile
    */
-  async updateProfile(issuerId: number, data: UpdateIssuerProfileInput): Promise<IssuerResponse> {
-    const issuer = await issuerRepository.update(issuerId, data);
+  async updateProfile(
+    issuerId: number,
+    data: UpdateIssuerProfileInput,
+    logoFile?: Express.Multer.File
+  ): Promise<IssuerResponse> {
+    // Handle logo upload (multipart file upload)
+    let logoUrl: string | undefined;
+    if (logoFile) {
+      try {
+        const folder = `logos/issuer-${issuerId}`;
+        logoUrl = await uploadImageBufferToS3(logoFile.buffer, logoFile.mimetype, folder);
+        logger.info('Logo updated', { issuerId, hasLogo: !!logoUrl });
+      } catch (error: any) {
+        logger.error('Logo upload failed during update', { issuerId, error: error.message });
+        throw new Error(`Logo upload failed: ${error.message}`);
+      }
+    }
+
+    // Merge logo URL with update data
+    const updateData = {
+      ...data,
+      ...(logoUrl && { logo_url: logoUrl }),
+    };
+
+    const issuer = await issuerRepository.update(issuerId, updateData);
     logger.info('Issuer profile updated', { issuerId });
     return this.sanitizeIssuer(issuer);
   }

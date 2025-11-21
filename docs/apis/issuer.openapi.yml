@@ -361,47 +361,94 @@ paths:
     
     put:
       tags: [Profile]
-      summary: Update issuer profile
+      summary: Update issuer profile with logo upload
       description: |
-        Update issuer profile details.
+        Update issuer profile details with optional logo upload.
         
-        **Updatable fields**: name, website_url, phone, contact_person_name, logo_url
+        **Content-Type**: `multipart/form-data`
         
-        **Non-updatable fields**: email, type, status, is_blocked (admin-controlled)
+        **Updatable fields**: 
+        - `logo` (file): Organization logo image (optional)
+          - Accepted formats: PNG, JPG, JPEG, GIF, WEBP, BMP
+          - Max size: 5MB
+        - `name` (text): Organization name
+        - `official_domain` (text): Official domain URL
+        - `website_url` (text): Website URL
+        - `type` (text): Organization type
+        - `phone` (text): Contact phone number
+        - `contact_person_name` (text): Contact person name
+        - `contact_person_designation` (text): Contact person designation
+        - `address` (text): Organization address
+        - `kyc_document_url` (text): KYC document URL
+        
+        **Non-updatable fields**: email, status, is_blocked (admin-controlled)
+        
+        **Note**: The logo file is uploaded to AWS S3 and the `logo_url` field is automatically updated with the S3 URL.
       security:
         - BearerAuth: []
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               type: object
               properties:
+                logo:
+                  type: string
+                  format: binary
+                  description: |
+                    Organization logo image file (optional)
+                    - Max size: 5MB
+                    - Formats: PNG, JPG, JPEG, GIF, WEBP, BMP
                 name:
                   type: string
-                  minLength: 1
+                  minLength: 3
                   maxLength: 255
                   example: "Massachusetts Institute of Technology"
+                official_domain:
+                  type: string
+                  format: uri
+                  maxLength: 255
+                  example: "https://mit.edu"
                 website_url:
                   type: string
                   format: uri
                   maxLength: 255
                   example: "https://mit.edu"
+                type:
+                  type: string
+                  enum: [university, edtech, company, training_provider]
+                  example: university
                 phone:
                   type: string
+                  pattern: '^\+?[1-9]\d{1,14}$'
                   maxLength: 15
                   example: "+1234567890"
                 contact_person_name:
                   type: string
+                  minLength: 2
                   maxLength: 255
                   example: "Jane Smith"
-                logo_url:
+                contact_person_designation:
+                  type: string
+                  minLength: 2
+                  maxLength: 255
+                  example: "Chief Registrar"
+                address:
+                  type: string
+                  minLength: 10
+                  maxLength: 1000
+                  example: "77 Massachusetts Ave, Cambridge, MA 02139"
+                kyc_document_url:
                   type: string
                   format: uri
-                  example: "https://example.com/new-logo.png"
+                  example: "https://example.com/kyc-document.pdf"
+            encoding:
+              logo:
+                contentType: image/png, image/jpeg, image/jpg, image/gif, image/webp, image/bmp
       responses:
         '200':
-          description: Profile updated
+          description: Profile updated successfully
           content:
             application/json:
               schema:
@@ -409,12 +456,70 @@ paths:
                 properties:
                   success:
                     type: boolean
+                  message:
+                    type: string
                   data:
                     $ref: '#/components/schemas/IssuerProfile'
+              example:
+                success: true
+                message: "Profile updated successfully"
+                data:
+                  id: 1
+                  name: "Massachusetts Institute of Technology"
+                  email: "admin@mit.edu"
+                  type: university
+                  status: approved
+                  is_blocked: false
+                  logo_url: "https://micromerit-certificates.s3.us-east-1.amazonaws.com/logos/issuer-1/1732234567890-abc123def456.jpg"
+                  website_url: "https://mit.edu"
+                  phone: "+1234567890"
+                  contact_person_name: "Jane Smith"
+                  contact_person_designation: "Chief Registrar"
+                  address: "77 Massachusetts Ave, Cambridge, MA 02139"
+                  created_at: "2024-01-01T12:00:00Z"
         '400':
-          $ref: '#/components/responses/ValidationError'
+          description: Validation error or file upload error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_file_type:
+                  summary: Invalid file type
+                  value:
+                    success: false
+                    message: "Failed to update profile"
+                    error: "Only image files are allowed (png, jpg, jpeg, gif, webp, bmp)"
+                    statusCode: 400
+                file_too_large:
+                  summary: File size exceeds limit
+                  value:
+                    success: false
+                    message: "Failed to update profile"
+                    error: "File too large"
+                    statusCode: 400
+                validation_error:
+                  summary: Field validation error
+                  value:
+                    success: false
+                    message: "Validation error"
+                    errors:
+                      - field: "phone"
+                        message: "Invalid phone number"
+                    statusCode: 400
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: Server error (e.g., S3 upload failure)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: "Failed to update profile"
+                error: "Logo upload failed: Unable to upload to S3"
+                statusCode: 500
 
   # ==================== API KEY MANAGEMENT ====================
   /issuer/api-keys:

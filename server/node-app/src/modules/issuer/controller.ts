@@ -107,7 +107,9 @@ export class IssuerController {
       }
 
       const validatedData = updateIssuerProfileSchema.parse(req.body);
-      const issuer = await issuerService.updateProfile(req.user.id, validatedData);
+      const logoFile = req.file;
+      
+      const issuer = await issuerService.updateProfile(req.user.id, validatedData, logoFile);
       
       sendSuccess(res, issuer, 'Profile updated successfully');
     } catch (error: any) {

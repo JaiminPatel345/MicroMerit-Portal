@@ -75,6 +75,7 @@ export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 
 /**
  * Update issuer profile schema
+ * Note: logo comes from req.file (multipart/form-data), not req.body
  */
 export const updateIssuerProfileSchema = z.object({
   name: z.string().min(3).max(255).optional(),
@@ -86,7 +87,6 @@ export const updateIssuerProfileSchema = z.object({
   contact_person_designation: z.string().min(2).max(255).optional(),
   address: z.string().min(10).max(1000).optional(),
   kyc_document_url: z.string().url('Invalid URL').optional(),
-  logo_url: z.string().url('Invalid URL').optional(),
 });
 
 export type UpdateIssuerProfileInput = z.infer<typeof updateIssuerProfileSchema>;
