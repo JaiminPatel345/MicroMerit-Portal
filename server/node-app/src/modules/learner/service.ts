@@ -206,7 +206,6 @@ export class LearnerService {
     if (data.name !== undefined) updateData.name = data.name;
     if (data.email !== undefined) updateData.email = data.email;
     if (data.phone !== undefined) updateData.phone = data.phone;
-    if (data.external_digilocker_id !== undefined) updateData.external_digilocker_id = data.external_digilocker_id;
     if (data.dob !== undefined) updateData.dob = new Date(data.dob);
     if (data.gender !== undefined) updateData.gender = data.gender;
     if (profileUrl !== undefined) updateData.profileUrl = profileUrl;
