@@ -42,7 +42,6 @@ export const updateLearnerProfileSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   email: z.string().email('Invalid email address').optional(),
   phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number').optional(),
-  external_digilocker_id: z.string().optional(),
   dob: z.string().optional(), // ISO 8601 date string
   gender: z.enum(['Male', 'Female', 'Others', 'Not to disclose']).optional(),
 });
