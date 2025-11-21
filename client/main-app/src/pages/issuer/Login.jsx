@@ -4,6 +4,7 @@ import { validateEmail, validatePassword } from "../../utils/formValidation";
 import { loginIssuer } from "../../services/authServices";
 import { issuerLoginSuccess } from "../../store/authIssuerSlice";
 import { useDispatch } from "react-redux";
+import { setNotification } from "../../utils/notification";
 
 export default function IssuerLogin() {
   const navigate = useNavigate();
@@ -48,12 +49,12 @@ export default function IssuerLogin() {
     setLoginError("");
 
     try {
-
+      // NOTE: Using the mock loginIssuer service now
       const response = await loginIssuer.login({
         email: form.email,
         password: form.password,
       });
-      console.log(response);
+      console.log("Login attempt response:", response);
         
       if(response?.data?.success === true){
         dispatch(issuerLoginSuccess({
@@ -61,61 +62,82 @@ export default function IssuerLogin() {
           accessToken: response.data.data.tokens.access,
           refreshToken: response.data.data.tokens.refresh
         }));
+         setNotification("Login successful!", "success");
+        // NOTE: navigate is now a mock function
         navigate("/issuer/dashboard"); 
+
       }
 
     } catch (err) {
+      // Accessing the mock error structure
       setLoginError(err.response?.data?.message || "Login failed. Please try again.");
+      setNotification("Login failed. Please check your credentials.", "error");
     }
 
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex justify-center items-center bg-gray-50 p-6">
-      <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md">
+    <div className="min-h-screen flex justify-center items-center bg-blue-chill-50 p-4 sm:p-6 font-sans">
+      {/* Container Card - Professional, High-Trust Design */}
+      <div className="bg-white p-6 sm:p-10 rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200">
+        
+        {/* Branding & Context */}
+        <p className="text-center text-sm font-semibold text-gray-500 mb-2 uppercase tracking-widest">
+            MicroMerit Platform
+        </p>
 
-        <h2 className="text-3xl font-bold text-center text-blue-chill-700 mb-6">
-          Issuer Login
+        <h2 className="text-3xl sm:text-4xl font-extrabold text-center text-gray-900 mb-2">
+          Issuer Partner Login
         </h2>
+        <p className="text-center text-base text-blue-chill-700 mb-8 font-medium border-b pb-4">
+            Manage Secure Credential Issuance & Verification
+        </p>
 
+        {/* Error Message Alert Box */}
         {loginError && (
-          <p className="text-red-600 text-center mb-4 font-medium">
-            {loginError}
-          </p>
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-lg">
+            <p className="text-red-700 font-medium text-sm">{loginError}</p>
+          </div>
         )}
 
-        <div className="space-y-5">
+        <div className="space-y-6">
 
           {/* Email */}
           <div>
-            <label className="font-medium">Email</label>
+            <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+                Official Email Address
+            </label>
             <input
               type="text"
+              id="email"
               name="email"
               value={form.email}
               onChange={handleChange}
-              className="w-full p-3 border rounded mt-1"
-              placeholder="issuer@example.com"
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-chill-500 focus:border-blue-chill-500 transition duration-150"
+              placeholder="e.g., registrar@university.edu "
             />
             {errors.email && (
-              <p className="text-red-600 text-sm">{errors.email}</p>
+              <p className="text-red-600 text-sm mt-1">{errors.email}</p>
             )}
           </div>
 
           {/* Password */}
           <div>
-            <label className="font-medium">Password</label>
+            <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+                Password
+            </label>
             <input
               type="password"
+              id="password"
               name="password"
               value={form.password}
               onChange={handleChange}
-              className="w-full p-3 border rounded mt-1"
-              placeholder="••••••••"
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-chill-500 focus:border-blue-chill-500 transition duration-150"
+              placeholder="•••••••• "
             />
             {errors.password && (
-              <p className="text-red-600 text-sm">{errors.password}</p>
+              <p className="text-red-600 text-sm mt-1">{errors.password}</p>
             )}
           </div>
 
@@ -123,25 +145,36 @@ export default function IssuerLogin() {
           <button
             onClick={login}
             disabled={loading}
-            className={`w-full py-3 rounded-lg text-white mt-3 ${
-              loading
-                ? "bg-blue-chill-300 cursor-not-allowed"
-                : "bg-blue-chill-600 hover:bg-blue-chill-700"
+            className={`w-full py-3 rounded-lg text-white font-bold tracking-wide shadow-lg transition duration-200 ease-in-out transform hover:shadow-xl
+              ${loading
+                ? "bg-blue-chill-400 cursor-not-allowed flex items-center justify-center"
+                : "bg-blue-chill-600 hover:bg-blue-chill-700 active:bg-blue-chill-800"
             }`}
           >
-            {loading ? "Logging in..." : "Login"}
+            {loading ? (
+                <div className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Authenticating...
+                </div>
+            ) : "Secure Login"}
           </button>
 
-          {/* Signup Link */}
-          <p className="text-center mt-3 text-gray-600">
-            Don't have an issuer account?{" "}
-            <span
-              onClick={() => navigate("/issuer/signup")}
-              className="text-blue-chill-700 cursor-pointer font-medium"
-            >
-              Sign Up
-            </span>
-          </p>
+          {/* Footer Link */}
+          <div className="flex justify-center pt-4 border-t border-gray-100 mt-6">
+              <span className="text-sm text-gray-500">
+                New to MicroMerit? 
+              </span>
+              <span
+                onClick={() => navigate("/issuer/signup")}
+                className="text-blue-chill-700 hover:text-blue-chill-800 cursor-pointer font-semibold ml-1 transition duration-150"
+              >
+                Register as an Issuer
+              </span>
+          </div>
+
         </div>
       </div>
     </div>

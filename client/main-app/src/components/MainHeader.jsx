@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Menu, X, ChevronDown, Globe, UserCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { useDispatch } from 'react-redux';
-import { learnerLogout } from '../store/authLearnerSlice';
+
+
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -18,10 +17,7 @@ const Header = () => {
   const [mobileResourcesOpen, setMobileResourcesOpen] = useState(false);
   const [mobileLangOpen, setMobileLangOpen] = useState(false);
 
-  const authLearner = useSelector((state) => state.authLearner);
-  const user = authLearner?.learner;
 
-  const dispatch = useDispatch();
 
   const languages = [
     { code: 'en', name: 'English' },
@@ -193,32 +189,7 @@ const Header = () => {
               )}
             </div>
 
-            {/* AUTH */}
-            {authLearner?.isAuthenticated ? (
-              <div className="relative">
-                <button
-                  onClick={() => setProfileOpen(!profileOpen)}
-                  className="flex items-center space-x-2 text-gray-700 hover:text-blue-chill-600"
-                >
-                  {user?.logo_url ? (
-                    <img src={user.logo_url} className="w-8 h-8 rounded-full object-cover" alt="profile" />
-                  ) : (
-                    <UserCircle className="w-8 h-8" />
-                  )}
-                  <span>{user?.name || user?.email}</span>
-                  <ChevronDown className="w-4 h-4" />
-                </button>
 
-                {profileOpen && (
-                  <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg py-2">
-                    <Link to={`/p/${user?.id}`} className="block px-4 py-2 hover:bg-blue-chill-50">Profile</Link>
-                    <button onClick={logoutUser} >
-                    <Link  className="block px-4 py-2 hover:bg-blue-chill-50">Logout</Link>
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
               <>
                 <Link to="/login" className="text-blue-chill-600 font-medium">Login</Link>
                 <div className="h-6 w-px bg-gray-400"></div>
@@ -226,7 +197,6 @@ const Header = () => {
                   Start Now As Issuer
                 </Link>
               </>
-            )}
           </div>
 
           {/* MOBILE TOGGLE */}
@@ -315,21 +285,13 @@ const Header = () => {
             </div>
 
             {/* AUTH (mobile) */}
-            {authLearner?.isAuthenticated ? (
-              <div className="pt-4 border-t">
-              <Link to={`/p/${user?.id}`} className="block py-2 text-gray-700">Profile</Link>
-              <button onClick={logoutUser} className='w-auto' >
-                <Link  className="block py-2 text-gray-700">Logout</Link>
-              </button>
-              </div>
-            ) : (
+
               <div className="pt-4 space-y-3">
                 <Link to="/login" className="block text-center border px-6 py-2 rounded-lg">Login</Link>
                 <Link to="/issuer/signup" className="block text-center bg-blue-chill-600 text-white px-6 py-2 rounded-lg">
                   Start Now As Issuer
                 </Link>
               </div>
-            )}
 
           </div>
         </div>

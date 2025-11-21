@@ -7,8 +7,8 @@ import {
   validateDomain,
   validateURL,
 } from "../../utils/formValidation";
-import { issuerLoginSuccess } from "../../store/authIssuerSlice";
 import { useDispatch } from "react-redux";
+
 
 function IssuerSignUp() {
   const navigate = useNavigate();
@@ -47,7 +47,7 @@ function IssuerSignUp() {
   const nextStep = () => setStep((s) => s + 1);
   const prevStep = () => setStep((s) => s - 1);
 
-  // ---------------- VALIDATION ----------------
+  // ---------------- VALIDATION (LOGIC UNCHANGED) ----------------
   const validateStep1 = () => {
     let err = {};
 
@@ -92,12 +92,13 @@ function IssuerSignUp() {
     if (!form.contact_person_name.trim())
       err.contact_person_name = "Contact person name required";
 
-    // Designation (optional but needs min 2 chars)
-    if (form.contact_person_designation.trim()) {
-      if (form.contact_person_designation.trim().length < 2)
-        err.contact_person_designation =
-          "Designation must be at least 2 characters";
+    // Designation 
+    if (!form.contact_person_designation.trim()) {
+      err.contact_person_designation = "Designation is required";
+    } else if (form.contact_person_designation.trim().length < 2) {
+      err.contact_person_designation = "Designation must be at least 2 characters";
     }
+
 
     // Address
     if (!form.address.trim()) err.address = "Address is required";
@@ -143,343 +144,264 @@ function IssuerSignUp() {
   };
 
 
-  const submitSignup = async () => {
-    if (!validateStep3()) return;
+ const submitSignup = async () => {
+  // Validate all steps before submission
+  if (!validateStep1() || !validateStep2() || !validateStep3()) return;
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const response = await signInIssuer.start({
-        name: form.name,
-        official_domain: form.official_domain || null,
-        website_url: form.website_url || null,
-        type: form.type,
-        email: form.email,
-        phone: form.phone,
-        contact_person_name: form.contact_person_name,
-        contact_person_designation: form.contact_person_designation,
-        address: form.address,
-        kyc_document_url: form.kyc_document_url,
-        logo_url: form.logo_url || null,
-        password: form.password,
+    // Filter only fields that have a value
+    const filteredFormData = Object.fromEntries(
+      Object.entries(form).filter(([key, value]) => {
+        if (typeof value === "string") return value.trim() !== "";
+        if (typeof value === "boolean") return value === true; // keep checkboxes only if checked
+        return value != null; // keep non-null objects
+      })
+    );
+
+    // Call API
+    const response = await signInIssuer.start(filteredFormData);
+
+    if (response.data.success) {
+      navigate("/verify-otp", {
+        state: {
+          sessionId: response?.data?.data.sessionId,
+          type: "issuer",
+          identifier: form.email,
+        },
       });
-
-      if(response.data.success === true){
-
-
-
-        navigate("/verify-otp", {
-          state: { sessionId: response?.data?.data.sessionId, type: "issuer", identifier: form.email },
-        });
-
-      }
-
-    } catch (error) {
-      setErrors({submit :  error.response?.data?.message || "Signup failed. Please try again."});
-      console.error("Signup error:", error);
-      
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (error) {
+    setErrors({
+      submit: error.response?.data?.message || "Signup failed. Please try again.",
+    });
+    console.error("Signup error:", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // ---------------- UI ----------------
+  
+  const stepTitles = [
+    "Organization Details (1/3)", 
+    "Contact & Address (2/3)", 
+    "Security & Compliance (3/3)"
+  ];
+
+  const getStepIndicatorClass = (s) => {
+    if (step === s) return "bg-blue-chill-600 ring-2 ring-blue-chill-300";
+    if (step > s) return "bg-green-500"; // Completed step
+    return "bg-gray-300";
+  };
+
+  const renderField = (name, label, placeholder, type = "text", options = null, rows = 1) => {
+    const isSelect = options !== null;
+    const isTextarea = rows > 1;
+    const isCheckbox = type === "checkbox";
+    const error = errors[name];
+
+    return (
+      <div className={isCheckbox ? "flex items-start" : "space-y-1"}>
+        {!isCheckbox && (
+          <label htmlFor={name} className="block text-sm font-semibold text-gray-700">
+            {label}
+            {!(name.includes("optional") || name.includes("domain") || name.includes("url")) && <span className="text-red-500">*</span>}
+          </label>
+        )}
+        
+        {isSelect ? (
+          <select
+            id={name}
+            name={name}
+            value={form[name]}
+            onChange={handleChange}
+            className={`w-full p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-chill-500 focus:border-blue-chill-500 transition duration-150 ${error ? 'border-red-400' : 'border-gray-300'}`}
+          >
+            {options.map((option, index) => (
+              <option key={index} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        ) : isTextarea ? (
+          <textarea
+            id={name}
+            name={name}
+            rows={rows}
+            value={form[name]}
+            onChange={handleChange}
+            className={`w-full p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-chill-500 focus:border-blue-chill-500 transition duration-150 ${error ? 'border-red-400' : 'border-gray-300'}`}
+            placeholder={placeholder}
+          />
+        ) : isCheckbox ? (
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id={name}
+              name={name}
+              checked={form[name]}
+              onChange={handleChange}
+              className="h-5 w-5 rounded text-blue-chill-600 border-gray-300 focus:ring-blue-chill-500"
+            />
+            <label htmlFor={name} className="text-sm text-gray-700">
+              {label}
+            </label>
+          </div>
+        ) : (
+          <input
+            type={type}
+            id={name}
+            name={name}
+            value={form[name]}
+            onChange={handleChange}
+            className={`w-full p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-chill-500 focus:border-blue-chill-500 transition duration-150 ${error ? 'border-red-400' : 'border-gray-300'}`}
+            placeholder={placeholder}
+          />
+        )}
+        
+        {error && (
+          <p className="text-red-500 text-xs mt-1 font-medium">{error}</p>
+        )}
+      </div>
+    );
+  };
+
+
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-50 px-6">
+    <div className="flex justify-center items-center min-h-screen bg-blue-chill-50 p-4 sm:p-6 font-sans">
+      
+      {/* Registration Card */}
+      <div className="w-full max-w-xl bg-white p-6 sm:p-10 rounded-2xl shadow-2xl border border-gray-200">
 
-
-      <div className="w-full max-w-lg bg-white p-8 rounded-2xl shadow-xl">
-
-        <h2 className="text-2xl font-bold text-blue-chill-700 text-center mb-6">
-          Register as Issuer
-        </h2>
+        {/* Header & Title */}
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-center text-gray-900 mb-2">
+            Register as Issuer
+        </h1>
+        <p className="text-center text-md text-blue-chill-700 mb-6 font-medium border-b pb-4">
+            {stepTitles[step - 1]}
+        </p>
 
         {/* Step Indicators */}
-        <div className="flex justify-center gap-3 mb-8">
-          {[1, 2, 3].map((s) => (
-            <div
-              key={s}
-              className={`h-3 w-3 rounded-full ${
-                step === s ? "bg-blue-chill-600" : "bg-gray-300"
-              }`}
-            ></div>
+        <div className="flex justify-center items-center gap-4 mb-8">
+          {[1, 2, 3].map((s, index) => (
+            <div key={s} className="flex items-center">
+              <div
+                className={`h-4 w-4 rounded-full ${getStepIndicatorClass(s)} transition-all duration-300`}
+                title={`Step ${s}`}
+              ></div>
+              {index < 2 && <div className="w-8 h-0.5 bg-gray-300"></div>}
+            </div>
           ))}
         </div>
 
+        {/* Global Submission Error */}
         {errors.submit && (
-          <p className="text-red-600 text-center mb-4 font-medium">
-            {errors.submit}
-          </p>
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-lg">
+            <p className="text-red-700 font-medium text-sm">{errors.submit}</p>
+          </div>
         )}
 
-        {/* -------------------- STEP 1 -------------------- */}
+        {/* -------------------- STEP 1: Organization Details -------------------- */}
         {step === 1 && (
-          <div className="space-y-4">
-            {/* Name */}
-            <div>
-              <label>Organization Name</label>
-              <input
-                name="name"
-                className="w-full p-3 border rounded-lg"
-                placeholder="Ex: Indian Institute of Technology"
-                value={form.name}
-                onChange={handleChange}
-              />
-              {errors.name && (
-                <p className="text-red-500 text-sm">{errors.name}</p>
-              )}
-            </div>
-
-            {/* Email */}
-            <div>
-              <label>Email</label>
-              <input
-                name="email"
-                className="w-full p-3 border rounded-lg"
-                placeholder="Ex: contact@institute.edu"
-                value={form.email}
-                onChange={handleChange}
-              />
-              {errors.email && (
-                <p className="text-red-500 text-sm">{errors.email}</p>
-              )}
-            </div>
-
-            {/* Official domain */}
-            <div>
-              <label>Official Domain</label>
-              <input
-                name="official_domain"
-                className="w-full p-3 border rounded-lg"
-                placeholder="Ex: institute.edu"
-                value={form.official_domain}
-                onChange={handleChange}
-              />
-              {errors.official_domain && (
-                <p className="text-red-500 text-sm">{errors.official_domain}</p>
-              )}
-            </div>
-
-            {/* Website URL */}
-            <div>
-              <label>Website URL</label>
-              <input
-                name="website_url"
-                className="w-full p-3 border rounded-lg"
-                placeholder="https://your-organization.com"
-                value={form.website_url}
-                onChange={handleChange}
-              />
-              {errors.website_url && (
-                <p className="text-red-500 text-sm">{errors.website_url}</p>
-              )}
-            </div>
-
-            {/* Type */}
-            <div>
-              <label>Organization Type</label>
-              <select
-                name="type"
-                className="w-full p-3 border rounded-lg"
-                value={form.type}
-                onChange={handleChange}
-              >
-                <option value="">Select Type</option>
-                <option value="university">University</option>
-                <option value="edtech">EdTech</option>
-                <option value="company">Company</option>
-                <option value="training_provider">Training Provider</option>
-              </select>
-
-              {errors.type && (
-                <p className="text-red-500 text-sm">{errors.type}</p>
-              )}
-            </div>
+          <div className="space-y-6">
+            {renderField("name", "Organization Name", "Ex: Indian Institute of Technology")}
+            {renderField("email", "Official Email", "Ex: contact@institute.edu")}
+            {renderField("official_domain", "Official Domain (Optional)", "Ex: institute.edu")}
+            {renderField("website_url", "Website URL (Optional)", "https://your-organization.com")}
+            
+            {renderField("type", "Organization Type", null, "select", [
+              { value: "", label: "Select Type" },
+              { value: "university", label: "University" },
+              { value: "edtech", label: "EdTech" },
+              { value: "company", label: "Company" },
+              { value: "training_provider", label: "Training Provider" },
+            ])}
 
             <button
-              className="w-full bg-blue-chill-600 text-white p-3 rounded-lg"
+              className="w-full bg-blue-chill-600 text-white p-3 rounded-lg font-bold tracking-wide shadow-lg hover:bg-blue-chill-700 transition duration-200"
               onClick={() => validateStep1() && nextStep()}
             >
-              Continue
+              Next
             </button>
           </div>
         )}
 
-        {/* -------------------- STEP 2 -------------------- */}
+        {/* -------------------- STEP 2: Contact & Address -------------------- */}
         {step === 2 && (
-          <div className="space-y-4">
-            {/* Phone */}
-            <div>
-              <label>Phone Number</label>
-              <input
-                name="phone"
-                className="w-full p-3 border rounded-lg"
-                placeholder="10-digit mobile number"
-                value={form.phone}
-                onChange={handleChange}
-              />
-              {errors.phone && (
-                <p className="text-red-500 text-sm">{errors.phone}</p>
-              )}
-            </div>
+          <div className="space-y-6">
+            {renderField("phone", "Phone Number", "10-digit mobile number")}
+            {renderField("contact_person_name", "Contact Person Name", "Full name")}
+            {renderField("contact_person_designation", "Designation", "Ex: Registrar, HR Head")}
+            
+            {renderField(
+                "address", 
+                "Address", 
+                "Office / campus / corporate address", 
+                "textarea", 
+                null, 
+                3
+            )}
 
-            {/* Contact name */}
-            <div>
-              <label>Contact Person Name</label>
-              <input
-                name="contact_person_name"
-                className="w-full p-3 border rounded-lg"
-                placeholder="Full name"
-                value={form.contact_person_name}
-                onChange={handleChange}
-              />
-              {errors.contact_person_name && (
-                <p className="text-red-500 text-sm">
-                  {errors.contact_person_name}
-                </p>
-              )}
-            </div>
-
-            {/* Designation */}
-            <div>
-              <label>Designation</label>
-              <input
-                name="contact_person_designation"
-                className="w-full p-3 border rounded-lg"
-                placeholder="Ex: Registrar, HR Head"
-                value={form.contact_person_designation}
-                onChange={handleChange}
-              />
-              {errors.contact_person_designation && (
-                <p className="text-red-500 text-sm">
-                  {errors.contact_person_designation}
-                </p>
-              )}
-            </div>
-
-            {/* Address */}
-            <div>
-              <label>Address</label>
-              <textarea
-                name="address"
-                className="w-full p-3 border rounded-lg"
-                placeholder="Office / campus / corporate address"
-                rows={3}
-                value={form.address}
-                onChange={handleChange}
-              />
-              {errors.address && (
-                <p className="text-red-500 text-sm">{errors.address}</p>
-              )}
-            </div>
-
-            <div className="flex justify-between gap-4">
-              <button className="w-1/2 p-3 border rounded-lg" onClick={prevStep}>
+            <div className="flex justify-between gap-4 pt-4">
+              <button 
+                className="w-1/2 p-3 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-100 transition duration-150" 
+                onClick={prevStep}
+              >
                 Back
               </button>
               <button
-                className="w-1/2 bg-blue-chill-600 text-white p-3 rounded-lg"
+                className="w-1/2 bg-blue-chill-600 text-white p-3 rounded-lg font-bold tracking-wide shadow-lg hover:bg-blue-chill-700 transition duration-200"
                 onClick={() => validateStep2() && nextStep()}
               >
-                Continue
+                Next
               </button>
             </div>
           </div>
         )}
 
-        {/* -------------------- STEP 3 -------------------- */}
+        {/* -------------------- STEP 3: Security & Compliance -------------------- */}
         {step === 3 && (
-          <div className="space-y-4">
-            {/* KYC URL */}
-            <div>
-              <label>KYC Document URL</label>
-              <input
-                name="kyc_document_url"
-                className="w-full p-3 border rounded-lg"
-                placeholder="Upload document and paste link"
-                value={form.kyc_document_url}
-                onChange={handleChange}
-              />
-              {errors.kyc_document_url && (
-                <p className="text-red-500 text-sm">{errors.kyc_document_url}</p>
-              )}
-            </div>
-
-            {/* Logo URL */}
-            <div>
-              <label>Logo URL (optional)</label>
-              <input
-                name="logo_url"
-                className="w-full p-3 border rounded-lg"
-                placeholder="Link to organization logo"
-                value={form.logo_url}
-                onChange={handleChange}
-              />
-              {errors.logo_url && (
-                <p className="text-red-500 text-sm">{errors.logo_url}</p>
-              )}
-            </div>
-
-            {/* PASSWORD */}
-            <div>
-              <label>Password</label>
-              <input
-                type="password"
-                name="password"
-                className="w-full p-3 border rounded-lg"
-                placeholder="Minimum 8 characters"
-                value={form.password}
-                onChange={handleChange}
-              />
-              {errors.password && (
-                <p className="text-red-500 text-sm">{errors.password}</p>
-              )}
-            </div>
-
-            {/* CONFIRM PASSWORD */}
-            <div>
-              <label>Confirm Password</label>
-              <input
-                type="password"
-                name="confirm_password"
-                className="w-full p-3 border rounded-lg"
-                placeholder="Re-enter password"
-                value={form.confirm_password}
-                onChange={handleChange}
-              />
-              {errors.confirm_password && (
-                <p className="text-red-500 text-sm">{errors.confirm_password}</p>
-              )}
-            </div>
+          <div className="space-y-6">
+            {renderField("kyc_document_url", "KYC Document URL", "Upload document and paste link (must be a valid URL)")}
+            {renderField("logo_url", "Logo URL (Optional)", "Link to organization logo")}
+            
+            {renderField("password", "Password", "Minimum 8 characters (with letters and numbers)", "password")}
+            {renderField("confirm_password", "Confirm Password", "Re-enter password", "password")}
 
             {/* CONSENT */}
-            <div className="flex items-center gap-3 mt-4">
-              <input
-                type="checkbox"
-                name="consent"
-                checked={form.consent}
-                onChange={handleChange}
-              />
-              <p className="text-sm">
-                I give consent to receive invitations & OTP updates on this email.
-              </p>
-            </div>
-
+            {renderField(
+                "consent", 
+                "I give consent to receive invitations & OTP updates on this email.", 
+                null, 
+                "checkbox"
+            )}
             {errors.consent && (
-              <p className="text-red-500 text-sm">{errors.consent}</p>
+              <p className="text-red-500 text-xs mt-1 font-medium -mt-2 ml-10">{errors.consent}</p>
             )}
 
-            <div className="flex justify-between gap-4">
-              <button className="w-1/2 p-3 border rounded-lg" onClick={prevStep}>
+            <div className="flex justify-between gap-4 pt-4">
+              <button 
+                className="w-1/2 p-3 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-100 transition duration-150" 
+                onClick={prevStep}
+              >
                 Back
               </button>
 
               <button
-                className="w-1/2 bg-blue-chill-600 text-white p-3 rounded-lg disabled:bg-gray-300"
+                className="w-1/2 bg-blue-chill-600 text-white p-3 rounded-lg font-bold tracking-wide shadow-lg transition duration-200 disabled:bg-gray-400 disabled:shadow-none flex items-center justify-center"
                 disabled={loading}
                 onClick={submitSignup}
               >
-                {loading ? "Sending OTP..." : "Create Account"}
+                {loading ? (
+                    <div className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Sending OTP...
+                    </div>
+                ) : "Create Account"}
               </button>
             </div>
           </div>
@@ -487,14 +409,14 @@ function IssuerSignUp() {
 
 
         {/* LOGIN LINK */}
-        <div className="text-center mt-6">
-          <p>
+        <div className="text-center mt-8 pt-4 border-t border-gray-100">
+          <p className="text-sm text-gray-600">
             Already have an account?{" "}
             <Link
               to="/issuer/login"
-              className="text-blue-chill-600 font-medium hover:text-blue-chill-700"
+              className="text-blue-chill-700 font-semibold hover:text-blue-chill-800 transition duration-150"
             >
-              Login
+              Login to Partner Portal
             </Link>
           </p>
         </div>
