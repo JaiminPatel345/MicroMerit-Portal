@@ -17,6 +17,10 @@ const authLearnerSlice = createSlice({
       state.refreshToken = action.payload.refreshToken;
       state.isAuthenticated = true;
     },
+    learnerUpateProfile: (state, action) => {
+      console.log("Updating learner profile in store", action.payload);
+      state.learner = action.payload;
+    },
     refreshLearnerTokenSuccess: (state, action) => {
       state.accessToken = action.payload;
     },
@@ -33,6 +37,7 @@ export const {
   learnerLoginSuccess,
   refreshLearnerTokenSuccess,
   learnerLogout,
+  learnerUpateProfile,
 } = authLearnerSlice.actions;
 
 export default authLearnerSlice.reducer;

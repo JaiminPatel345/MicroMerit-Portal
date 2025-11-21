@@ -11,7 +11,8 @@ import IssuerLogin from './pages/issuer/Login';
 import IssuerDashboard from './pages/issuer/Dashboard';
 import Dashboard from './pages/Dashboard';
 import GoogleCallback from './pages/GoogleCallback';
-
+import Profile from './pages/Profile';
+import Notification from './components/Notification';
 const HideHeaderRoutes = ["/login", "/signup", "/verify-otp", "/profile-builder", "/issuer/login", "/issuer/signup", "/google-callback"];
 
 import { Provider } from 'react-redux';
@@ -25,6 +26,7 @@ function Layout() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <Notification />
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
           {!hideHeader && <Header />}
@@ -37,6 +39,7 @@ function Layout() {
               <Route path="/signup" element={<Signup />} />
               <Route path="/profile-builder" element={<ProfileBuilder />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/p/:slug" element={<Profile />} />
               <Route path="/verify-otp" element={<VerifyOTP />} />
               <Route path='/issuer/signup' element={<IssuerSignUp />} />
               <Route path='/issuer/login' element={<IssuerLogin />} />

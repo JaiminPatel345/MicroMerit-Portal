@@ -29,3 +29,12 @@ export const signInIssuer = {
 export const loginIssuer = {
   login: (payload) => api.post('/auth/issuer/login', payload),
 };
+
+
+// Leaner APIS
+export const learnerApi = {
+  getProfile: () => api.get('/learner/profile'),
+  updateProfile: (payload) => api.put('/learner/profile', payload),
+  getCertificates: () => api.get('/credentials/learner/my-credentials'),
+};
+

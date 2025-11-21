@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Menu, X, ChevronDown, Globe, UserCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-
+import { useDispatch } from 'react-redux';
+import { learnerLogout } from '../store/authLearnerSlice';
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -19,6 +20,8 @@ const Header = () => {
 
   const authLearner = useSelector((state) => state.authLearner);
   const user = authLearner?.learner;
+
+  const dispatch = useDispatch();
 
   const languages = [
     { code: 'en', name: 'English' },
@@ -77,6 +80,10 @@ const Header = () => {
       document.head.appendChild(script);
     }
   }, []);
+
+  const logoutUser=(e)=>{
+     dispatch(learnerLogout())
+  }
 
   const changeLanguage = (langCode) => {
     const selectElem = document.querySelector('.goog-te-combo');
@@ -204,8 +211,10 @@ const Header = () => {
 
                 {profileOpen && (
                   <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg py-2">
-                    <Link to="/issuer/profile" className="block px-4 py-2 hover:bg-blue-chill-50">Profile</Link>
-                    <Link to="/issuer/logout" className="block px-4 py-2 hover:bg-blue-chill-50">Logout</Link>
+                    <Link to={`/p/${user?.id}`} className="block px-4 py-2 hover:bg-blue-chill-50">Profile</Link>
+                    <button onClick={logoutUser} >
+                    <Link  className="block px-4 py-2 hover:bg-blue-chill-50">Logout</Link>
+                    </button>
                   </div>
                 )}
               </div>
@@ -308,8 +317,10 @@ const Header = () => {
             {/* AUTH (mobile) */}
             {authLearner?.isAuthenticated ? (
               <div className="pt-4 border-t">
-                <Link to="/issuer/profile" className="block py-2 text-gray-700">Profile</Link>
-                <Link to="/issuer/logout" className="block py-2 text-gray-700">Logout</Link>
+              <Link to={`/p/${user?.id}`} className="block py-2 text-gray-700">Profile</Link>
+              <button onClick={logoutUser} className='w-auto' >
+                <Link  className="block py-2 text-gray-700">Logout</Link>
+              </button>
               </div>
             ) : (
               <div className="pt-4 space-y-3">
