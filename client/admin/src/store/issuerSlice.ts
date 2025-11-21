@@ -19,6 +19,37 @@ const initialState: IssuerState = {
     filters: {},
 };
 
+// Helper to extract detailed error messages
+const getErrorMessage = (error: any, defaultMessage: string) => {
+    const data = error.response?.data;
+    let message = data?.message || defaultMessage;
+
+    if (data?.error) {
+        try {
+            // Try to parse if it's a stringified JSON
+            const parsed = typeof data.error === 'string' ? JSON.parse(data.error) : data.error;
+
+            if (Array.isArray(parsed)) {
+                // Handle Zod errors array
+                const details = parsed.map((e: any) => e.message).join(', ');
+                if (details) {
+                    message = `${message}: ${details}`;
+                }
+            } else if (typeof parsed === 'string') {
+                message = `${message}: ${parsed}`;
+            } else if (parsed.message) {
+                message = `${message}: ${parsed.message}`;
+            }
+        } catch (e) {
+            // Fallback if parsing fails but it's a string
+            if (typeof data.error === 'string') {
+                message = `${message}: ${data.error}`;
+            }
+        }
+    }
+    return message;
+};
+
 // Async thunks
 export const fetchIssuers = createAsyncThunk(
     'issuer/fetchIssuers',
@@ -27,8 +58,7 @@ export const fetchIssuers = createAsyncThunk(
             const response = await issuerAPI.getIssuers(filters);
             return response.data;
         } catch (error: any) {
-            const message = error.response?.data?.message || 'Failed to fetch issuers';
-            return rejectWithValue(message);
+            return rejectWithValue(getErrorMessage(error, 'Failed to fetch issuers'));
         }
     }
 );
@@ -40,8 +70,7 @@ export const approveIssuer = createAsyncThunk(
             const response = await issuerAPI.approveIssuer(id);
             return response.data;
         } catch (error: any) {
-            const message = error.response?.data?.message || 'Failed to approve issuer';
-            return rejectWithValue(message);
+            return rejectWithValue(getErrorMessage(error, 'Failed to approve issuer'));
         }
     }
 );
@@ -53,8 +82,7 @@ export const rejectIssuer = createAsyncThunk(
             const response = await issuerAPI.rejectIssuer(id, payload);
             return response.data;
         } catch (error: any) {
-            const message = error.response?.data?.message || 'Failed to reject issuer';
-            return rejectWithValue(message);
+            return rejectWithValue(getErrorMessage(error, 'Failed to reject issuer'));
         }
     }
 );
@@ -66,8 +94,7 @@ export const blockIssuer = createAsyncThunk(
             await issuerAPI.blockIssuer(id, payload);
             return id;
         } catch (error: any) {
-            const message = error.response?.data?.message || 'Failed to block issuer';
-            return rejectWithValue(message);
+            return rejectWithValue(getErrorMessage(error, 'Failed to block issuer'));
         }
     }
 );
@@ -79,8 +106,7 @@ export const unblockIssuer = createAsyncThunk(
             await issuerAPI.unblockIssuer(id);
             return id;
         } catch (error: any) {
-            const message = error.response?.data?.message || 'Failed to unblock issuer';
-            return rejectWithValue(message);
+            return rejectWithValue(getErrorMessage(error, 'Failed to unblock issuer'));
         }
     }
 );

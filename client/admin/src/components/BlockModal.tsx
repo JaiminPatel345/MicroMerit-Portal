@@ -42,15 +42,15 @@ const BlockModal = ({ isOpen, onClose, issuer }: BlockModalProps) => {
 
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-            <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center">
                 {/* Background overlay */}
                 <div
-                    className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+                    className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75 backdrop-blur-sm"
                     onClick={onClose}
                 ></div>
 
                 {/* Modal panel */}
-                <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div className="relative bg-white rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:max-w-lg sm:w-full border border-gray-100">
                     <form onSubmit={handleSubmit}>
                         <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                             {/* Header */}
@@ -104,7 +104,7 @@ const BlockModal = ({ isOpen, onClose, issuer }: BlockModalProps) => {
                                     onChange={(e) => setReason(e.target.value)}
                                     rows={4}
                                     maxLength={500}
-                                    className="input-field resize-none"
+                                    className="input-field resize-none focus:ring-red-500 focus:border-red-500"
                                     placeholder="Please provide a detailed reason for blocking..."
                                     required
                                 />
@@ -119,7 +119,7 @@ const BlockModal = ({ isOpen, onClose, issuer }: BlockModalProps) => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="btn-danger w-full sm:w-auto disabled:opacity-50"
+                                className="btn-danger w-full sm:w-auto disabled:opacity-50 shadow-sm"
                             >
                                 {loading ? 'Blocking...' : 'Block Issuer'}
                             </button>
@@ -127,7 +127,7 @@ const BlockModal = ({ isOpen, onClose, issuer }: BlockModalProps) => {
                                 type="button"
                                 onClick={onClose}
                                 disabled={loading}
-                                className="btn-secondary w-full sm:w-auto mt-3 sm:mt-0"
+                                className="btn-secondary w-full sm:w-auto mt-3 sm:mt-0 shadow-sm"
                             >
                                 Cancel
                             </button>

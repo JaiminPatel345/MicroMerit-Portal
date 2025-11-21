@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { formatDate } from '../utils/dateUtils';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks.ts';
 import { fetchIssuers } from '../store/issuerSlice.ts';
@@ -255,7 +256,7 @@ const Dashboard = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {new Date(issuer.created_at).toLocaleDateString()}
+                                            {formatDate(issuer.created_at)}
                                         </td>
                                     </tr>
                                 ))}
