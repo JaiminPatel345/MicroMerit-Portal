@@ -357,8 +357,8 @@ describe('Admin Service', () => {
         created_at: new Date(),
         credentials: [
           {
-            id: 101,
-            credential_uid: 'CRED-001',
+            id: '101',
+            credential_id: 'CRED-001',
             status: 'claimed',
             issued_at: new Date(),
             claimed_at: new Date(),
@@ -393,7 +393,7 @@ describe('Admin Service', () => {
       expect(result).not.toHaveProperty('hashed_password');
       expect(result.name).toBe('John Doe');
       expect(result.credentials).toHaveLength(1);
-      expect(result.credentials[0]?.credential_uid).toBe('CRED-001');
+      expect(result.credentials[0]?.credential_id).toBe('CRED-001');
     });
 
     it('should throw error if learner not found', async () => {
@@ -434,8 +434,8 @@ describe('Admin Service', () => {
 
       const mockRecentCredentials = [
         {
-          id: 5000,
-          credential_uid: 'CRED-5000',
+          id: '5000',
+          credential_id: 'CRED-5000',
           status: 'claimed',
           issued_at: new Date(),
           claimed_at: new Date(),
@@ -469,7 +469,7 @@ describe('Admin Service', () => {
       expect(result.issuers).toEqual(mockIssuerStats);
       expect(result.learners).toEqual(mockLearnerStats);
       expect(result.recentActivity).toHaveLength(1);
-      expect(result.recentActivity[0]?.credential_uid).toBe('CRED-5000');
+      expect(result.recentActivity[0]?.credential_id).toBe('CRED-5000');
     });
   });
 });
