@@ -12,6 +12,7 @@ import Dashboard from './pages/Dashboard';
 import GoogleCallback from './pages/GoogleCallback';
 import Profile from './pages/Profile';
 import Notification from './components/Notification';
+import Verification from './pages/Verification';
 const HideHeaderRoutes = ["/login", "/signup", "/verify-otp", "/profile-builder", "/issuer/login", "/issuer/signup", "/google-callback"];
 import { Provider } from 'react-redux';
 import { store, persistor } from './store/store';
@@ -49,6 +50,8 @@ function Layout() {
               <Route path='/issuer/login' element={<IssuerLogin />} />
               <Route path="/google-callback" element={<GoogleCallback />} />
               <Route path="/profile-builder" element={<ProfileBuilder />} />
+              <Route path="/verify" element={<Verification />} />
+              <Route path="/verify/:id" element={<Verification />} />
 
 
 

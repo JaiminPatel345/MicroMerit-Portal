@@ -55,8 +55,9 @@ export class CredentialVerificationService {
                 method: params.credential_id ? 'credential_id' : params.tx_hash ? 'tx_hash' : 'ipfs_cid',
             });
 
-            // Step 2: Reconstruct canonical JSON from stored data
-            const storedMetadata = credential.metadata as any;
+            // Step 2: Rebuild canonical JSON from database fields
+            // This is what the hash was computed from at issuance time
+            // Note: tx_hash was null when the hash was computed
             const canonicalJson = buildCanonicalJson({
                 credential_id: credential.credential_id,
                 learner_id: credential.learner_id,
@@ -66,11 +67,11 @@ export class CredentialVerificationService {
                 issued_at: new Date(credential.issued_at),
                 ipfs_cid: credential.ipfs_cid,
                 pdf_url: credential.pdf_url,
-                tx_hash: credential.tx_hash,
-                data_hash: credential.data_hash,
+                tx_hash: null, // tx_hash was null when hash was computed
+                data_hash: null, // data_hash is always null when computing hash
             });
 
-            // Step 3: Recompute hash
+            // Step 3: Recompute hash and verify it matches
             const recomputedHash = computeDataHash(canonicalJson);
             const hashMatch = recomputedHash === credential.data_hash;
 
@@ -115,7 +116,7 @@ export class CredentialVerificationService {
                         tx_hash: credential.tx_hash,
                         data_hash: credential.data_hash,
                         status: credential.status,
-                        metadata: storedMetadata,
+                        metadata: credential.metadata,
                     },
                     verified_fields: {
                         hash_match: hashMatch,

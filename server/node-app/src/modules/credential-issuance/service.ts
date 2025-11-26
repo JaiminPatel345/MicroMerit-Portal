@@ -73,26 +73,8 @@ export class CredentialIssuanceService {
         // Step 3: Generate credential_id
         const credential_id = uuidv4();
 
-        // Step 4: Build canonical JSON (without data_hash, ipfs_cid, tx_hash initially)
-        let canonicalJson = buildCanonicalJson({
-            credential_id,
-            learner_id,
-            learner_email,
-            issuer_id,
-            certificate_title,
-            issued_at,
-            ipfs_cid: null,
-            pdf_url: null,
-            tx_hash: null,
-            data_hash: null,
-        });
-
-        // Step 5: Compute SHA256 hash (data_hash)
-        const data_hash = computeDataHash(canonicalJson);
-        logger.info('Computed data hash', { credential_id, data_hash });
-
-        // Step 6: Upload PDF to Filebase (IPFS)
-        // Generate unique filename: credential/{user_id || email}/{certificate_title}-{4 random lettors}
+        // Step 4: Upload PDF to Filebase (IPFS) first
+        // Generate unique filename: credential/{user_id || email}/{certificate_title}-{4 random letters}
         const identifier = learner_id ? learner_id.toString() : learner_email.replace(/[^a-zA-Z0-9]/g, '_');
         const sanitizedTitle = certificate_title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
         const randomSuffix = crypto.randomBytes(2).toString('hex'); // 4 random hex characters
@@ -107,8 +89,8 @@ export class CredentialIssuanceService {
         );
         logger.info('Uploaded to IPFS', { credential_id, ipfs_cid, pdf_url });
 
-        // Step 7: Update canonical JSON with IPFS data
-        canonicalJson = buildCanonicalJson({
+        // Step 5: Build canonical JSON with IPFS data but before blockchain (tx_hash and data_hash still null)
+        let canonicalJson = buildCanonicalJson({
             credential_id,
             learner_id,
             learner_email,
@@ -118,14 +100,18 @@ export class CredentialIssuanceService {
             ipfs_cid,
             pdf_url,
             tx_hash: null,
-            data_hash,
+            data_hash: null,
         });
 
-        // Step 8: Mock blockchain write
+        // Step 6: Compute SHA256 hash (data_hash) - this will be computed with tx_hash as null
+        const data_hash = computeDataHash(canonicalJson);
+        logger.info('Computed data hash', { credential_id, data_hash });
+
+        // Step 7: Write to blockchain
         const { tx_hash } = await writeToBlockchain(credential_id, data_hash, ipfs_cid);
         logger.info('Blockchain write complete', { credential_id, tx_hash });
 
-        // Step 9: Final canonical JSON with all data
+        // Step 8: Final canonical JSON with all data including the computed data_hash
         canonicalJson = buildCanonicalJson({
             credential_id,
             learner_id,
@@ -139,7 +125,7 @@ export class CredentialIssuanceService {
             data_hash,
         });
 
-        // Step 10: Store in database
+        // Step 9: Store in database
         const credential = await credentialIssuanceRepository.createCredential({
             credential_id,
             learner_id,
