@@ -14,6 +14,10 @@ export interface IssuerProfile {
     website_url?: string | null;
     phone?: string | null;
     contact_person_name?: string | null;
+    contact_person_designation?: string | null;
+    official_domain?: string | null;
+    address?: string | null;
+    kyc_document_url?: string | null;
     created_at: string;
 }
 
@@ -41,7 +45,7 @@ export const issuerAPI = {
     },
 
     approveIssuer: async (id: number): Promise<{ success: boolean; data: IssuerProfile }> => {
-        const response = await axiosInstance.post(`/admin/issuers/${id}/approve`);
+        const response = await axiosInstance.post(`/admin/issuers/${id}/approve`, {});
         return response.data;
     },
 
@@ -56,7 +60,7 @@ export const issuerAPI = {
     },
 
     unblockIssuer: async (id: number): Promise<{ success: boolean; message: string }> => {
-        const response = await axiosInstance.post(`/admin/issuers/${id}/unblock`);
+        const response = await axiosInstance.post(`/admin/issuers/${id}/unblock`, {});
         return response.data;
     },
 };

@@ -110,6 +110,17 @@ const IssuerDetailsModal = ({ isOpen, onClose }: IssuerDetailsModalProps) => {
                                     </div>
                                 )}
 
+                                {selectedIssuer.contact_person_designation && (
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                                            Designation
+                                        </label>
+                                        <p className="text-sm text-gray-900">
+                                            {selectedIssuer.contact_person_designation}
+                                        </p>
+                                    </div>
+                                )}
+
                                 {selectedIssuer.website_url && (
                                     <div className="col-span-2">
                                         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Website</label>
@@ -120,6 +131,47 @@ const IssuerDetailsModal = ({ isOpen, onClose }: IssuerDetailsModalProps) => {
                                             className="text-sm text-primary-600 hover:text-primary-700 hover:underline flex items-center gap-1"
                                         >
                                             {selectedIssuer.website_url}
+                                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                            </svg>
+                                        </a>
+                                    </div>
+                                )}
+
+                                {selectedIssuer.official_domain && (
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Official Domain</label>
+                                        <a
+                                            href={selectedIssuer.official_domain}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sm text-primary-600 hover:text-primary-700 hover:underline flex items-center gap-1"
+                                        >
+                                            {selectedIssuer.official_domain}
+                                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                            </svg>
+                                        </a>
+                                    </div>
+                                )}
+
+                                {selectedIssuer.address && (
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Address</label>
+                                        <p className="text-sm text-gray-900 whitespace-pre-wrap">{selectedIssuer.address}</p>
+                                    </div>
+                                )}
+
+                                {selectedIssuer.kyc_document_url && (
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">KYC Document</label>
+                                        <a
+                                            href={selectedIssuer.kyc_document_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sm text-primary-600 hover:text-primary-700 hover:underline flex items-center gap-1"
+                                        >
+                                            View Document
                                             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                             </svg>
