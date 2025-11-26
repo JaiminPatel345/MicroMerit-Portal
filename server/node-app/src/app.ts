@@ -9,9 +9,9 @@ import { logger } from './utils/logger';
 import { issuerAuthRoutes, issuerResourceRoutes } from './modules/issuer/routes';
 import { learnerAuthRoutes, learnerResourceRoutes } from './modules/learner/routes';
 import { adminAuthRoutes, adminResourceRoutes } from './modules/admin/routes';
-import credentialRoutes from './modules/credential/routes';
 import pdfRoutes from './modules/pdf/routes';
-import verificationRoutes from './modules/verification/routes';
+import credentialIssuanceRoutes from './modules/credential-issuance/routes';
+import credentialVerificationRoutes from './modules/credential-verification/routes';
 
 
 const app: Application = express();
@@ -33,20 +33,20 @@ app.use(addSignedUrlsMiddleware);
 app.use((req, res, next) => {
   const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173'];
   const origin = req.headers.origin;
-  
+
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
-  
+
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  
+
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
     return;
   }
-  
+
   next();
 });
 
@@ -71,9 +71,9 @@ app.use('/learner', learnerResourceRoutes);
 app.use('/admin', adminResourceRoutes);
 
 // Other routes
-app.use('/credentials', credentialRoutes);
+app.use('/credentials', credentialIssuanceRoutes); // New credential issuance system
+app.use('/credentials', credentialVerificationRoutes); // New credential verification system
 app.use('/pdf', pdfRoutes);
-app.use('/verify', verificationRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -93,7 +93,6 @@ app.get('/', (req, res) => {
         admin: '/admin',
         credentials: '/credentials',
         pdf: '/pdf',
-        verify: '/verify',
       },
       health: '/health',
     },

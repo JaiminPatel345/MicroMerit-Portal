@@ -73,8 +73,6 @@ export class AdminRepository {
                 type: true,
               },
             },
-            blockchain_record: true,
-            pdf_certificate: true,
           },
           orderBy: { issued_at: 'desc' },
         },

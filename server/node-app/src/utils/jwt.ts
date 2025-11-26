@@ -5,6 +5,7 @@ export interface JWTPayload {
   id: number;
   email: string;
   role: 'admin' | 'issuer' | 'learner';
+  type?: 'admin' | 'issuer' | 'learner' | 'registration'; // For backwards compatibility
 }
 
 export interface TokenResponse {

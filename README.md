@@ -4,14 +4,23 @@ A comprehensive digital credential management system with blockchain integration
 
 ## 🌟 Features
 
+### Authentication & User Management
 - **Multi-Role Authentication**: Issuer, Learner, and Admin roles
 - **Two-Step OTP Verification**: For both Issuer and Learner registration
 - **Email Management**: Verified email addition for learners
 - **OAuth Integration**: Google and DigiLocker sign-in
-- **Digital Credentials**: Issue, claim, revoke, and verify credentials
-- **PDF Certificates**: Generate professional certificates with QR codes
-- **Blockchain Integration**: Record credential hashes on blockchain
 - **API Key Management**: For programmatic issuer access
+
+### Blockchain-Backed Credentials (New!)
+- **Credential Issuance**: Issue verifiable credentials with blockchain anchoring
+- **IPFS Integration**: Decentralized storage via Filebase for certificates
+- **Multi-Identifier Verification**: Verify by credential_id, tx_hash, ipfs_cid, or QR code
+- **QR Code Generation**: Generate shareable QR codes for credentials
+- **Data Integrity**: SHA256 hashing ensures tamper-proof credentials
+- **Unclaimed Credentials**: Support for pre-issuing credentials to unregistered learners
+
+### Legacy Features
+- **PDF Certificates**: Generate professional certificates with QR codes
 - **Cloud Storage**: Amazon S3 integration for certificates
 
 ## 📁 Project Structure
@@ -202,7 +211,131 @@ AWS_SECRET_ACCESS_KEY=your-secret-key
 
 See [BACKEND_SETUP.md](./docs/BACKEND_SETUP.md) for complete environment configuration.
 
-## 🤝 Contributing
+## 📜 API Endpoints
+
+### Authentication
+- `POST /auth/issuer/register` - Issuer registration
+- `POST /auth/learner/start-register` -Start learner registration
+- `POST /auth/admin/login` - Admin login
+
+### Credentials (New!)
+- `POST /credentials/issue` - Issue a new blockchain-backed credential
+- `POST /credentials/verify` - Verify credential authenticity
+- `GET /learner/:learner_id/credentials/:credential_id/qr` - Get QR code payload
+
+### Legacy Endpoints
+- `POST /pdf` - Generate PDF certificate
+- `GET /pdf/:credentialUid` - Download PDF certificate
+
+Full API documentation available in `/docs/apis/` directory.
+
+---
+
+## 🔐 Environment Variables
+
+### New Required Variables (Credentials System)
+
+```env
+# Filebase IPFS Configuration
+FILEBASE_ACCESS_KEY_ID=your_access_key
+FILEBASE_SECRET_ACCESS_KEY=your_secret_key
+FILEBASE_BUCKET_NAME=your_bucket_name
+FILEBASE_GATEWAY_URL=https://ipfs.filebase.io/ipfs/
+
+# Blockchain Configuration
+BLOCKCHAIN_MOCK_ENABLED=true
+BLOCKCHAIN_NETWORK=ethereum_testnet
+BLOCKCHAIN_CONTRACT_ADDRESS=mock_contract
+```
+
+### Obtaining Filebase Credentials
+
+1. Sign up at [Filebase.com](https://filebase.com)
+2. Create an IPFS bucket
+3. Generate Access Keys from dashboard
+4. Add keys to `.env` file
+
+---
+
+## 🎯 Credential System Usage
+
+### Issuing a Credential
+
+```bash
+curl -X POST http://localhost:3000/api/credentials/issue \
+  -H "Authorization: Bearer YOUR_ISSUER_TOKEN" \
+  -F "learner_email=learner@example.com" \
+  -F "issuer_id=1" \
+  -F "certificate_title=Web Development Certificate" \
+  -F "issued_at=2024-01-15T10:00:00Z" \
+  -F "original_pdf=@certificate.pdf"
+```
+
+### Verifying a Credential
+
+```bash
+# By credential ID
+curl -X POST http://localhost:3000/api/credentials/verify \
+  -H "Content-Type: application/json" \
+  -d '{"credential_id": "123e4567-e89b-12d3-a456-426614174000"}'
+
+# By transaction hash
+curl -X POST http://localhost:3000/api/credentials/verify \
+  -H "Content-Type: application/json" \
+  -d '{"tx_hash": "0x123e4567e89b12d3a456426614174000"}'
+
+# By QR payload (Base64 encoded JSON)
+curl -X POST http://localhost:3000/api/credentials/verify \
+  -H "Content-Type: application/json" \
+  -d '{"qr_payload": "eyJjcmVkZW50aWFsX2lkIjoi..."}'
+```
+
+### Getting QR Code Data
+
+```bash
+curl -X GET http://localhost:3000/api/learner/42/credentials/123e4567.../qr \
+  -H "Authorization: Bearer YOUR_LEARNER_TOKEN"
+```
+
+---
+
+## 🏗️ Architecture
+
+### Database Schema
+
+**New Credential Model** (Consolidated):
+- Replaces old `credential`, `blockchain_record`, and `pdf_certificate` tables
+- Single source of truth for all credential data
+- Includes blockchain tx_hash, IPFS CID, and data integrity hash
+
+### Credential Workflow
+
+1. **Issuance**: Issuer uploads PDF → System generates credential_id → PDF pinned to IPFS → Data hash computed → Mock blockchain write → Credential stored
+2. **Verification**: User provides identifier → System retrieves credential → Canonical JSON reconstructed → Hash recomputed → Blockchain verified → Result returned
+3. **QR Sharing**: Learner requests QR data → System returns JSON with all identifiers → Frontend generates QR code → Others scan to verify
+
+---
+
+## 🧪 Testing
+
+### Running Tests
+
+```bash
+cd server/node-app
+yarn test
+```
+
+### Manual Testing Checklist
+
+- [ ] Issue credential with existing learner email
+- [ ] Issue credential with unknown email (unclaimed)
+- [ ] Verify credential by ID, tx_hash, and IPFS CID
+- [ ] Generate QR code payload
+- [ ] Test tampered credential detection
+
+---
+
+## 🤝 Contributors
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)

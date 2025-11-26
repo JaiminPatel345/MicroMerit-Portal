@@ -1,80 +1,80 @@
+/**
+ * PDF Repository
+ * Updated to work with new Credential schema
+ */
+
 import { prisma } from '../../utils/prisma';
 
 export class PdfRepository {
   /**
-   * Find credential by UID with all relations
+   * Find credential by credential_id (new field name)
    */
   async findCredentialByUid(credentialUid: string) {
     return prisma.credential.findUnique({
-      where: { credential_uid: credentialUid },
+      where: { credential_id: credentialUid },
       include: {
         issuer: true,
         learner: true,
-        blockchain_record: true,
-        pdf_certificate: true,
       },
     });
   }
 
   /**
-   * Create PDF certificate record
+   * PDF URLs are now stored directly in Credential.pdf_url
+   * This method throws an error as the pdf_certificate table no longer exists
    */
   async createPdfCertificate(data: {
-    credentialId: number;
+    credentialId: string;
     pdfUrl: string;
     qrCodeUrl: string;
   }) {
-    return prisma.pdf_certificate.create({
-      data: {
-        credential_id: data.credentialId,
-        pdf_url: data.pdfUrl,
-        qr_code_url: data.qrCodeUrl,
-      },
-    });
+    throw new Error('pdf_certificate table no longer exists. Use updateCredentialPdfUrl instead.');
   }
 
   /**
-   * Update PDF certificate record
+   * PDF URLs are now stored directly in Credential.pdf_url
    */
   async updatePdfCertificate(
-    credentialId: number,
+    credentialId: string,
     data: {
       pdfUrl: string;
       qrCodeUrl: string;
     }
   ) {
-    return prisma.pdf_certificate.update({
-      where: { credential_id: credentialId },
-      data: {
-        pdf_url: data.pdfUrl,
-        qr_code_url: data.qrCodeUrl,
-      },
-    });
+    throw new Error('pdf_certificate table no longer exists. Use updateCredentialPdfUrl instead.');
   }
 
   /**
-   * Find PDF certificate by credential UID
+   * Update credential with PDF URL directly
    */
-  async findPdfByCredentialUid(credentialUid: string) {
-    const credential = await prisma.credential.findUnique({
-      where: { credential_uid: credentialUid },
-      include: {
-        pdf_certificate: true,
-      },
-    });
-
-    return credential?.pdf_certificate || null;
-  }
-
-  /**
-   * Update credential metadata with PDF hash
-   */
-  async updateCredentialMetadata(credentialId: number, metadata: any) {
+  async updateCredentialPdfUrl(credentialId: string, pdfUrl: string) {
     return prisma.credential.update({
-      where: { id: credentialId },
-      data: {
-        metadata,
-      },
+      where: { credential_id: credentialId },
+      data: { pdf_url: pdfUrl },
+    });
+  }
+
+  /**
+   * Find PDF URL by credential_id
+   */
+  async findPdfByCredentialUid(credentialUid: string): Promise<string | null> {
+    const credential = await prisma.credential.findUnique({
+      where: { credential_id: credentialUid },
+      select: { pdf_url: true },
+    });
+
+    return credential?.pdf_url || null;
+  }
+
+  /**
+   * Update credential metadata
+   */
+  async updateCredentialMetadata(credentialId: string, metadata: any) {
+    return prisma.credential.update({
+      where: { credential_id: credentialId },
+      data: { metadata },
     });
   }
 }
+
+export const pdfRepository = new PdfRepository();

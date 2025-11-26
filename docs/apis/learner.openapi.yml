@@ -925,6 +925,102 @@ paths:
                 message: Invalid session ID
                 statusCode: 404
 
+  /learner/{learner_id}/credentials/{credential_id}/qr:
+    get:
+      tags: [Credentials]
+      summary: Get QR code payload for a credential
+      description: |
+        Retrieve the QR code payload for a specific credential. This endpoint returns
+        the data that should be embedded in a QR code for credential verification.
+        
+        **Use Case**: Generate QR codes for learners to share their credentials.
+        The returned payload can be Base64 encoded and embedded in a QR code.
+        
+        **Security**: Learners can only access QR data for their own credentials.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: learner_id
+          in: path
+          required: true
+          description: ID of the learner
+          schema:
+            type: integer
+            example: 42
+        - name: credential_id
+          in: path
+          required: true
+          description: UUID of the credential
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: QR payload retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "QR payload retrieved successfully"
+                  data:
+                    type: object
+                    properties:
+                      credential_id:
+                        type: string
+                        format: uuid
+                        description: Unique credential identifier
+                      ipfs_cid:
+                        type: string
+                        description: IPFS Content Identifier for the certificate
+                        example: "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG"
+                      tx_hash:
+                        type: string
+                        description: Blockchain transaction hash
+                        example: "0x123e4567e89b12d3a456426614174000"
+                      data_hash:
+                        type: string
+                        description: SHA256 hash of credential data
+                        example: "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456"
+              example:
+                success: true
+                message: "QR payload retrieved successfully"
+                data:
+                  credential_id: "123e4567-e89b-12d3-a456-426614174000"
+                  ipfs_cid: "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG"
+                  tx_hash: "0x123e4567e89b12d3a456426614174000"
+                  data_hash: "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456"
+        '403':
+          description: Forbidden - Cannot access other learner's credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: "You can only access your own credentials"
+                error: "FORBIDDEN"
+                statusCode: 403
+        '404':
+          description: Credential not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: "Credential not found"
+                error: "CREDENTIAL_NOT_FOUND"
+                statusCode: 404
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
 components:
   securitySchemes:
     BearerAuth:

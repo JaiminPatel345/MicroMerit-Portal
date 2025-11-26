@@ -79,11 +79,45 @@ export const optionalAuth = (
       const decoded = verifyAccessToken(token);
       req.user = decoded;
     }
-    
+
     next();
   } catch (error) {
     // Token is invalid but we don't fail the request
     logger.debug('Optional auth - invalid token', { error });
     next();
+  }
+};
+
+/**
+ * Middleware to verify issuer authentication
+ * Ensures the user is authenticated and is an issuer
+ */
+export const authenticateIssuer = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      sendUnauthorized(res, 'Access token is required');
+      return;
+    }
+
+    const decoded = verifyAccessToken(token);
+
+    // Check if the user is an issuer (type should be 'issuer')
+    if (decoded.type !== 'issuer') {
+      sendUnauthorized(res, 'Only issuers can access this endpoint');
+      return;
+    }
+
+    req.user = decoded;
+    next();
+  } catch (error) {
+    logger.error('Issuer token verification failed', { error });
+    sendUnauthorized(res, 'Invalid or expired token');
   }
 };

@@ -25,7 +25,7 @@ export class PdfService {
         width: 200,
         margin: 1,
       });
-      
+
       return qrCodeDataUrl;
     } catch (error) {
       logger.error('Error generating QR code:', error);
@@ -45,7 +45,7 @@ export class PdfService {
       // Create a new PDF document
       const pdfDoc = await PDFDocument.create();
       const page = pdfDoc.addPage([595, 842]); // A4 size
-      
+
       const { width, height } = page.getSize();
       const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
       const timesRomanBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
@@ -116,9 +116,9 @@ export class PdfService {
       });
 
       // Description
-      const description = credential.metadata?.description || 
+      const description = credential.metadata?.description ||
         `has successfully completed the requirements and is awarded this credential`;
-      
+
       page.drawText(description, {
         x: width / 2 - (description.length * 3),
         y: height - 280,
@@ -129,7 +129,7 @@ export class PdfService {
       });
 
       // Credential details
-      page.drawText(`Credential ID: ${credential.credential_uid}`, {
+      page.drawText(`Credential ID: ${credential.credential_id}`, {
         x: 80,
         y: height - 340,
         size: 12,
@@ -159,9 +159,9 @@ export class PdfService {
         y: height - 415,
         size: 12,
         font: timesRomanBold,
-        color: credential.status === 'claimed' ? rgb(0, 0.6, 0) : 
-               credential.status === 'revoked' ? rgb(0.8, 0, 0) : 
-               rgb(0.2, 0.4, 0.7),
+        color: credential.status === 'claimed' ? rgb(0, 0.6, 0) :
+          credential.status === 'revoked' ? rgb(0.8, 0, 0) :
+            rgb(0.2, 0.4, 0.7),
       });
 
       // Embed QR code
@@ -213,7 +213,7 @@ export class PdfService {
         color: rgb(0.5, 0.5, 0.5),
       });
 
-      const verifyUrl = `${process.env.APP_URL || 'http://localhost:3000'}/credentials/${credential.credential_uid}`;
+      const verifyUrl = `${process.env.APP_URL || 'http://localhost:3000'}/credentials/${credential.credential_id}`;
       page.drawText(verifyUrl, {
         x: 80,
         y: 75,
@@ -224,7 +224,7 @@ export class PdfService {
 
       // Serialize the PDF to bytes
       const pdfBytes = await pdfDoc.save();
-      
+
       return Buffer.from(pdfBytes);
     } catch (error) {
       logger.error('Error creating PDF certificate:', error);
@@ -265,11 +265,11 @@ export class PdfService {
     }
 
     // Generate verification URL for QR code
-    const verifyUrl = `${process.env.APP_URL || 'http://localhost:3000'}/credentials/${credentialUid}`;
-    
+    const verifyUrl = `${process.env.APP_URL || 'http://localhost:3000'}/credentials/${credential.credential_id}`;
+
     // Generate QR code
     const qrCodeDataUrl = await this.generateQRCode(verifyUrl);
-    
+
     // Save QR code as separate file
     const qrCodeBuffer = Buffer.from(
       qrCodeDataUrl.replace(/^data:image\/png;base64,/, ''),
@@ -293,45 +293,29 @@ export class PdfService {
     const pdfFilename = `${credentialUid}-certificate.pdf`;
     const pdfUrl = await this.saveFile(pdfBuffer, pdfFilename, 'application/pdf');
 
-    // Check if PDF certificate record already exists
-    const existingPdf = credential.pdf_certificate;
-
-    let pdfCertificate;
-    if (existingPdf) {
-      // Update existing record
-      pdfCertificate = await this.repository.updatePdfCertificate(credential.id, {
-        pdfUrl,
-        qrCodeUrl,
-      });
-    } else {
-      // Create new record
-      pdfCertificate = await this.repository.createPdfCertificate({
-        credentialId: credential.id,
-        pdfUrl,
-        qrCodeUrl,
-      });
-    }
-
-    // Update credential metadata with PDF hash
-    const existingMetadata = credential.metadata && typeof credential.metadata === 'object' 
-      ? credential.metadata as any 
+    // PDF certificate table no longer exists - PDF URL is stored in Credential model
+    // Update credential with PDF URL and metadata
+    const existingMetadata = credential.metadata && typeof credential.metadata === 'object'
+      ? credential.metadata as any
       : {};
-    
+
     const existingPdfMeta = existingMetadata.pdf && typeof existingMetadata.pdf === 'object'
       ? existingMetadata.pdf
       : {};
-    
+
     const updatedMetadata = {
       ...existingMetadata,
       pdf: {
         ...existingPdfMeta,
+        url: pdfUrl,
         hash: pdfHash,
         generatedAt: new Date().toISOString(),
         filename: pdfFilename,
+        qrCodeUrl: qrCodeUrl,
       },
     };
 
-    await this.repository.updateCredentialMetadata(credential.id, updatedMetadata);
+    await this.repository.updateCredentialMetadata(credential.credential_id, updatedMetadata);
 
     logger.info(`PDF certificate generated for credential: ${credentialUid}`);
 
@@ -339,8 +323,8 @@ export class PdfService {
       credentialUid,
       pdfUrl,
       qrCodeUrl,
-      createdAt: pdfCertificate.created_at,
-      message: existingPdf ? 'PDF certificate regenerated' : 'PDF certificate generated',
+      createdAt: new Date(),
+      message: 'PDF certificate generated',
     };
   }
 
@@ -348,17 +332,17 @@ export class PdfService {
    * Get PDF certificate by credential UID
    */
   async getPdfCertificate(credentialUid: string) {
-    const pdfCertificate = await this.repository.findPdfByCredentialUid(credentialUid);
-    
-    if (!pdfCertificate) {
+    const pdfUrl = await this.repository.findPdfByCredentialUid(credentialUid);
+
+    if (!pdfUrl) {
       throw new Error('PDF certificate not found for this credential');
     }
 
     return {
       credentialUid,
-      pdfUrl: pdfCertificate.pdf_url,
-      qrCodeUrl: pdfCertificate.qr_code_url,
-      createdAt: pdfCertificate.created_at,
+      pdfUrl: pdfUrl,
+      qrCodeUrl: null, // QR is embedded in PDF
+      createdAt: new Date(),
     };
   }
 
@@ -366,14 +350,14 @@ export class PdfService {
    * Download PDF file from S3
    */
   async downloadPdf(credentialUid: string): Promise<{ buffer: Buffer; filename: string }> {
-    const pdfCertificate = await this.repository.findPdfByCredentialUid(credentialUid);
-    
-    if (!pdfCertificate) {
+    const pdfUrl = await this.repository.findPdfByCredentialUid(credentialUid);
+
+    if (!pdfUrl) {
       throw new Error('PDF certificate not found');
     }
 
     // Extract S3 key from URL
-    const s3Key = s3Service.extractKeyFromUrl(pdfCertificate.pdf_url);
+    const s3Key = s3Service.extractKeyFromUrl(pdfUrl);
     const filename = `${credentialUid}-certificate.pdf`;
 
     try {

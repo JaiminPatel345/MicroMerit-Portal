@@ -66,7 +66,7 @@ export class AdminService {
   async refresh(refreshToken: string): Promise<TokenResponse> {
     try {
       const decoded = verifyRefreshToken(refreshToken);
-      
+
       // Verify admin still exists
       const admin = await adminRepository.findById(decoded.id);
       if (!admin) {
@@ -117,7 +117,7 @@ export class AdminService {
     }
 
     const approvedIssuer = await issuerRepository.approve(issuerId);
-    
+
     logger.info('Issuer approved', {
       adminId,
       adminEmail: admin.email,
@@ -147,7 +147,7 @@ export class AdminService {
     }
 
     const rejectedIssuer = await issuerRepository.reject(issuerId, reason);
-    
+
     logger.info('Issuer rejected', {
       adminId,
       adminEmail: admin.email,
@@ -178,7 +178,7 @@ export class AdminService {
     }
 
     const blockedIssuer = await issuerRepository.block(issuerId, reason);
-    
+
     logger.info('Issuer blocked', {
       adminId,
       adminEmail: admin.email,
@@ -209,7 +209,7 @@ export class AdminService {
     }
 
     const unblockedIssuer = await issuerRepository.unblock(issuerId);
-    
+
     logger.info('Issuer unblocked', {
       adminId,
       adminEmail: admin.email,
@@ -252,9 +252,9 @@ export class AdminService {
     }
 
     const { hashed_password, ...sanitizedLearner } = learner;
-    
+
     // Sanitize issuer data in credentials
-    const sanitizedCredentials = sanitizedLearner.credentials.map(cred => ({
+    const sanitizedCredentials = (sanitizedLearner as any).credentials?.map((cred: any) => ({
       ...cred,
       issuer: {
         ...cred.issuer,
@@ -263,7 +263,7 @@ export class AdminService {
 
     return {
       ...sanitizedLearner,
-      credentials: sanitizedCredentials,
+      credentials: sanitizedCredentials || [],
     };
   }
 
@@ -285,18 +285,18 @@ export class AdminService {
       ...cred,
       issuer: cred.issuer
         ? {
-            id: cred.issuer.id,
-            name: cred.issuer.name,
-            logo_url: cred.issuer.logo_url,
-            type: cred.issuer.type,
-          }
+          id: cred.issuer.id,
+          name: cred.issuer.name,
+          logo_url: cred.issuer.logo_url,
+          type: cred.issuer.type,
+        }
         : null,
       learner: cred.learner
         ? {
-            id: cred.learner.id,
-            name: cred.learner.name,
-            email: cred.learner.email,
-          }
+          id: cred.learner.id,
+          name: cred.learner.name,
+          email: cred.learner.email,
+        }
         : null,
     }));
 
