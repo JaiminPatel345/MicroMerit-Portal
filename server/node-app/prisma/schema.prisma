@@ -11,45 +11,45 @@ datasource db {
 }
 
 model issuer {
-  id                          Int       @id @default(autoincrement())
-  name                        String
-  official_domain             String?
-  website_url                 String?
-  type                        String    // enum: university, edtech, company, training_provider
-  email                       String    @unique
-  phone                       String?
-  password_hash               String?
-  contact_person_name         String?
-  contact_person_designation  String?
-  address                     String?
-  kyc_document_url            String?
-  logo_url                    String?
-  status                      String    @default("pending") // pending, approved, rejected
-  approved_at                 DateTime?
-  rejected_reason             String?
-  is_blocked                  Boolean   @default(false)
-  blocked_reason              String?
-  created_at                  DateTime  @default(now())
+  id                         Int       @id @default(autoincrement())
+  name                       String
+  official_domain            String?
+  website_url                String?
+  type                       String // enum: university, edtech, company, training_provider
+  email                      String    @unique
+  phone                      String?
+  password_hash              String?
+  contact_person_name        String?
+  contact_person_designation String?
+  address                    String?
+  kyc_document_url           String?
+  logo_url                   String?
+  status                     String    @default("pending") // pending, approved, rejected
+  approved_at                DateTime?
+  rejected_reason            String?
+  is_blocked                 Boolean   @default(false)
+  blocked_reason             String?
+  created_at                 DateTime  @default(now())
 
-  apiKeys                     issuer_api_key[]
-  credentials                 credential[]
+  apiKeys     issuer_api_key[]
+  credentials Credential[]
 }
 
 model issuer_api_key {
-  id                     Int      @id @default(autoincrement())
-  issuer_id              Int
-  name                   String
-  api_key                String   @unique
-  active                 Boolean  @default(true)
-  revoked_reason         String?
-  expires_at             DateTime?
-  last_used_at           DateTime?
-  usage_count            Int      @default(0)
-  rate_limit_per_minute  Int      @default(60)
-  allowed_ips            String?
-  created_at             DateTime @default(now())
+  id                    Int       @id @default(autoincrement())
+  issuer_id             Int
+  name                  String
+  api_key               String    @unique
+  active                Boolean   @default(true)
+  revoked_reason        String?
+  expires_at            DateTime?
+  last_used_at          DateTime?
+  usage_count           Int       @default(0)
+  rate_limit_per_minute Int       @default(60)
+  allowed_ips           String?
+  created_at            DateTime  @default(now())
 
-  issuer                 issuer   @relation(fields: [issuer_id], references: [id])
+  issuer issuer @relation(fields: [issuer_id], references: [id])
 }
 
 model learner {
@@ -64,43 +64,43 @@ model learner {
   status                 String    @default("active")
   other_emails           String[]
   dob                    DateTime?
-  gender                 String?   // Male, Female, Others, Not to disclose
+  gender                 String? // Male, Female, Others, Not to disclose
   created_at             DateTime  @default(now())
 
-  credentials            credential[]
+  credentials Credential[]
 }
 
 model admin {
-  id             Int      @id @default(autoincrement())
-  email          String   @unique
-  password_hash  String
-  created_at     DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  email         String   @unique
+  password_hash String
+  created_at    DateTime @default(now())
 }
 
 model verification_session {
-  id                String    @id @default(uuid())
-  session_type      String    // 'learner_registration', 'email_verification', 'issuer_registration', 'primary_contact_change'
-  
+  id           String @id @default(uuid())
+  session_type String // 'learner_registration', 'email_verification', 'issuer_registration', 'primary_contact_change'
+
   // Related entity IDs (nullable based on type)
-  learner_id        Int?
-  issuer_id         Int?
-  
+  learner_id Int?
+  issuer_id  Int?
+
   // Contact details
-  email             String?
-  phone             String?
-  contact_type      String?   // 'email' or 'phone' for primary contact changes
-  
+  email        String?
+  phone        String?
+  contact_type String? // 'email' or 'phone' for primary contact changes
+
   // OTP verification
-  otp_hash          String
-  is_verified       Boolean   @default(false)
-  verified_at       DateTime?
-  
+  otp_hash    String
+  is_verified Boolean   @default(false)
+  verified_at DateTime?
+
   // Additional data (for issuer registration, etc.)
-  metadata          Json?
-  
+  metadata Json?
+
   // Lifecycle
-  expires_at        DateTime
-  created_at        DateTime  @default(now())
+  expires_at DateTime
+  created_at DateTime @default(now())
 
   @@index([session_type])
   @@index([learner_id])
@@ -110,47 +110,31 @@ model verification_session {
   @@index([expires_at])
 }
 
-model credential {
-  id              Int       @id @default(autoincrement())
-  issuer_id       Int
-  learner_id      Int?
-  credential_uid  String    @unique
-  metadata        Json
-  status          String    @default("issued") // issued, claimed, revoked
-  issued_at       DateTime  @default(now())
-  claimed_at      DateTime?
+model Credential {
+  id                String   @id @default(uuid())
+  credential_id     String   @unique
+  learner_id        Int?
+  learner_email     String
+  issuer_id         Int
+  certificate_title String
+  issued_at         DateTime
+  ipfs_cid          String?
+  pdf_url           String?
+  tx_hash           String?
+  data_hash         String
+  metadata          Json
+  status            String   @default("issued") // issued, claimed, unclaimed, revoked
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  issuer          issuer    @relation(fields: [issuer_id], references: [id])
-  learner         learner?  @relation(fields: [learner_id], references: [id])
-  
-  blockchain_record  blockchain_record?
-  pdf_certificate    pdf_certificate?
+  issuer  issuer   @relation(fields: [issuer_id], references: [id])
+  learner learner? @relation(fields: [learner_id], references: [id])
 
+  @@index([credential_id])
   @@index([issuer_id])
   @@index([learner_id])
-  @@index([credential_uid])
+  @@index([learner_email])
+  @@index([ipfs_cid])
+  @@index([tx_hash])
   @@index([status])
 }
-
-model blockchain_record {
-  id                 Int       @id @default(autoincrement())
-  credential_id      Int       @unique
-  blockchain_tx_id   String
-  hash_value         String
-  stored_at          DateTime  @default(now())
-
-  credential         credential @relation(fields: [credential_id], references: [id])
-
-  @@index([blockchain_tx_id])
-}
-
-model pdf_certificate {
-  id             Int       @id @default(autoincrement())
-  credential_id  Int       @unique
-  pdf_url        String
-  qr_code_url    String?
-  created_at     DateTime  @default(now())
-
-  credential     credential @relation(fields: [credential_id], references: [id])
-}
-
