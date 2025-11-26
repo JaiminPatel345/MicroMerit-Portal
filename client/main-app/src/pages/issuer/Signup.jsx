@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { signInIssuer } from "../../services/authServices";
+import { issuerServices } from "../../services/issuerServices";
 import {
   validateEmail,
   validateMobile,
@@ -84,7 +84,7 @@ function IssuerSignUp() {
     const mobileValidation = validateMobile(form.phone);
     if (mobileValidation) err.phone = mobileValidation;
 
-    if(!form.phone.trim()){
+    if (!form.phone.trim()) {
       err.phone = "Phone number is required";
     }
 
@@ -107,7 +107,7 @@ function IssuerSignUp() {
     return Object.keys(err).length === 0;
   };
 
-    const validateStep3 = () => {
+  const validateStep3 = () => {
     let err = {};
 
     // KYC URL
@@ -144,50 +144,50 @@ function IssuerSignUp() {
   };
 
 
- const submitSignup = async () => {
-  // Validate all steps before submission
-  if (!validateStep1() || !validateStep2() || !validateStep3()) return;
+  const submitSignup = async () => {
+    // Validate all steps before submission
+    if (!validateStep1() || !validateStep2() || !validateStep3()) return;
 
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    // Filter only fields that have a value
-    const filteredFormData = Object.fromEntries(
-      Object.entries(form).filter(([key, value]) => {
-        if (typeof value === "string") return value.trim() !== "";
-        if (typeof value === "boolean") return value === true; // keep checkboxes only if checked
-        return value != null; // keep non-null objects
-      })
-    );
+      // Filter only fields that have a value
+      const filteredFormData = Object.fromEntries(
+        Object.entries(form).filter(([key, value]) => {
+          if (typeof value === "string") return value.trim() !== "";
+          if (typeof value === "boolean") return value === true; // keep checkboxes only if checked
+          return value != null; // keep non-null objects
+        })
+      );
 
-    // Call API
-    const response = await signInIssuer.start(filteredFormData);
+      // Call API
+      const response = await issuerServices.startRegistration(filteredFormData);
 
-    if (response.data.success) {
-      navigate("/verify-otp", {
-        state: {
-          sessionId: response?.data?.data.sessionId,
-          type: "issuer",
-          identifier: form.email,
-        },
+      if (response.success) {
+        navigate("/verify-otp", {
+          state: {
+            sessionId: response.data.sessionId,
+            type: "issuer",
+            identifier: form.email,
+          },
+        });
+      }
+    } catch (error) {
+      setErrors({
+        submit: error.response?.data?.message || "Signup failed. Please try again.",
       });
+      console.error("Signup error:", error);
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    setErrors({
-      submit: error.response?.data?.message || "Signup failed. Please try again.",
-    });
-    console.error("Signup error:", error);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 
   // ---------------- UI ----------------
-  
+
   const stepTitles = [
-    "Organization Details (1/3)", 
-    "Contact & Address (2/3)", 
+    "Organization Details (1/3)",
+    "Contact & Address (2/3)",
     "Security & Compliance (3/3)"
   ];
 
@@ -211,7 +211,7 @@ function IssuerSignUp() {
             {!(name.includes("optional") || name.includes("domain") || name.includes("url")) && <span className="text-red-500">*</span>}
           </label>
         )}
-        
+
         {isSelect ? (
           <select
             id={name}
@@ -259,7 +259,7 @@ function IssuerSignUp() {
             placeholder={placeholder}
           />
         )}
-        
+
         {error && (
           <p className="text-red-500 text-xs mt-1 font-medium">{error}</p>
         )}
@@ -270,16 +270,16 @@ function IssuerSignUp() {
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-blue-chill-50 p-4 sm:p-6 font-sans">
-      
+
       {/* Registration Card */}
       <div className="w-full max-w-xl bg-white p-6 sm:p-10 rounded-2xl shadow-2xl border border-gray-200">
 
         {/* Header & Title */}
         <h1 className="text-3xl sm:text-4xl font-extrabold text-center text-gray-900 mb-2">
-            Register as Issuer
+          Register as Issuer
         </h1>
         <p className="text-center text-md text-blue-chill-700 mb-6 font-medium border-b pb-4">
-            {stepTitles[step - 1]}
+          {stepTitles[step - 1]}
         </p>
 
         {/* Step Indicators */}
@@ -309,7 +309,7 @@ function IssuerSignUp() {
             {renderField("email", "Official Email", "Ex: contact@institute.edu")}
             {renderField("official_domain", "Official Domain (Optional)", "Ex: institute.edu")}
             {renderField("website_url", "Website URL (Optional)", "https://your-organization.com")}
-            
+
             {renderField("type", "Organization Type", null, "select", [
               { value: "", label: "Select Type" },
               { value: "university", label: "University" },
@@ -333,19 +333,19 @@ function IssuerSignUp() {
             {renderField("phone", "Phone Number", "10-digit mobile number")}
             {renderField("contact_person_name", "Contact Person Name", "Full name")}
             {renderField("contact_person_designation", "Designation", "Ex: Registrar, HR Head")}
-            
+
             {renderField(
-                "address", 
-                "Address", 
-                "Office / campus / corporate address", 
-                "textarea", 
-                null, 
-                3
+              "address",
+              "Address",
+              "Office / campus / corporate address",
+              "textarea",
+              null,
+              3
             )}
 
             <div className="flex justify-between gap-4 pt-4">
-              <button 
-                className="w-1/2 p-3 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-100 transition duration-150" 
+              <button
+                className="w-1/2 p-3 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-100 transition duration-150"
                 onClick={prevStep}
               >
                 Back
@@ -365,24 +365,24 @@ function IssuerSignUp() {
           <div className="space-y-6">
             {renderField("kyc_document_url", "KYC Document URL", "Upload document and paste link (must be a valid URL)")}
             {renderField("logo_url", "Logo URL (Optional)", "Link to organization logo")}
-            
+
             {renderField("password", "Password", "Minimum 8 characters (with letters and numbers)", "password")}
             {renderField("confirm_password", "Confirm Password", "Re-enter password", "password")}
 
             {/* CONSENT */}
             {renderField(
-                "consent", 
-                "I give consent to receive invitations & OTP updates on this email.", 
-                null, 
-                "checkbox"
+              "consent",
+              "I give consent to receive invitations & OTP updates on this email.",
+              null,
+              "checkbox"
             )}
             {errors.consent && (
               <p className="text-red-500 text-xs mt-1 font-medium -mt-2 ml-10">{errors.consent}</p>
             )}
 
             <div className="flex justify-between gap-4 pt-4">
-              <button 
-                className="w-1/2 p-3 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-100 transition duration-150" 
+              <button
+                className="w-1/2 p-3 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-100 transition duration-150"
                 onClick={prevStep}
               >
                 Back
@@ -394,13 +394,13 @@ function IssuerSignUp() {
                 onClick={submitSignup}
               >
                 {loading ? (
-                    <div className="flex items-center">
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Sending OTP...
-                    </div>
+                  <div className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Sending OTP...
+                  </div>
                 ) : "Create Account"}
               </button>
             </div>
