@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Send } from './icons';
+import { credentialServices } from '../../services/credentialServices';
 
 
 const NewIssuance = () => {
@@ -11,10 +12,80 @@ const NewIssuance = () => {
     ];
 
 
-    const handleIssuance = (e) => {
+    const [formData, setFormData] = useState({
+        learnerEmail: '',
+        learnerPhone: '',
+        credentialUid: '',
+        courseName: '',
+        grade: '',
+        templateId: ''
+    });
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState('');
+
+    useEffect(() => {
+        const generateUid = async () => {
+            try {
+                const response = await credentialServices.generateUid();
+                if (response.success) {
+                    setFormData(prev => ({ ...prev, credentialUid: response.data.uid }));
+                }
+            } catch (error) {
+                console.error("Failed to generate UID", error);
+            }
+        };
+        if (issuanceType === 'single') {
+            generateUid();
+        }
+    }, [issuanceType]);
+
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleIssuance = async (e) => {
         e.preventDefault();
-        alert(`[Simulated] Starting ${issuanceType} issuance... Check console.`);
-        console.log(`[Issuance] Starting issuance process: ${issuanceType}`);
+        if (issuanceType === 'bulk') {
+            alert(`[Simulated] Starting ${issuanceType} issuance... Check console.`);
+            console.log(`[Issuance] Starting issuance process: ${issuanceType}`);
+            return;
+        }
+
+        setLoading(true);
+        setMessage('');
+
+        try {
+            const payload = {
+                learnerEmail: formData.learnerEmail,
+                learnerPhone: formData.learnerPhone,
+                credentialUid: formData.credentialUid,
+                metadata: {
+                    courseName: formData.courseName,
+                    grade: formData.grade,
+                    templateId: formData.templateId,
+                    issuedAt: new Date().toISOString()
+                }
+            };
+
+            const response = await credentialServices.issueCredential(payload);
+            if (response.success) {
+                setMessage('Credential issued successfully!');
+                // Reset form or generate new UID
+                const uidRes = await credentialServices.generateUid();
+                setFormData({
+                    learnerEmail: '',
+                    learnerPhone: '',
+                    credentialUid: uidRes.success ? uidRes.data.uid : '',
+                    courseName: '',
+                    grade: '',
+                    templateId: ''
+                });
+            }
+        } catch (error) {
+            setMessage(error.response?.data?.message || 'Failed to issue credential.');
+        } finally {
+            setLoading(false);
+        }
     };
 
 
@@ -30,7 +101,7 @@ const NewIssuance = () => {
             <form onSubmit={handleIssuance} className="p-8 border rounded-xl shadow-lg bg-gray-50 space-y-6">
                 <div className="space-y-2">
                     <label htmlFor="template" className="block text-sm font-medium text-gray-700">Select Template</label>
-                    <select id="template" required className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-chill-500 focus:border-blue-chill-500">
+                    <select id="template" name="templateId" value={formData.templateId} onChange={handleChange} required className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-chill-500 focus:border-blue-chill-500">
                         <option value="">-- Choose a Credential Template --</option>
                         {templates.filter(t => t?.status === 'Active').map(t => (
                             <option key={t.id} value={t.id}>{t.name} (v{t.version})</option>
@@ -57,25 +128,38 @@ const NewIssuance = () => {
                         </div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2 col-span-2">
-                            <label className="block text-sm font-medium text-gray-700">Recipient Name</label>
-                            <input type="text" required className="w-full p-3 border rounded-lg" placeholder="John Doe" />
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {message && (
+                            <div className={`col-span-2 p-3 rounded-lg text-sm ${message.includes('success') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                {message}
+                            </div>
+                        )}
                         <div className="space-y-2">
                             <label className="block text-sm font-medium text-gray-700">Recipient Email</label>
-                            <input type="email" required className="w-full p-3 border rounded-lg" placeholder="john.doe@email.com" />
+                            <input type="email" name="learnerEmail" value={formData.learnerEmail} onChange={handleChange} required className="w-full p-3 border rounded-lg" placeholder="john.doe@email.com" />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700">Recipient Phone (Optional)</label>
+                            <input type="tel" name="learnerPhone" value={formData.learnerPhone} onChange={handleChange} className="w-full p-3 border rounded-lg" placeholder="+91..." />
                         </div>
                         <div className="space-y-2">
                             <label className="block text-sm font-medium text-gray-700">Credential ID / Hash</label>
-                            <input type="text" required className="w-full p-3 border rounded-lg" placeholder="e.g., C-1020" />
+                            <input type="text" name="credentialUid" value={formData.credentialUid} readOnly className="w-full p-3 border rounded-lg bg-gray-100" />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700">Course Name</label>
+                            <input type="text" name="courseName" value={formData.courseName} onChange={handleChange} required className="w-full p-3 border rounded-lg" placeholder="e.g. React Mastery" />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700">Grade/Score</label>
+                            <input type="text" name="grade" value={formData.grade} onChange={handleChange} className="w-full p-3 border rounded-lg" placeholder="e.g. A+" />
                         </div>
                     </div>
                 )}
 
 
-                <button type="submit" className="w-full bg-green-600 text-white p-3 rounded-lg font-bold shadow-lg hover:bg-green-700 transition duration-200 flex items-center justify-center">
-                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 2L11 13" /></svg> Issue Credentials
+                <button type="submit" disabled={loading} className="w-full bg-green-600 text-white p-3 rounded-lg font-bold shadow-lg hover:bg-green-700 transition duration-200 flex items-center justify-center disabled:bg-gray-400">
+                    {loading ? 'Issuing...' : <><svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 2L11 13" /></svg> Issue Credentials</>}
                 </button>
             </form>
         </div>

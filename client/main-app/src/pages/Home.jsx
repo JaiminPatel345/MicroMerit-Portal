@@ -18,15 +18,28 @@ import {
   CheckCircle,
 } from 'lucide-react';
 // Assuming Link is correctly imported from react-router-dom in your environment
-import { Link } from 'react-router-dom'; 
+import { Link, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useSelector } from 'react-redux';
 
 const Home = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated: isIssuerAuth } = useSelector((state) => state.authIssuer);
+  const { isAuthenticated: isLearnerAuth } = useSelector((state) => state.authLearner);
+
+  useEffect(() => {
+    if (isIssuerAuth) {
+      navigate('/issuer/dashboard');
+    } else if (isLearnerAuth) {
+      navigate('/dashboard');
+    }
+  }, [isIssuerAuth, isLearnerAuth, navigate]);
   // FIXED: Simplified the transition to use a standard "easeOut" for professionalism
   // and to resolve the WAAPI compatibility error.
   const fadeInUp = {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.5, ease: "easeOut" } 
+    transition: { duration: 0.5, ease: "easeOut" }
   };
 
   const stagger = {
@@ -122,24 +135,24 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-white font-sans">
-      
+
       {/* ---------------------------------- Hero Section (Responsive) ---------------------------------- */}
       <section className="relative overflow-hidden bg-gradient-to-br from-white via-blue-chill-50 to-blue-chill-100 py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            
+
             {/* Left Content */}
             <motion.div {...fadeInUp} className="order-2 lg:order-1">
               <span className="inline-flex items-center rounded-full bg-blue-chill-100 px-3 py-1 text-sm font-semibold text-blue-chill-700 mb-4 border border-blue-chill-300">
                 <Zap className="w-4 h-4 mr-1 text-blue-chill-600" /> AI & Blockchain Powered
               </span>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-6 leading-tight">
-                Your Verifiable <br/> <span className="text-blue-chill-700">Credential Hub</span> for India
+                Your Verifiable <br /> <span className="text-blue-chill-700">Credential Hub</span> for India
               </h1>
               <p className="text-lg md:text-xl text-gray-700 mb-8 leading-relaxed">
                 MicroMerit unifies all your certifications — from government skilling bodies, colleges, and ed-tech platforms — into a secure, AI-powered digital wallet verified by blockchain.
               </p>
-              
+
               <motion.div variants={stagger} initial="initial" animate="animate" className="flex flex-col sm:flex-row flex-wrap gap-4 mb-8">
                 <Link to="/signup" className="bg-blue-chill-600 text-white px-6 md:px-8 py-3 md:py-4 rounded-full hover:bg-blue-chill-700 transition font-bold text-base md:text-lg shadow-xl shadow-blue-chill-200 transform hover:-translate-y-1">
                   Create Wallet Now &rarr;
@@ -211,7 +224,7 @@ const Home = () => {
                 className="bg-white rounded-2xl p-6 md:p-8 shadow-lg hover:shadow-2xl border-t-4 border-blue-chill-600 transition transform hover:scale-[1.02]"
               >
                 <div className="bg-blue-chill-600 p-3 rounded-xl inline-flex mb-4 shadow-md">
-                    {feature.icon}
+                  {feature.icon}
                 </div>
                 <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
                 <p className="text-gray-600 leading-relaxed text-sm">{feature.description}</p>
@@ -252,7 +265,7 @@ const Home = () => {
                 {index > 0 && (
                   <div className="block md:hidden absolute w-1 h-full bg-blue-chill-200 z-0 top-0 -translate-y-1/2"></div>
                 )}
-                
+
                 <div className="bg-blue-chill-600 rounded-full w-16 h-16 md:w-20 md:h-20 flex items-center justify-center mx-auto mb-4 shadow-xl text-white border-4 border-white transition-all duration-300">
                   {step.icon}
                 </div>
@@ -270,7 +283,7 @@ const Home = () => {
       <section className="py-16 md:py-24 bg-gradient-to-br from-blue-chill-700 to-blue-chill-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            
+
             {/* Left Content */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -297,18 +310,18 @@ const Home = () => {
               <div className="mb-6 border-b pb-4 border-gray-100">
                 <h4 className="text-xl md:text-2xl font-bold text-blue-chill-700">My NSQF Skill Profile</h4>
               </div>
-              
+
               <div className="space-y-6">
-                
+
                 {/* Progress Bar */}
                 <div className="p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-2">
                     <span className="font-bold text-base md:text-lg">NSQF Level 4 Achieved</span>
                     <span className="text-blue-chill-600 font-extrabold text-lg md:text-xl">85%</span>
-                    </div>
-                    <div className="w-full bg-gray-300 rounded-full h-4">
+                  </div>
+                  <div className="w-full bg-gray-300 rounded-full h-4">
                     <div className="bg-gradient-to-r from-blue-chill-500 to-blue-chill-600 h-4 rounded-full shadow-md" style={{ width: '85%' }}></div>
-                    </div>
+                  </div>
                 </div>
 
                 {/* Recommendations */}
@@ -353,23 +366,23 @@ const Home = () => {
               >
                 {/* Header */}
                 <div className={`${type.color} text-white p-6 md:p-8 flex flex-col items-center justify-center`}>
-                    {type.icon}
-                    <h3 className="text-2xl md:text-3xl font-extrabold mt-4">{type.title}</h3>
+                  {type.icon}
+                  <h3 className="text-2xl md:text-3xl font-extrabold mt-4">{type.title}</h3>
                 </div>
 
                 {/* Benefits */}
                 <div className="bg-white p-6 md:p-8">
-                    <ul className="space-y-4">
-                        {type.benefits.map((benefit, i) => (
-                            <li key={i} className="flex items-start text-gray-700 border-b border-gray-100 pb-2">
-                                <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-1" />
-                                <span className="font-medium">{benefit}</span>
-                            </li>
-                        ))}
-                    </ul>
-                    <Link to={`/for-${type.title.toLowerCase().replace(' ', '-')}`} className={`mt-8 inline-block w-full text-center ${type.color} text-white px-6 py-3 rounded-full font-semibold hover:opacity-90 transition text-base`}>
-                        Learn More <ChevronRight className="w-4 h-4 inline-block ml-1" />
-                    </Link>
+                  <ul className="space-y-4">
+                    {type.benefits.map((benefit, i) => (
+                      <li key={i} className="flex items-start text-gray-700 border-b border-gray-100 pb-2">
+                        <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-1" />
+                        <span className="font-medium">{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link to={`/for-${type.title.toLowerCase().replace(' ', '-')}`} className={`mt-8 inline-block w-full text-center ${type.color} text-white px-6 py-3 rounded-full font-semibold hover:opacity-90 transition text-base`}>
+                    Learn More <ChevronRight className="w-4 h-4 inline-block ml-1" />
+                  </Link>
                 </div>
               </motion.div>
             ))}

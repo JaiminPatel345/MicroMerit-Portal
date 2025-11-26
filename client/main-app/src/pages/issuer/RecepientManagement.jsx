@@ -1,15 +1,40 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { credentialServices } from '../../services/credentialServices';
 
 
 
 const RecipientManagement = () => {
-    const recipients = [
-                { id: 'r1', name: 'Alice Johnson', email: 'alice@example.com', issued: 5, last_issued: '2025-11-19' },
-                { id: 'r2', name: 'Bob Smith', email: 'bob@example.com', issued: 2, last_issued: '2025-11-15' },
-                { id: 'r3', name: 'Charlie Day', email: 'charlie@example.com', issued: 1, last_issued: '2025-11-01' },
-                ]
+    const [recipients, setRecipients] = useState([]);
+    const [loading, setLoading] = useState(false);
 
-
+    useEffect(() => {
+        const fetchCredentials = async () => {
+            setLoading(true);
+            try {
+                const response = await credentialServices.getIssuerCredentials();
+                if (response.success) {
+                    // Group credentials by learner if needed, or just list them
+                    // For now, let's just list the credentials as "recipients" (one row per credential)
+                    // or we can aggregate. Let's list credentials for simplicity as the UI shows "Credentials Issued" count which implies aggregation.
+                    // But without complex logic, I'll just map credentials to rows.
+                    // Assuming response.data is an array of credentials
+                    const data = response.data.map(c => ({
+                        id: c.uid,
+                        name: c.learnerName || 'Unknown', // Backend might not return name if not registered
+                        email: c.learnerEmail || 'N/A',
+                        issued: 1, // Placeholder
+                        last_issued: new Date(c.issuedAt).toLocaleDateString()
+                    }));
+                    setRecipients(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch credentials", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchCredentials();
+    }, []);
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center pb-2 border-b">
@@ -33,17 +58,27 @@ const RecipientManagement = () => {
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {recipients.map((r) => (
-                            <tr key={r.id} className="hover:bg-blue-chill-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{r.name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{r.email}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{r.issued}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{r.last_issued}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <button className="text-blue-chill-600 hover:text-blue-chill-900">View History</button>
-                                </td>
+                        {loading ? (
+                            <tr>
+                                <td colSpan="5" className="px-6 py-4 text-center text-gray-500">Loading...</td>
                             </tr>
-                        ))}
+                        ) : recipients.length === 0 ? (
+                            <tr>
+                                <td colSpan="5" className="px-6 py-4 text-center text-gray-500">No recipients found.</td>
+                            </tr>
+                        ) : (
+                            recipients.map((r) => (
+                                <tr key={r.id} className="hover:bg-blue-chill-50">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{r.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{r.email}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{r.issued}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{r.last_issued}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button className="text-blue-chill-600 hover:text-blue-chill-900">View Details</button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>

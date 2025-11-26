@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { validateEmail, validatePassword } from "../../utils/formValidation";
-import { loginIssuer } from "../../services/authServices";
+import { issuerServices } from "../../services/issuerServices";
 import { issuerLoginSuccess } from "../../store/authIssuerSlice";
 import { useDispatch } from "react-redux";
 import { setNotification } from "../../utils/notification";
@@ -49,23 +49,20 @@ export default function IssuerLogin() {
     setLoginError("");
 
     try {
-      // NOTE: Using the mock loginIssuer service now
-      const response = await loginIssuer.login({
+      const response = await issuerServices.login({
         email: form.email,
         password: form.password,
       });
       console.log("Login attempt response:", response);
-        
-      if(response?.data?.success === true){
-        dispatch(issuerLoginSuccess({
-          issuer: response.data.data.issuer,
-          accessToken: response.data.data.tokens.access,
-          refreshToken: response.data.data.tokens.refresh
-        }));
-         setNotification("Login successful!", "success");
-        // NOTE: navigate is now a mock function
-        navigate("/issuer/dashboard"); 
 
+      if (response.success) {
+        dispatch(issuerLoginSuccess({
+          issuer: response.data.issuer,
+          accessToken: response.data.tokens.access,
+          refreshToken: response.data.tokens.refresh
+        }));
+        setNotification("Login successful!", "success");
+        navigate("/issuer/dashboard");
       }
 
     } catch (err) {
@@ -81,17 +78,17 @@ export default function IssuerLogin() {
     <div className="min-h-screen flex justify-center items-center bg-blue-chill-50 p-4 sm:p-6 font-sans">
       {/* Container Card - Professional, High-Trust Design */}
       <div className="bg-white p-6 sm:p-10 rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200">
-        
+
         {/* Branding & Context */}
         <p className="text-center text-sm font-semibold text-gray-500 mb-2 uppercase tracking-widest">
-            MicroMerit Platform
+          MicroMerit Platform
         </p>
 
         <h2 className="text-3xl sm:text-4xl font-extrabold text-center text-gray-900 mb-2">
           Issuer Partner Login
         </h2>
         <p className="text-center text-base text-blue-chill-700 mb-8 font-medium border-b pb-4">
-            Manage Secure Credential Issuance & Verification
+          Manage Secure Credential Issuance & Verification
         </p>
 
         {/* Error Message Alert Box */}
@@ -106,7 +103,7 @@ export default function IssuerLogin() {
           {/* Email */}
           <div>
             <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
-                Official Email Address
+              Official Email Address
             </label>
             <input
               type="text"
@@ -125,7 +122,7 @@ export default function IssuerLogin() {
           {/* Password */}
           <div>
             <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
-                Password
+              Password
             </label>
             <input
               type="password"
@@ -149,30 +146,30 @@ export default function IssuerLogin() {
               ${loading
                 ? "bg-blue-chill-400 cursor-not-allowed flex items-center justify-center"
                 : "bg-blue-chill-600 hover:bg-blue-chill-700 active:bg-blue-chill-800"
-            }`}
+              }`}
           >
             {loading ? (
-                <div className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Authenticating...
-                </div>
+              <div className="flex items-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Authenticating...
+              </div>
             ) : "Secure Login"}
           </button>
 
           {/* Footer Link */}
           <div className="flex justify-center pt-4 border-t border-gray-100 mt-6">
-              <span className="text-sm text-gray-500">
-                New to MicroMerit? 
-              </span>
-              <span
-                onClick={() => navigate("/issuer/signup")}
-                className="text-blue-chill-700 hover:text-blue-chill-800 cursor-pointer font-semibold ml-1 transition duration-150"
-              >
-                Register as an Issuer
-              </span>
+            <span className="text-sm text-gray-500">
+              New to MicroMerit?
+            </span>
+            <span
+              onClick={() => navigate("/issuer/signup")}
+              className="text-blue-chill-700 hover:text-blue-chill-800 cursor-pointer font-semibold ml-1 transition duration-150"
+            >
+              Register as an Issuer
+            </span>
           </div>
 
         </div>

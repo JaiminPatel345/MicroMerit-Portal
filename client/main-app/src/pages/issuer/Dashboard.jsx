@@ -2,14 +2,37 @@
 
 
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Card from '../../components/Card';
 import { Award, Users, Settings, CheckCircle, Clock, XCircle } from './icons'
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { issuerServices } from '../../services/issuerServices';
+import { issuerLoginSuccess } from '../../store/authIssuerSlice';
 
 const IssuerDashboard = () => {
   const authIssuer = useSelector(state => state.authIssuer);
   const issuer = authIssuer?.issuer || { name: "Issuer", status: "pending" };
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await issuerServices.getProfile();
+        if (response.success) {
+          // Update redux store with latest profile data
+          dispatch(issuerLoginSuccess({
+            ...authIssuer,
+            issuer: response.data
+          }));
+        }
+      } catch (error) {
+        console.error("Failed to fetch profile", error);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const statusText = issuer.status.charAt(0).toUpperCase() + issuer.status.slice(1);
   const StatusBadge = () => {
@@ -53,15 +76,24 @@ const IssuerDashboard = () => {
       <div className="pt-4 border-t">
         <h3 className="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <button className="flex flex-col items-center justify-center p-6 bg-blue-chill-600 text-white rounded-xl shadow-lg hover:bg-blue-chill-700 transition duration-200">
+          <button
+            onClick={() => navigate('/issuer/issuance')}
+            className="flex flex-col items-center justify-center p-6 bg-blue-chill-600 text-white rounded-xl shadow-lg hover:bg-blue-chill-700 transition duration-200"
+          >
             <svg className="w-8 h-8 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 2L11 13" /><path d="M22 2 15 22 11 13 2 9 22 2" /></svg>
             <span className="font-bold">Start New Issuance</span>
           </button>
-          <button className="flex flex-col items-center justify-center p-6 bg-gray-100 text-blue-chill-800 rounded-xl shadow-md hover:bg-gray-200 transition duration-200">
+          <button
+            onClick={() => navigate('/issuer/templates')}
+            className="flex flex-col items-center justify-center p-6 bg-gray-100 text-blue-chill-800 rounded-xl shadow-md hover:bg-gray-200 transition duration-200"
+          >
             <svg className="w-8 h-8 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="6" /></svg>
             <span className="font-bold">Manage Templates</span>
           </button>
-          <button className="flex flex-col items-center justify-center p-6 bg-gray-100 text-blue-chill-800 rounded-xl shadow-md hover:bg-gray-200 transition duration-200">
+          <button
+            onClick={() => navigate('/issuer/apis')}
+            className="flex flex-col items-center justify-center p-6 bg-gray-100 text-blue-chill-800 rounded-xl shadow-md hover:bg-gray-200 transition duration-200"
+          >
             <svg className="w-8 h-8 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 2l-2 2" /></svg>
             <span className="font-bold">View API Keys</span>
           </button>

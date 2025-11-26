@@ -1,47 +1,38 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Lock, Plus, Trash, Copy } from './icons';
-
-export const mockIssuerData = {
-keys: [
-{ id: 'key_abc123', name: 'Production API Key', created: '2024-01-15', lastUsed: '2025-11-19', status: 'Active', key: 'sk-prod-********' },
-{ id: 'key_def456', name: 'Testing Sandbox Key', created: '2024-05-01', lastUsed: '2025-09-10', status: 'Active', key: 'sk-test-********' },
-{ id: 'key_ghi789', name: 'Old Key (Revoked)', created: '2023-12-01', lastUsed: '2024-03-20', status: 'Revoked', key: 'sk-old-********' },
-]
-};
-
-
-export const mockAPI = {
-getProfile: async (issuerId) => { await new Promise(r => setTimeout(r, 300)); return null; },
-updateProfile: async (updates) => { await new Promise(r => setTimeout(r, 500)); return { success: true, newProfile: { ...updates } }; },
-listKeys: async () => { await new Promise(r => setTimeout(r, 400)); return mockIssuerData.keys; },
-createKey: async (keyName) => { await new Promise(r => setTimeout(r, 800)); const newId = `key_${Math.random().toString(36).substring(2,8)}`; const fullKey = `sk-new-${Math.random().toString(36).substring(2,20)}`; const newKey = { id: newId, name: keyName, created: new Date().toISOString().substring(0,10), lastUsed: 'Never', status: 'Active', key: fullKey }; mockIssuerData.keys.unshift(newKey); return { success: true, key: newKey }; },
-revokeKey: async (keyId) => { await new Promise(r => setTimeout(r, 300)); const idx = mockIssuerData.keys.findIndex(k => k.id === keyId); if (idx !== -1) mockIssuerData.keys[idx].status = 'Revoked'; return { success: true }; }
-};
+import { issuerServices } from '../../services/issuerServices';
 
 
 const APIManagement = () => {
-  const [keys, setKeys] = useState(
-    mockIssuerData.keys.map(k => ({ ...k, fullKey: null }))
-  );
+  const [keys, setKeys] = useState([]);
   const [newKeyName, setNewKeyName] = useState('');
   const [loading, setLoading] = useState(false);
   const [revealedKey, setRevealedKey] = useState(null);
 
   const loadKeys = useCallback(async () => {
     setLoading(true);
-    const fetchedKeys = await mockAPI.listKeys();
-    setKeys(
-      fetchedKeys.map(k => ({
-        ...k,
-        key: k.key.substring(0, 11) + '****',
-        fullKey: null,
-      }))
-    );
-    setLoading(false);
+    try {
+      const response = await issuerServices.getApiKeys();
+      if (response.success) {
+        setKeys(
+          response.data.map(k => ({
+            ...k,
+            key: k.api_key ? (k.api_key.substring(0, 11) + '****') : '****',
+            status: k.active ? 'Active' : 'Revoked',
+            lastUsed: k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : 'Never',
+            fullKey: null,
+          }))
+        );
+      }
+    } catch (error) {
+      console.error("Failed to load keys", error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   // run once on mount
-  React.useEffect(() => {
+  useEffect(() => {
     loadKeys();
   }, [loadKeys]);
 
@@ -50,13 +41,18 @@ const APIManagement = () => {
     if (!newKeyName.trim()) return;
 
     setLoading(true);
-    const result = await mockAPI.createKey(newKeyName.trim());
-    setLoading(false);
-    setNewKeyName('');
+    try {
+      const result = await issuerServices.createApiKey({ name: newKeyName.trim() });
+      setLoading(false);
+      setNewKeyName('');
 
-    if (result.success) {
-      setRevealedKey(result.key); // show full key once
-      loadKeys();
+      if (result.success) {
+        setRevealedKey(result.data); // show full key once
+        loadKeys();
+      }
+    } catch (error) {
+      console.error("Failed to create key", error);
+      setLoading(false);
     }
   };
 
@@ -69,9 +65,14 @@ const APIManagement = () => {
       return;
 
     setLoading(true);
-    await mockAPI.revokeKey(keyId);
-    await loadKeys();
-    setLoading(false);
+    try {
+      await issuerServices.revokeApiKey(keyId);
+      await loadKeys();
+    } catch (error) {
+      console.error("Failed to revoke key", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCopy = text => {
@@ -131,7 +132,7 @@ const APIManagement = () => {
           <p className="text-sm text-green-700 font-medium">
             <span className="font-bold">Key:</span>{' '}
             <code className="bg-gray-200 p-1 rounded text-black break-all">
-              {revealedKey.key}
+              {revealedKey.api_key}
             </code>
           </p>
 
@@ -141,7 +142,7 @@ const APIManagement = () => {
           </p>
 
           <button
-            onClick={() => handleCopy(revealedKey.key)}
+            onClick={() => handleCopy(revealedKey.api_key)}
             className="flex items-center text-sm text-white bg-green-600 px-3 py-1.5 rounded hover:bg-green-700 transition"
           >
             <Copy className="w-4 h-4 mr-1" /> Copy Key
@@ -197,11 +198,10 @@ const APIManagement = () => {
 
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
-                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      k.status === 'Active'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${k.status === 'Active'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                      }`}
                   >
                     {k.status}
                   </span>

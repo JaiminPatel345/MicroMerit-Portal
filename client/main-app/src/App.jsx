@@ -25,6 +25,7 @@ import IssuerAnalytics from './pages/issuer/IssuerAnalytics';
 import APIManagement from './pages/issuer/APIManagment';
 import IssuerSupport from './pages/issuer/IssuerSupport';
 import IssuerProfile from './pages/issuer/IssuerProfile';
+import AuthRoutes from './components/AuthRoutes';
 function Layout() {
 
   const location = useLocation();
@@ -51,10 +52,22 @@ function Layout() {
 
 
 
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/p/:slug" element={<Profile />} />
+              <Route path="/dashboard" element={
+                <AuthRoutes role="learner">
+                  <Dashboard />
+                </AuthRoutes>
+              } />
+              <Route path="/p/:slug" element={
+                <AuthRoutes role="learner">
+                  <Profile />
+                </AuthRoutes>
+              } />
 
-              <Route path='/issuer' element={<IssuerHeader />}>
+              <Route path='/issuer' element={
+                <AuthRoutes role="issuer">
+                  <IssuerHeader />
+                </AuthRoutes>
+              }>
                 <Route path="dashboard" element={<IssuerDashboard />} />
                 <Route path="templates" element={<CredentialTemplates />} />
                 <Route path="issuance" element={<NewIssuance />} />
