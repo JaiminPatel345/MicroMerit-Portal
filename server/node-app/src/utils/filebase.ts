@@ -1,6 +1,5 @@
 import { ObjectManager } from '@filebase/sdk';
 import { logger } from './logger';
-import crypto from 'crypto';
 
 /**
  * Filebase IPFS pinning service
@@ -18,7 +17,8 @@ export interface FilebaseUploadResult {
  */
 export async function uploadToFilebase(
     fileBuffer: Buffer,
-    fileName: string
+    fileName: string,
+    contentType: string = 'application/pdf'
 ): Promise<FilebaseUploadResult> {
 
     try {
@@ -42,11 +42,19 @@ export async function uploadToFilebase(
         });
 
         // Upload the file
-        // @ts-expect-error - Filebase SDK documentation shows upload(key, buffer) but types incorrectly show 4 params
-        const uploadedObject = await objectManager.upload(fileName, fileBuffer);
+        // Pass ContentType in options if supported, otherwise just upload
+        // @ts-expect-error - Filebase SDK types might be incorrect or outdated
+        const uploadedObject = await objectManager.upload(fileName, fileBuffer, {
+            ContentType: contentType
+        });
 
         // The SDK returns an object with cid property
         const cid = uploadedObject.cid || '';
+
+        if (!cid) {
+            throw new Error('Failed to retrieve CID from Filebase response');
+        }
+
         const gatewayUrl = `${process.env.FILEBASE_GATEWAY_URL || 'https://ipfs.filebase.io/ipfs/'}${cid}`;
 
         logger.info('Filebase upload successful', {

@@ -108,8 +108,8 @@ export const authenticateIssuer = (
 
     const decoded = verifyAccessToken(token);
 
-    // Check if the user is an issuer (type should be 'issuer')
-    if (decoded.type !== 'issuer') {
+    // Check if the user is an issuer
+    if (decoded.role !== 'issuer') {
       sendUnauthorized(res, 'Only issuers can access this endpoint');
       return;
     }

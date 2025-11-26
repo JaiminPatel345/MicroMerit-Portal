@@ -9,11 +9,12 @@ export const pdfUpload = multer({
         fileSize: 10 * 1024 * 1024, // 10MB max file size for PDFs
     },
     fileFilter: (req: any, file: any, cb: any) => {
-        // Accept only PDF files
-        if (file.mimetype === 'application/pdf') {
+        // Accept PDF and Image files
+        const allowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+        if (allowedMimeTypes.includes(file.mimetype)) {
             cb(null, true);
         } else {
-            cb(new Error('Only PDF files are allowed'));
+            cb(new Error('Only PDF and Image files are allowed'));
         }
     },
 });

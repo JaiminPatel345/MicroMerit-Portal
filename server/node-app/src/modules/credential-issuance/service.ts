@@ -1,5 +1,6 @@
 // @ts-expect-error - uuid package provides its own types but tsc may not detect them properly
 import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 import { credentialIssuanceRepository } from './repository';
 import { uploadToFilebase } from '../../utils/filebase';
 import { writeToBlockchain } from '../../utils/blockchain';
@@ -18,6 +19,7 @@ export interface IssueCredentialParams {
     issued_at: Date;
     original_pdf: Buffer;
     original_pdf_filename: string;
+    mimetype?: string;
 }
 
 export interface IssueCredentialResult {
@@ -38,7 +40,7 @@ export class CredentialIssuanceService {
      * Issue a new credential
      */
     async issueCredential(params: IssueCredentialParams): Promise<IssueCredentialResult> {
-        const { learner_email, issuer_id, certificate_title, issued_at, original_pdf, original_pdf_filename } = params;
+        const { learner_email, issuer_id, certificate_title, issued_at, original_pdf, original_pdf_filename, mimetype } = params;
 
         // Step 1: Validate issuer exists and is approved
         const issuer = await credentialIssuanceRepository.findIssuerById(issuer_id);
@@ -90,9 +92,18 @@ export class CredentialIssuanceService {
         logger.info('Computed data hash', { credential_id, data_hash });
 
         // Step 6: Upload PDF to Filebase (IPFS)
+        // Generate unique filename: credential/{user_id || email}/{certificate_title}-{4 random lettors}
+        const identifier = learner_id ? learner_id.toString() : learner_email.replace(/[^a-zA-Z0-9]/g, '_');
+        const sanitizedTitle = certificate_title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+        const randomSuffix = crypto.randomBytes(2).toString('hex'); // 4 random hex characters
+        const extension = original_pdf_filename.split('.').pop() || 'pdf';
+
+        const uniqueFileName = `credential/${identifier}/${sanitizedTitle}-${randomSuffix}.${extension}`;
+
         const { cid: ipfs_cid, gateway_url: pdf_url } = await uploadToFilebase(
             original_pdf,
-            `${credential_id}-${original_pdf_filename}`
+            uniqueFileName,
+            mimetype || 'application/pdf'
         );
         logger.info('Uploaded to IPFS', { credential_id, ipfs_cid, pdf_url });
 

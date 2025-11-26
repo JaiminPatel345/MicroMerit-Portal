@@ -27,10 +27,13 @@ export class CredentialIssuanceController {
                 return;
             }
 
-            // Convert issuer_id to number if it's a string
-            const issuer_id = typeof validatedData.issuer_id === 'string'
-                ? parseInt(validatedData.issuer_id, 10)
-                : validatedData.issuer_id;
+            // Get issuer_id from authenticated user
+            const issuer_id = req.user?.id;
+
+            if (!issuer_id) {
+                sendError(res, 'Unauthorized', 'Issuer ID missing from context', 401);
+                return;
+            }
 
             // Parse issued_at to Date
             const issued_at = typeof validatedData.issued_at === 'string'

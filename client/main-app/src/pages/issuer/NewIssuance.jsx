@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { Send } from './icons';
 import { credentialServices } from '../../services/credentialServices';
 
 
 const NewIssuance = () => {
+    const { issuer } = useSelector((state) => state.authIssuer);
     const [issuanceType, setIssuanceType] = useState('bulk');
+
+    // Templates kept for UI consistency if needed later, but not used in current backend schema
     const templates = [
         { id: 1, name: 'Course Completion Certificate', version: '1.2', status: 'Active' },
         { id: 2, name: 'Professional Certification', version: '3.0', status: 'Active' },
@@ -14,33 +18,18 @@ const NewIssuance = () => {
 
     const [formData, setFormData] = useState({
         learnerEmail: '',
-        learnerPhone: '',
-        credentialUid: '',
         courseName: '',
-        grade: '',
-        templateId: ''
+        file: null
     });
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
 
-    useEffect(() => {
-        const generateUid = async () => {
-            try {
-                const response = await credentialServices.generateUid();
-                if (response.success) {
-                    setFormData(prev => ({ ...prev, credentialUid: response.data.uid }));
-                }
-            } catch (error) {
-                console.error("Failed to generate UID", error);
-            }
-        };
-        if (issuanceType === 'single') {
-            generateUid();
-        }
-    }, [issuanceType]);
-
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        if (e.target.name === 'file') {
+            setFormData({ ...formData, file: e.target.files[0] });
+        } else {
+            setFormData({ ...formData, [e.target.name]: e.target.value });
+        }
     };
 
     const handleIssuance = async (e) => {
@@ -51,37 +40,41 @@ const NewIssuance = () => {
             return;
         }
 
+        if (!formData.file) {
+            setMessage('Please upload a certificate file (PDF/Image).');
+            return;
+        }
+
+        if (!issuer || !issuer.id) {
+            setMessage('Issuer information not found. Please log in again.');
+            return;
+        }
+
         setLoading(true);
         setMessage('');
 
         try {
-            const payload = {
-                learnerEmail: formData.learnerEmail,
-                learnerPhone: formData.learnerPhone,
-                credentialUid: formData.credentialUid,
-                metadata: {
-                    courseName: formData.courseName,
-                    grade: formData.grade,
-                    templateId: formData.templateId,
-                    issuedAt: new Date().toISOString()
-                }
-            };
+            const payload = new FormData();
+            payload.append('learner_email', formData.learnerEmail);
+            // issuer_id is handled by backend auth
+            payload.append('certificate_title', formData.courseName);
+            payload.append('issued_at', new Date().toISOString());
+            payload.append('original_pdf', formData.file);
 
             const response = await credentialServices.issueCredential(payload);
             if (response.success) {
                 setMessage('Credential issued successfully!');
-                // Reset form or generate new UID
-                const uidRes = await credentialServices.generateUid();
                 setFormData({
                     learnerEmail: '',
-                    learnerPhone: '',
-                    credentialUid: uidRes.success ? uidRes.data.uid : '',
                     courseName: '',
-                    grade: '',
-                    templateId: ''
+                    file: null
                 });
+                // Reset file input manually
+                const fileInput = document.getElementById('certificate-file');
+                if (fileInput) fileInput.value = '';
             }
         } catch (error) {
+            console.error("Issuance error:", error);
             setMessage(error.response?.data?.message || 'Failed to issue credential.');
         } finally {
             setLoading(false);
@@ -99,16 +92,6 @@ const NewIssuance = () => {
 
 
             <form onSubmit={handleIssuance} className="p-8 border rounded-xl shadow-lg bg-gray-50 space-y-6">
-                <div className="space-y-2">
-                    <label htmlFor="template" className="block text-sm font-medium text-gray-700">Select Template</label>
-                    <select id="template" name="templateId" value={formData.templateId} onChange={handleChange} required className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-chill-500 focus:border-blue-chill-500">
-                        <option value="">-- Choose a Credential Template --</option>
-                        {templates.filter(t => t?.status === 'Active').map(t => (
-                            <option key={t.id} value={t.id}>{t.name} (v{t.version})</option>
-                        ))}
-                    </select>
-                </div>
-
 
                 {issuanceType === 'bulk' ? (
                     <div className="space-y-2">
@@ -128,9 +111,9 @@ const NewIssuance = () => {
                         </div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                         {message && (
-                            <div className={`col-span-2 p-3 rounded-lg text-sm ${message.includes('success') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            <div className={`p-3 rounded-lg text-sm ${message.includes('success') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                 {message}
                             </div>
                         )}
@@ -138,21 +121,23 @@ const NewIssuance = () => {
                             <label className="block text-sm font-medium text-gray-700">Recipient Email</label>
                             <input type="email" name="learnerEmail" value={formData.learnerEmail} onChange={handleChange} required className="w-full p-3 border rounded-lg" placeholder="john.doe@email.com" />
                         </div>
+
                         <div className="space-y-2">
-                            <label className="block text-sm font-medium text-gray-700">Recipient Phone (Optional)</label>
-                            <input type="tel" name="learnerPhone" value={formData.learnerPhone} onChange={handleChange} className="w-full p-3 border rounded-lg" placeholder="+91..." />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="block text-sm font-medium text-gray-700">Credential ID / Hash</label>
-                            <input type="text" name="credentialUid" value={formData.credentialUid} readOnly className="w-full p-3 border rounded-lg bg-gray-100" />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="block text-sm font-medium text-gray-700">Course Name</label>
+                            <label className="block text-sm font-medium text-gray-700">Certificate Title / Course Name</label>
                             <input type="text" name="courseName" value={formData.courseName} onChange={handleChange} required className="w-full p-3 border rounded-lg" placeholder="e.g. React Mastery" />
                         </div>
+
                         <div className="space-y-2">
-                            <label className="block text-sm font-medium text-gray-700">Grade/Score</label>
-                            <input type="text" name="grade" value={formData.grade} onChange={handleChange} className="w-full p-3 border rounded-lg" placeholder="e.g. A+" />
+                            <label className="block text-sm font-medium text-gray-700">Certificate File (PDF/Image)</label>
+                            <input
+                                type="file"
+                                id="certificate-file"
+                                name="file"
+                                onChange={handleChange}
+                                required
+                                accept=".pdf,image/*"
+                                className="w-full p-3 border rounded-lg bg-white"
+                            />
                         </div>
                     </div>
                 )}

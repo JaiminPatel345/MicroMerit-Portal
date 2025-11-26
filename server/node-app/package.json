@@ -46,8 +46,8 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.933.0",
-    "@aws-sdk/s3-request-presigner": "3.933.0",
+    "@aws-sdk/client-s3": "3.654.0",
+    "@aws-sdk/s3-request-presigner": "3.654.0",
     "@filebase/sdk": "^1.0.6",
     "@prisma/client": "^5.19.0",
     "axios": "^1.13.2",
@@ -65,5 +65,8 @@
     "qrcode": "^1.5.4",
     "twilio": "^5.10.5",
     "zod": "^3.23.8"
+  },
+  "resolutions": {
+    "@smithy/util-endpoints": "2.1.6"
   }
 }
