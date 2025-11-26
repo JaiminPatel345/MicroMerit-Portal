@@ -15,7 +15,7 @@ export const startIssuerRegistrationSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters').max(100),
   contact_person_name: z.string().min(2).max(255).optional(),
   contact_person_designation: z.string().min(2).max(255).optional(),
-  address: z.string().min(10).max(1000).optional(),
+  address: z.string().min(5).max(1000).optional(),
   kyc_document_url: z.string().url('Invalid URL').optional(),
   logo_url: z.string().url('Invalid URL').optional(),
 });
