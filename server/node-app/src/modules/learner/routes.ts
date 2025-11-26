@@ -63,5 +63,13 @@ resourceRouter.post(
   asyncHandler(learnerController.verifyContact.bind(learnerController))
 );
 
+// Credential QR endpoint
+resourceRouter.get(
+  '/:learner_id/credentials/:credential_id/qr',
+  authenticateToken,
+  requireLearner,
+  asyncHandler(learnerController.getCredentialQR.bind(learnerController))
+);
+
 export { authRouter as learnerAuthRoutes, resourceRouter as learnerResourceRoutes };
 export default authRouter; // Default export for backward compatibility

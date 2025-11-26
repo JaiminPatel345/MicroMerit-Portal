@@ -86,7 +86,7 @@ export class LearnerService {
   async login(data: LearnerLoginInput): Promise<{ learner: LearnerResponse; tokens: TokenResponse }> {
     // Find learner
     let learner: learner | null = null;
-    
+
     if (data.email) {
       learner = await learnerRepository.findByEmail(data.email);
     } else if (data.phone) {
@@ -129,7 +129,7 @@ export class LearnerService {
   async refresh(refreshToken: string): Promise<TokenResponse> {
     try {
       const decoded = verifyRefreshToken(refreshToken);
-      
+
       // Verify learner still exists and is valid
       const learner = await learnerRepository.findById(decoded.id);
       if (!learner) {
@@ -240,7 +240,7 @@ export class LearnerService {
     // Generate OTP
     const { generateOTP, hashOTP, getOTPExpiry } = require('../../utils/otp');
     const { sendOTP } = require('../../utils/notification');
-    
+
     const otp = generateOTP(6);
     const otpHash = await hashOTP(otp);
     const expiresAt = getOTPExpiry();
@@ -340,7 +340,7 @@ export class LearnerService {
     // Generate OTP
     const { generateOTP, hashOTP, getOTPExpiry } = require('../../utils/otp');
     const { sendOTP } = require('../../utils/notification');
-    
+
     const otp = generateOTP(6);
     const otpHash = await hashOTP(otp);
     const expiresAt = getOTPExpiry();
@@ -441,7 +441,7 @@ export class LearnerService {
     // Generate OTP
     const { generateOTP, hashOTP, getOTPExpiry } = require('../../utils/otp');
     const { sendOTP } = require('../../utils/notification');
-    
+
     const otp = generateOTP(6);
     const otpHash = await hashOTP(otp);
     const expiresAt = getOTPExpiry();
@@ -515,6 +515,42 @@ export class LearnerService {
     return {
       phone: session.phone!,
       message: 'Primary phone added successfully',
+    };
+  }
+
+  /**
+   * Get QR payload for a credential
+   */
+  async getCredentialQRPayload(learnerId: number, credentialId: string): Promise<{
+    credential_id: string;
+    ipfs_cid: string;
+    tx_hash: string;
+    data_hash: string;
+  }> {
+    // Import prisma to query credential
+    const { prisma } = require('../../utils/prisma');
+    const { NotFoundError } = require('../../utils/errors');
+
+    // Find the credential
+    const credential = await prisma.credential.findUnique({
+      where: { credential_id: credentialId },
+    });
+
+    if (!credential) {
+      throw new NotFoundError('Credential not found', 404, 'CREDENTIAL_NOT_FOUND');
+    }
+
+    // Verify the credential belongs to this learner
+    if (credential.learner_id !== learnerId) {
+      throw new NotFoundError('Credential not found', 404, 'CREDENTIAL_NOT_FOUND');
+    }
+
+    // Return QR payload
+    return {
+      credential_id: credential.credential_id,
+      ipfs_cid: credential.ipfs_cid || '',
+      tx_hash: credential.tx_hash || '',
+      data_hash: credential.data_hash,
     };
   }
 }

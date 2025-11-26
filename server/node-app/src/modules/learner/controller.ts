@@ -18,7 +18,7 @@ export class LearnerController {
     try {
       const validatedData = learnerLoginSchema.parse(req.body);
       const result = await learnerService.login(validatedData);
-      
+
       sendSuccess(res, result, 'Login successful');
     } catch (error: any) {
       logger.error('Learner login failed', { error: error.message });
@@ -34,7 +34,7 @@ export class LearnerController {
     try {
       const { refreshToken } = refreshTokenSchema.parse(req.body);
       const tokens = await learnerService.refresh(refreshToken);
-      
+
       sendSuccess(res, tokens, 'Token refreshed successfully');
     } catch (error: any) {
       logger.error('Token refresh failed', { error: error.message });
@@ -74,9 +74,9 @@ export class LearnerController {
 
       const validatedData = updateLearnerProfileSchema.parse(req.body);
       const profilePhotoFile = req.file;
-      
+
       const learner = await learnerService.updateProfile(req.user.id, validatedData, profilePhotoFile);
-      
+
       sendSuccess(res, learner, 'Profile updated successfully');
     } catch (error: any) {
       logger.error('Update profile failed', { error: error.message });
@@ -97,7 +97,7 @@ export class LearnerController {
 
       const { requestContactVerificationSchema } = require('./schema');
       const validatedData = requestContactVerificationSchema.parse(req.body);
-      
+
       let result;
       switch (validatedData.type) {
         case 'email':
@@ -110,7 +110,7 @@ export class LearnerController {
           result = await learnerService.requestAddPrimaryPhone(req.user.id, validatedData.phone!);
           break;
       }
-      
+
       sendSuccess(res, result, 'OTP sent successfully', 200);
     } catch (error: any) {
       logger.error('Request contact verification failed', { error: error.message });
@@ -131,7 +131,7 @@ export class LearnerController {
 
       const { verifyContactSchema } = require('./schema');
       const validatedData = verifyContactSchema.parse(req.body);
-      
+
       let result;
       let successMessage;
       switch (validatedData.type) {
@@ -148,11 +148,40 @@ export class LearnerController {
           successMessage = 'Primary phone added successfully';
           break;
       }
-      
+
       sendSuccess(res, result, successMessage, 200);
     } catch (error: any) {
       logger.error('Verify contact failed', { error: error.message });
-      sendError(res, error.message, 'Failed to verify OTP', 400);
+      sendError(res, error.message, 'Failed to verify contact', 400);
+    }
+  }
+
+  /**
+   * Get QR code payload for a credential
+   * GET /learner/:learner_id/credentials/:credential_id/qr
+   */
+  async getCredentialQR(req: Request, res: Response): Promise<void> {
+    try {
+      const learnerId = parseInt(req.params.learner_id!, 10);
+      const credentialId = req.params.credential_id!;
+
+      // Ensure authenticated learner can only access their own credentials
+      if (req.user && req.user.id !== learnerId) {
+        sendError(res, 'FORBIDDEN', 'You can only access your own credentials', 403);
+        return;
+      }
+
+      const qrPayload = await learnerService.getCredentialQRPayload(learnerId, credentialId);
+
+      sendSuccess(res, qrPayload, 'QR payload retrieved successfully');
+    } catch (error: any) {
+      logger.error('Failed to get QR payload', { error: error.message });
+
+      if (error.statusCode) {
+        sendError(res, error.code || error.message, error.message, error.statusCode);
+      } else {
+        sendError(res, error.message, 'Failed to get QR payload', 500);
+      }
     }
   }
 }
