@@ -113,10 +113,10 @@ export class LearnerRepository {
   async isEmailAlreadyAdded(learnerId: number, email: string): Promise<boolean> {
     const learner = await this.findById(learnerId);
     if (!learner) return false;
-    
+
     // Check if email is primary email
     if (learner.email === email) return true;
-    
+
     // Check if email is in other_emails array
     return learner.other_emails.includes(email);
   }
@@ -128,7 +128,7 @@ export class LearnerRepository {
     }
 
     const updatedEmails = [...learner.other_emails, email];
-    
+
     return prisma.learner.update({
       where: { id: learnerId },
       data: {
@@ -188,6 +188,97 @@ export class LearnerRepository {
       where: { id: learnerId },
       data: { phone },
     });
+  }
+  async getDashboardStats(learnerId: number) {
+    const [totalCredentials, recentCredentials] = await Promise.all([
+      prisma.credential.count({
+        where: { learner_id: learnerId, status: 'issued' },
+      }),
+      prisma.credential.findMany({
+        where: { learner_id: learnerId, status: 'issued' },
+        orderBy: { issued_at: 'desc' },
+        take: 3,
+        include: {
+          issuer: {
+            select: {
+              name: true,
+              logo_url: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      totalCredentials,
+      recentCredentials,
+    };
+  }
+  async getCredentialById(credentialId: string) {
+    return prisma.credential.findUnique({
+      where: { id: credentialId },
+      include: {
+        issuer: {
+          select: {
+            name: true,
+            logo_url: true,
+            website_url: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+  async getLearnerCredentials(
+    learnerId: number,
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+    status?: string
+  ) {
+    const skip = (page - 1) * limit;
+    const where: any = {
+      learner_id: learnerId,
+    };
+
+    if (status && status !== 'all') {
+      where.status = status;
+    }
+
+    if (search) {
+      where.OR = [
+        { certificate_title: { contains: search, mode: 'insensitive' } },
+        { issuer: { name: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [total, credentials] = await Promise.all([
+      prisma.credential.count({ where }),
+      prisma.credential.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { issued_at: 'desc' },
+        include: {
+          issuer: {
+            select: {
+              name: true,
+              logo_url: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      data: credentials,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 }
 

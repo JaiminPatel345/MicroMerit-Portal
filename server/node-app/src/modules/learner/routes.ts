@@ -39,6 +39,20 @@ resourceRouter.get(
   asyncHandler(learnerController.getMe.bind(learnerController))
 );
 
+resourceRouter.get(
+  '/dashboard',
+  authenticateToken,
+  requireLearner,
+  asyncHandler(learnerController.getDashboard.bind(learnerController))
+);
+
+resourceRouter.get(
+  '/credentials/:id',
+  authenticateToken,
+  requireLearner,
+  asyncHandler(learnerController.getCredential.bind(learnerController))
+);
+
 resourceRouter.put(
   '/profile',
   authenticateToken,
@@ -61,6 +75,14 @@ resourceRouter.post(
   authenticateToken,
   requireLearner,
   asyncHandler(learnerController.verifyContact.bind(learnerController))
+);
+
+// List credentials with pagination
+resourceRouter.get(
+  '/credentials',
+  authenticateToken,
+  requireLearner,
+  asyncHandler(learnerController.getMyCredentials.bind(learnerController))
 );
 
 // Credential QR endpoint

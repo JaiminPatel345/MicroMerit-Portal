@@ -24,12 +24,9 @@ const CredentialDetails = () => {
     useEffect(() => {
         const fetchCredential = async () => {
             try {
-                // Since we don't have a direct get-by-id endpoint yet, we fetch all and find
-                const res = await learnerApi.getCertificates();
-                const found = res.data?.data?.find(c => c.id === id);
-
-                if (found) {
-                    setCredential(found);
+                const res = await learnerApi.getCredential(id);
+                if (res.data?.success) {
+                    setCredential(res.data.data);
                 } else {
                     setError("Credential not found");
                 }

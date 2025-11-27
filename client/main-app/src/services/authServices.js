@@ -35,7 +35,9 @@ export const loginIssuer = {
 export const learnerApi = {
   getProfile: () => api.get('/learner/profile'),
   updateProfile: (payload) => api.put('/learner/profile', payload),
-  getCertificates: () => api.get('/credentials/learner/my-credentials'),
+  getCertificates: (params) => api.get('/learner/credentials', { params }),
+  getDashboard: () => api.get('/learner/dashboard'),
+  getCredential: (id) => api.get(`/learner/credentials/${id}`),
 };
 
 
