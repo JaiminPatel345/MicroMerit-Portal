@@ -58,8 +58,8 @@ export default function IssuerLogin() {
       if (response.success) {
         dispatch(issuerLoginSuccess({
           issuer: response.data.issuer,
-          accessToken: response.data.tokens.access,
-          refreshToken: response.data.tokens.refresh
+          accessToken: response.data.tokens.accessToken,
+          refreshToken: response.data.tokens.refreshToken
         }));
         setNotification("Login successful!", "success");
         navigate("/issuer/dashboard");

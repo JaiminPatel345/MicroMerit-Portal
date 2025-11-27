@@ -1,12 +1,13 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { learnerApi } from "../services/authServices";
+import { learnerApi } from "../../services/authServices";
 import { motion } from "framer-motion";
 import { Pencil, Mail, MapPin, Copy, ShieldCheck } from "lucide-react";
 import { useDispatch } from "react-redux";
-import { learnerUpateProfile } from "../store/authLearnerSlice";
-import { setNotification } from "../utils/notification";
+import { learnerUpateProfile } from "../../store/authLearnerSlice";
+import { setNotification } from "../../utils/notification";
+
 export default function PublicProfile() {
   const { slug } = useParams();
   const learner = useSelector(state => state.authLearner.learner);
@@ -21,7 +22,7 @@ export default function PublicProfile() {
 
   const isOwner = isAuthenticated && learner?.id?.toString() === slug?.toString();
 
-    const fetchProfile = async () => {
+  const fetchProfile = async () => {
     try {
       if (isOwner) {
         // const certs = await learnerApi.getCertificates();
@@ -167,7 +168,7 @@ export default function PublicProfile() {
                 try {
                   const res = await learnerApi.updateProfile(formData);
                   console.log(res);
-                  if(res.data?.success){
+                  if (res.data?.success) {
                     dispatch(learnerUpateProfile(res.data.data));
                     setNotification("Profile updated successfully", "success");
                   }

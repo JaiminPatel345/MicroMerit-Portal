@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Mail, Phone, Calendar, Upload, CheckCircle, Lock } from 'lucide-react';
 import { useDispatch } from 'react-redux';
-import { learnerLoginSuccess } from '../store/authLearnerSlice';
-import { completeProfile } from '../services/authServices';
+import { learnerLoginSuccess } from '../../store/authLearnerSlice';
+import { completeProfile } from '../../services/authServices';
 const ProfileBuilder = () => {
   const navigate = useNavigate();
   const location = useLocation();

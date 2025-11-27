@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { oauthGoogleLogin } from '../services/authServices';
-import { learnerLoginSuccess } from '../store/authLearnerSlice';
+import { oauthGoogleLogin } from '../../services/authServices';
+import { learnerLoginSuccess } from '../../store/authLearnerSlice';
 
 const GoogleCallback = () => {
     const [searchParams] = useSearchParams();
@@ -13,7 +13,7 @@ const GoogleCallback = () => {
         const code = searchParams.get('code');
         console.log('GoogleCallback - URL code:', code);
         console.log('GoogleCallback - All search params:', Object.fromEntries(searchParams));
-        
+
         if (!code) {
             console.log('GoogleCallback - No code found, redirecting to login');
             navigate('/login');
@@ -25,7 +25,7 @@ const GoogleCallback = () => {
                 console.log('GoogleCallback - Calling backend with code:', code);
                 const response = await oauthGoogleLogin.callback(code);
                 console.log('GoogleCallback - Backend response:', response);
-                
+
                 if (response.data.success) {
                     console.log('GoogleCallback - Login successful, dispatching to store');
                     dispatch(learnerLoginSuccess({
