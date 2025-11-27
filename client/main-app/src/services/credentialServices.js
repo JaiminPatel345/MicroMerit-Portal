@@ -17,6 +17,11 @@ export const credentialServices = {
         return response.data;
     },
 
+    getIssuerRecipients: async () => {
+        const response = await api.get('/credentials/issuer/recipients');
+        return response.data;
+    },
+
     generateUid: async () => {
         const response = await api.get('/credentials/generate-uid');
         return response.data;
