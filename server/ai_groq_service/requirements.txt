@@ -1,5 +1,10 @@
 fastapi
 uvicorn[standard]
 python-dotenv
-requests
+pydantic
+pymongo
+pillow
+pytesseract
+PyPDF2
 groq
+requests
