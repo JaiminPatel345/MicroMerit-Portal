@@ -184,6 +184,68 @@ export class LearnerController {
       }
     }
   }
+  /**
+   * Get learner dashboard
+   * GET /learner/dashboard
+   */
+  async getDashboard(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        sendError(res, 'User not authenticated', 'Authentication required', 401);
+        return;
+      }
+
+      const dashboardData = await learnerService.getDashboard(req.user.id);
+      sendSuccess(res, dashboardData, 'Dashboard data retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get dashboard failed', { error: error.message });
+      sendError(res, error.message, 'Failed to retrieve dashboard data', 500);
+    }
+  }
+  /**
+   * Get single credential
+   * GET /learner/credentials/:id
+   */
+  async getCredential(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        sendError(res, 'User not authenticated', 'Authentication required', 401);
+        return;
+      }
+
+      const credentialId = req.params.id || '';
+      const credential = await learnerService.getCredential(req.user.id, credentialId);
+      sendSuccess(res, credential, 'Credential retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get credential failed', { error: error.message });
+      const statusCode = error.message === 'Credential not found' ? 404 :
+        error.message === 'Unauthorized access to credential' ? 403 : 500;
+      sendError(res, error.message, 'Failed to retrieve credential', statusCode);
+    }
+  }
+  /**
+   * Get learner credentials
+   * GET /learner/credentials
+   */
+  async getMyCredentials(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        sendError(res, 'User not authenticated', 'Authentication required', 401);
+        return;
+      }
+
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const search = req.query.search as string;
+      const status = req.query.status as string;
+
+      const result = await learnerService.getMyCredentials(req.user.id, page, limit, search, status);
+      sendSuccess(res, result, 'Credentials retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get my credentials failed', { error: error.message });
+      sendError(res, error.message, 'Failed to retrieve credentials', 500);
+    }
+  }
 }
 
 export const learnerController = new LearnerController();

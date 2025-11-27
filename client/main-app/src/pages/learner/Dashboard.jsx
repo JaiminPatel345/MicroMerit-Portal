@@ -27,13 +27,16 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const certRes = await learnerApi.getCertificates();
-                const certs = certRes.data?.data || [];
-                setRecentCertificates(certs.slice(0, 3));
-                setStats(prev => ({
-                    ...prev,
-                    totalCredentials: certs.length
-                }));
+                const dashboardRes = await learnerApi.getDashboard();
+                const data = dashboardRes.data?.data || {};
+
+                setRecentCertificates(data.recentCredentials || []);
+                setStats({
+                    totalCredentials: data.totalCredentials || 0,
+                    profileCompletion: data.profileCompletion || 0,
+                    nsqfLevel: data.nsqfLevel || 'N/A',
+                    trustScore: data.trustScore || 0
+                });
             } catch (error) {
                 console.error("Failed to fetch dashboard data", error);
             } finally {

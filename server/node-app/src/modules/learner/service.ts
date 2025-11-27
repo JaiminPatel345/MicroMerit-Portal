@@ -553,6 +553,55 @@ export class LearnerService {
       data_hash: credential.data_hash,
     };
   }
+  /**
+   * Get learner dashboard data
+   */
+  async getDashboard(learnerId: number) {
+    const stats = await learnerRepository.getDashboardStats(learnerId);
+
+    // Calculate some derived stats if needed, or just return
+    // For example, we could calculate skill distribution here if we parse metadata
+
+    return {
+      ...stats,
+      // Mocking some AI/extra stats for now as they are not in DB yet
+      nsqfLevel: 'Level 5',
+      profileCompletion: 85,
+      trustScore: 92,
+      aiRecommendations: [
+        { skill: 'Advanced React Patterns', type: 'Skill', match: 95 },
+        { skill: 'System Design', type: 'Skill', match: 88 },
+      ]
+    };
+  }
+  /**
+   * Get single credential details
+   */
+  async getCredential(learnerId: number, credentialId: string) {
+    const credential = await learnerRepository.getCredentialById(credentialId);
+
+    if (!credential) {
+      throw new Error('Credential not found');
+    }
+
+    if (credential.learner_id !== learnerId) {
+      throw new Error('Unauthorized access to credential');
+    }
+
+    return credential;
+  }
+  /**
+   * Get learner credentials with pagination
+   */
+  async getMyCredentials(
+    learnerId: number,
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+    status?: string
+  ) {
+    return learnerRepository.getLearnerCredentials(learnerId, page, limit, search, status);
+  }
 }
 
 export const learnerService = new LearnerService();
