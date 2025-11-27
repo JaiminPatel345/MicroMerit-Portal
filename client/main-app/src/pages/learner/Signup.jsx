@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Phone, Lock, Chrome } from 'lucide-react';
-import { oauthGoogleLogin, signUpLeaner } from '../services/authServices';
+import { oauthGoogleLogin, signUpLeaner } from '../../services/authServices';
 
 
 const Signup = () => {

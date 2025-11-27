@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Phone, Lock, Chrome, Eye, EyeOff } from 'lucide-react';
-import { loginLearner, oauthGoogleLogin } from '../services/authServices';
-import { learnerLoginSuccess } from '../store/authLearnerSlice';
+import { loginLearner, oauthGoogleLogin } from '../../services/authServices';
+import { learnerLoginSuccess } from '../../store/authLearnerSlice';
 import { useDispatch } from 'react-redux';
 const Login = () => {
   const navigate = useNavigate();

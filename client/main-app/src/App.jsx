@@ -1,22 +1,27 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import VerifyOTP from './pages/VerifyOTP';
-import ProfileBuilder from './pages/ProfileBuilder';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
+import ProfileBuilder from './pages/learner/ProfileBuilder';
+import Login from './pages/learner/Login';
+import Signup from './pages/learner/Signup';
 import { useLocation } from 'react-router-dom';
 import IssuerSignUp from './pages/issuer/Signup';
 import IssuerLogin from './pages/issuer/Login';
 import IssuerDashboard from './pages/issuer/Dashboard';
-import Dashboard from './pages/Dashboard';
-import GoogleCallback from './pages/GoogleCallback';
-import Profile from './pages/Profile';
+import LearnerDashboard from './pages/learner/Dashboard';
+import Wallet from './pages/learner/Wallet';
+import CredentialDetails from './pages/learner/CredentialDetails';
+import Roadmap from './pages/learner/Roadmap';
+import SkillProfile from './pages/learner/SkillProfile';
+import Notifications from './pages/learner/Notifications';
+import Settings from './pages/learner/Settings';
+import GoogleCallback from './pages/learner/GoogleCallback';
+import Profile from './pages/learner/Profile';
 import Notification from './components/Notification';
-import Verification from './pages/Verification';
-const HideHeaderRoutes = ["/login", "/signup", "/verify-otp", "/profile-builder", "/issuer/login", "/issuer/signup", "/google-callback"];
 import { Provider } from 'react-redux';
 import { store, persistor } from './store/store';
 import { PersistGate } from 'redux-persist/integration/react';
+import Verification from './pages/learner/Verification';
 import AppHeader from './AppHeader';
 import IssuerHeader from './pages/issuer/IssuerHeader';
 import CredentialTemplates from './pages/issuer/CredentialTemplates';
@@ -27,6 +32,9 @@ import APIManagement from './pages/issuer/APIManagment';
 import IssuerSupport from './pages/issuer/IssuerSupport';
 import IssuerProfile from './pages/issuer/IssuerProfile';
 import AuthRoutes from './components/AuthRoutes';
+
+const HideHeaderRoutes = ["/login", "/signup", "/verify-otp", "/profile-builder", "/issuer/login", "/issuer/signup", "/google-callback"];
+
 function Layout() {
 
   const location = useLocation();
@@ -57,9 +65,46 @@ function Layout() {
 
               <Route path="/dashboard" element={
                 <AuthRoutes role="learner">
-                  <Dashboard />
+                  <LearnerDashboard />
                 </AuthRoutes>
               } />
+
+              <Route path="/wallet" element={
+                <AuthRoutes role="learner">
+                  <Wallet />
+                </AuthRoutes>
+              } />
+
+              <Route path="/credential/:id" element={
+                <AuthRoutes role="learner">
+                  <CredentialDetails />
+                </AuthRoutes>
+              } />
+
+              <Route path="/roadmap" element={
+                <AuthRoutes role="learner">
+                  <Roadmap />
+                </AuthRoutes>
+              } />
+
+              <Route path="/skills" element={
+                <AuthRoutes role="learner">
+                  <SkillProfile />
+                </AuthRoutes>
+              } />
+
+              <Route path="/notifications" element={
+                <AuthRoutes role="learner">
+                  <Notifications />
+                </AuthRoutes>
+              } />
+
+              <Route path="/settings" element={
+                <AuthRoutes role="learner">
+                  <Settings />
+                </AuthRoutes>
+              } />
+
               <Route path="/p/:slug" element={
                 <AuthRoutes role="learner">
                   <Profile />

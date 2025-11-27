@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, ChevronDown, Globe, UserCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Menu, X, ChevronDown, Globe, UserCircle, Bell, Settings } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { learnerLogout } from '../store/authLearnerSlice';
+import { learnerLogout } from '../../store/authLearnerSlice';
 
 const LearnerHeader = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const location = useLocation();
 
   const authLearner = useSelector((state) => state.authLearner);
   const learner = authLearner?.learner;
@@ -74,6 +75,8 @@ const LearnerHeader = () => {
     }
   }, []);
 
+  const isActive = (path) => location.pathname === path ? 'text-blue-chill-600 font-medium' : 'text-gray-700 hover:text-blue-chill-600';
+
   return (
     <header className="bg-white sticky top-0 z-50 shadow">
       <div id="google_translate_element" style={{ position: 'absolute', top: '-9999px' }}></div>
@@ -90,13 +93,21 @@ const LearnerHeader = () => {
 
             {/* Desktop Nav */}
             <nav className="hidden lg:flex items-center space-x-6">
-              <Link to="/dashboard" className="text-gray-700 hover:text-blue-chill-600">Dashboard</Link>
-              <Link to="/wallet" className="text-gray-700 hover:text-blue-chill-600">Wallet</Link>
+              <Link to="/dashboard" className={isActive('/dashboard')}>Dashboard</Link>
+              <Link to="/wallet" className={isActive('/wallet')}>Wallet</Link>
+              <Link to="/roadmap" className={isActive('/roadmap')}>Roadmap</Link>
+              <Link to="/skills" className={isActive('/skills')}>Skill Profile</Link>
             </nav>
           </div>
 
           {/* RIGHT SIDE (Desktop) */}
           <div className="hidden lg:flex items-center space-x-4">
+
+            {/* Notifications */}
+            <Link to="/notifications" className="text-gray-500 hover:text-blue-chill-600 relative">
+              <Bell className="w-5 h-5" />
+              <span className="absolute -top-1 -right-1 h-2.5 w-2.5 bg-red-500 rounded-full border border-white"></span>
+            </Link>
 
             {/* Language */}
             <div className="relative">
@@ -110,7 +121,7 @@ const LearnerHeader = () => {
               </button>
 
               {langOpen && (
-                <div className="absolute top-full right-0 mt-2 w-40 bg-white rounded-lg shadow-lg py-2 max-h-96 overflow-y-auto">
+                <div className="absolute top-full right-0 mt-2 w-40 bg-white rounded-lg shadow-lg py-2 max-h-96 overflow-y-auto z-50">
                   {languages.map(lang => (
                     <button
                       key={lang.code}
@@ -135,14 +146,19 @@ const LearnerHeader = () => {
                 ) : (
                   <UserCircle className="w-8 h-8" />
                 )}
-                <span>{learner?.name || learner?.email}</span>
+                <span className="max-w-[100px] truncate">{learner?.name || learner?.email?.split('@')[0]}</span>
                 <ChevronDown className="w-4 h-4" />
               </button>
 
               {profileOpen && (
-                <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg py-2">
-                  <Link to={`/p/${learner?.id}`} className="block px-4 py-2 hover:bg-blue-chill-50">Profile</Link>
-                  <button onClick={logoutUser} className="w-full text-left px-4 py-2 hover:bg-blue-chill-50">Logout</button>
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
+                  <div className="px-4 py-2 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-900 truncate">{learner?.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{learner?.email}</p>
+                  </div>
+                  <Link to={`/p/${learner?.id}`} className="block px-4 py-2 hover:bg-blue-chill-50 text-sm">Profile</Link>
+                  <Link to="/settings" className="block px-4 py-2 hover:bg-blue-chill-50 text-sm">Settings</Link>
+                  <button onClick={logoutUser} className="w-full text-left px-4 py-2 hover:bg-blue-chill-50 text-sm text-red-600">Logout</button>
                 </div>
               )}
             </div>
@@ -165,8 +181,11 @@ const LearnerHeader = () => {
         <div className="lg:hidden bg-white border-t">
           <div className="px-4 py-4 space-y-3">
 
-            <Link to="/dashboard" className="block text-gray-700">Dashboard</Link>
-            <Link to="/wallet" className="block text-gray-700">Wallet</Link>
+            <Link to="/dashboard" className="block text-gray-700 py-2">Dashboard</Link>
+            <Link to="/wallet" className="block text-gray-700 py-2">Wallet</Link>
+            <Link to="/roadmap" className="block text-gray-700 py-2">Roadmap</Link>
+            <Link to="/skills" className="block text-gray-700 py-2">Skill Profile</Link>
+            <Link to="/notifications" className="block text-gray-700 py-2">Notifications</Link>
 
             {/* Mobile Language */}
             <div className="pt-2 border-t">
@@ -199,7 +218,8 @@ const LearnerHeader = () => {
             {/* Profile / Logout */}
             <div className="pt-4 border-t">
               <Link to={`/p/${learner?.id}`} className="block py-2 text-gray-700">Profile</Link>
-              <button onClick={logoutUser} className="w-full text-left py-2 text-gray-700 hover:bg-blue-chill-50 rounded">Logout</button>
+              <Link to="/settings" className="block py-2 text-gray-700">Settings</Link>
+              <button onClick={logoutUser} className="w-full text-left py-2 text-red-600 hover:bg-blue-chill-50 rounded">Logout</button>
             </div>
 
           </div>
