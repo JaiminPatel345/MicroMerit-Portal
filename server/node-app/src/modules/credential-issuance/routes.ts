@@ -8,6 +8,16 @@ import { validateApiKey } from '../../middleware/apiKey';
 const router = Router();
 
 /**
+ * GET /credentials/issuer/recipients
+ * Get aggregated recipients list for the authenticated issuer
+ */
+router.get(
+    '/issuer/recipients',
+    authenticateIssuer,
+    asyncHandler(credentialIssuanceController.getIssuerRecipients.bind(credentialIssuanceController))
+);
+
+/**
  * POST /credentials/issue
  * Issue a new credential
  * Protected by issuer authentication or API key
@@ -36,5 +46,7 @@ router.get(
     authenticateIssuer,
     asyncHandler(credentialIssuanceController.getIssuerCredentials.bind(credentialIssuanceController))
 );
+
+
 
 export default router;

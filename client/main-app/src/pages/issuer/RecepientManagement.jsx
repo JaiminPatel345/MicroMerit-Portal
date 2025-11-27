@@ -1,39 +1,36 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { credentialServices } from '../../services/credentialServices';
 
 
 
 const RecipientManagement = () => {
+    const navigate = useNavigate();
     const [recipients, setRecipients] = useState([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        const fetchCredentials = async () => {
+        const fetchRecipients = async () => {
             setLoading(true);
             try {
-                const response = await credentialServices.getIssuerCredentials();
+                const response = await credentialServices.getIssuerRecipients();
                 if (response.success) {
-                    // Group credentials by learner if needed, or just list them
-                    // For now, let's just list the credentials as "recipients" (one row per credential)
-                    // or we can aggregate. Let's list credentials for simplicity as the UI shows "Credentials Issued" count which implies aggregation.
-                    // But without complex logic, I'll just map credentials to rows.
-                    // Assuming response.data is an array of credentials
-                    const data = response.data.map(c => ({
-                        id: c.uid,
-                        name: c.learnerName || 'Unknown', // Backend might not return name if not registered
-                        email: c.learnerEmail || 'N/A',
-                        issued: 1, // Placeholder
-                        last_issued: new Date(c.issuedAt).toLocaleDateString()
+                    const data = response.data.map(r => ({
+                        id: r.id,
+                        name: r.name || 'Unclaimed',
+                        email: r.email,
+                        issued: r.issued,
+                        last_issued: new Date(r.last_issued).toLocaleDateString()
                     }));
                     setRecipients(data);
                 }
             } catch (error) {
-                console.error("Failed to fetch credentials", error);
+                console.error("Failed to fetch recipients", error);
             } finally {
                 setLoading(false);
             }
         };
-        fetchCredentials();
+        fetchRecipients();
     }, []);
     return (
         <div className="space-y-6">
@@ -74,7 +71,12 @@ const RecipientManagement = () => {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{r.issued}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{r.last_issued}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <button className="text-blue-chill-600 hover:text-blue-chill-900">View Details</button>
+                                        <button
+                                            onClick={() => navigate(`/issuer/credentials?search=${encodeURIComponent(r.email)}`)}
+                                            className="text-blue-chill-600 hover:text-blue-chill-900"
+                                        >
+                                            View Details
+                                        </button>
                                     </td>
                                 </tr>
                             ))

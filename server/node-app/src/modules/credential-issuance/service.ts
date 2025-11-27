@@ -168,6 +168,21 @@ export class CredentialIssuanceService {
     async getIssuerCredentials(issuerId: number, limit?: number) {
         return await credentialIssuanceRepository.findCredentialsByIssuerId(issuerId, limit);
     }
+    /**
+     * Get aggregated recipients for an issuer
+     */
+    async getIssuerRecipients(issuerId: number) {
+        const recipients = await credentialIssuanceRepository.findRecipientsByIssuerId(issuerId);
+
+        // Transform to friendly format
+        return recipients.map(r => ({
+            id: r.learner_email, // Use email as unique ID for grouping
+            name: r.learner?.name || 'Unclaimed',
+            email: r.learner_email,
+            issued: r._count.id,
+            last_issued: r._max.issued_at
+        }));
+    }
 }
 
 export const credentialIssuanceService = new CredentialIssuanceService();

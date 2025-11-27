@@ -78,6 +78,27 @@ export class CredentialIssuanceController {
             sendError(res, error.message, 'Failed to fetch credentials', 500);
         }
     }
+
+    /**
+     * Get recipients for the authenticated issuer
+     * GET /credentials/issuer/recipients
+     */
+    async getIssuerRecipients(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+            const issuer_id = req.user?.id;
+
+            if (!issuer_id) {
+                sendError(res, 'Unauthorized', 'Issuer ID missing from context', 401);
+                return;
+            }
+
+            const recipients = await credentialIssuanceService.getIssuerRecipients(issuer_id);
+
+            sendSuccess(res, recipients, 'Recipients retrieved successfully');
+        } catch (error: any) {
+            next(error);
+        }
+    }
 }
 
 export const credentialIssuanceController = new CredentialIssuanceController();

@@ -99,7 +99,51 @@ export class CredentialIssuanceRepository {
             orderBy: {
                 issued_at: 'desc',
             },
+            include: {
+                learner: true,
+            },
             take: limit,
+        });
+    }
+    /**
+     * Find aggregated recipients by issuer ID
+     */
+    async findRecipientsByIssuerId(issuerId: number) {
+        // Group credentials by learner email to get stats
+        const grouped = await prisma.credential.groupBy({
+            by: ['learner_email'],
+            where: {
+                issuer_id: issuerId,
+            },
+            _count: {
+                id: true,
+            },
+            _max: {
+                issued_at: true,
+            },
+        });
+
+        // Fetch learner details for these emails
+        const emails = grouped.map(g => g.learner_email);
+        const learners = await prisma.learner.findMany({
+            where: {
+                email: {
+                    in: emails,
+                },
+            },
+            select: {
+                email: true,
+                name: true,
+            },
+        });
+
+        // Merge data
+        return grouped.map(g => {
+            const learner = learners.find(l => l.email === g.learner_email);
+            return {
+                ...g,
+                learner: learner ? { name: learner.name } : null
+            };
         });
     }
 }
