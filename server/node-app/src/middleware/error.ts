@@ -74,11 +74,8 @@ export const errorHandler = (
 
   // Handle Zod validation errors
   if (error instanceof ZodError) {
-    const errors = error.errors.map((err) => ({
-      path: err.path.join('.'),
-      message: err.message,
-    }));
-    sendValidationError(res, errors);
+    const errorMessages = error.errors.map((err) => `${err.path.join('.')}: ${err.message}`).join(', ');
+    sendError(res, 'VALIDATION_ERROR', errorMessages, 400);
     return;
   }
 

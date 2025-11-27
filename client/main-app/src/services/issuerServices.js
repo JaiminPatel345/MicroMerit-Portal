@@ -28,6 +28,11 @@ export const issuerServices = {
         return response.data;
     },
 
+    getDashboardStats: async () => {
+        const response = await api.get('/issuer/stats');
+        return response.data;
+    },
+
     updateProfile: async (formData) => {
         const response = await api.put('/issuer/profile', formData, {
             headers: {

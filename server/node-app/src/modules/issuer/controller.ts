@@ -20,7 +20,7 @@ export class IssuerController {
     try {
       const validatedData = startIssuerRegistrationSchema.parse(req.body);
       const result = await issuerService.startRegistration(validatedData);
-      
+
       sendSuccess(res, result, 'OTP sent successfully', 200);
     } catch (error: any) {
       logger.error('Issuer start registration failed', { error: error.message });
@@ -36,7 +36,7 @@ export class IssuerController {
     try {
       const validatedData = verifyIssuerOTPSchema.parse(req.body);
       const result = await issuerService.verifyRegistrationOTP(validatedData);
-      
+
       sendSuccess(res, result, 'Issuer registered successfully. Account pending approval.', 201);
     } catch (error: any) {
       logger.error('Issuer verify registration failed', { error: error.message });
@@ -52,7 +52,7 @@ export class IssuerController {
     try {
       const validatedData = issuerLoginSchema.parse(req.body);
       const result = await issuerService.login(validatedData);
-      
+
       sendSuccess(res, result, 'Login successful');
     } catch (error: any) {
       logger.error('Issuer login failed', { error: error.message });
@@ -68,7 +68,7 @@ export class IssuerController {
     try {
       const { refreshToken } = refreshTokenSchema.parse(req.body);
       const tokens = await issuerService.refresh(refreshToken);
-      
+
       sendSuccess(res, tokens, 'Token refreshed successfully');
     } catch (error: any) {
       logger.error('Token refresh failed', { error: error.message });
@@ -108,13 +108,32 @@ export class IssuerController {
 
       const validatedData = updateIssuerProfileSchema.parse(req.body);
       const logoFile = req.file;
-      
+
       const issuer = await issuerService.updateProfile(req.user.id, validatedData, logoFile);
-      
+
       sendSuccess(res, issuer, 'Profile updated successfully');
     } catch (error: any) {
       logger.error('Update profile failed', { error: error.message });
       sendError(res, error.message, 'Failed to update profile', 400);
+    }
+  }
+
+  /**
+   * Get dashboard stats
+   * GET /issuer/stats
+   */
+  async getDashboardStats(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        sendError(res, 'User not authenticated', 'Authentication required', 401);
+        return;
+      }
+
+      const stats = await issuerService.getDashboardStats(req.user.id);
+      sendSuccess(res, stats, 'Stats retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get stats failed', { error: error.message });
+      sendError(res, error.message, 'Failed to retrieve stats', 400);
     }
   }
 }

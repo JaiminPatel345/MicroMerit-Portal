@@ -87,6 +87,21 @@ export class CredentialIssuanceRepository {
             },
         });
     }
+
+    /**
+     * Find credentials by issuer ID
+     */
+    async findCredentialsByIssuerId(issuerId: number, limit?: number) {
+        return await prisma.credential.findMany({
+            where: {
+                issuer_id: issuerId,
+            },
+            orderBy: {
+                issued_at: 'desc',
+            },
+            take: limit,
+        });
+    }
 }
 
 export const credentialIssuanceRepository = new CredentialIssuanceRepository();

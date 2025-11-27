@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { credentialIssuanceService } from './service';
 import { issueCredentialSchema } from './schema';
 import { sendSuccess, sendError } from '../../utils/response';
@@ -13,7 +13,7 @@ export class CredentialIssuanceController {
      * Issue a new credential
      * POST /credentials/issue
      */
-    async issueCredential(req: Request, res: Response): Promise<void> {
+    async issueCredential(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             // Validate request body
             const validatedData = issueCredentialSchema.parse({
@@ -51,13 +51,31 @@ export class CredentialIssuanceController {
 
             sendSuccess(res, result, 'Credential issued successfully', 201);
         } catch (error: any) {
-            logger.error('Credential issuance failed', { error: error.message });
+            next(error);
+        }
+    }
 
-            if (error.statusCode) {
-                sendError(res, error.code || error.message, error.message, error.statusCode);
-            } else {
-                sendError(res, error.message, 'Failed to issue credential', 500);
+    /**
+     * Get credentials issued by the authenticated issuer
+     * GET /credentials/issuer/my-credentials
+     */
+    async getIssuerCredentials(req: Request, res: Response): Promise<void> {
+        try {
+            const issuer_id = req.user?.id;
+
+            if (!issuer_id) {
+                sendError(res, 'Unauthorized', 'Issuer ID missing from context', 401);
+                return;
             }
+
+            const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+
+            const credentials = await credentialIssuanceService.getIssuerCredentials(issuer_id, limit);
+
+            sendSuccess(res, credentials, 'Credentials retrieved successfully');
+        } catch (error: any) {
+            logger.error('Failed to fetch issuer credentials', { error: error.message });
+            sendError(res, error.message, 'Failed to fetch credentials', 500);
         }
     }
 }

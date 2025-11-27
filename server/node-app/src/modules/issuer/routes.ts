@@ -54,6 +54,14 @@ resourceRouter.put(
   asyncHandler(issuerController.updateMe.bind(issuerController))
 );
 
+// Dashboard stats
+resourceRouter.get(
+  '/stats',
+  authenticateToken,
+  requireIssuer,
+  asyncHandler(issuerController.getDashboardStats.bind(issuerController))
+);
+
 // API key management
 resourceRouter.post(
   '/api-keys',

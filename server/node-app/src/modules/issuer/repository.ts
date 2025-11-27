@@ -142,6 +142,23 @@ export class IssuerRepository {
       },
     });
   }
+
+  async getStats(issuerId: number) {
+    const [credentialsIssued, activeRecipients] = await Promise.all([
+      prisma.credential.count({
+        where: { issuer_id: issuerId },
+      }),
+      prisma.credential.groupBy({
+        by: ['learner_email'],
+        where: { issuer_id: issuerId },
+      }).then(groups => groups.length),
+    ]);
+
+    return {
+      credentialsIssued,
+      activeRecipients,
+    };
+  }
 }
 
 export const issuerRepository = new IssuerRepository();

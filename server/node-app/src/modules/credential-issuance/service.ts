@@ -161,6 +161,13 @@ export class CredentialIssuanceService {
             issued_at,
         };
     }
+
+    /**
+     * Get credentials issued by an issuer
+     */
+    async getIssuerCredentials(issuerId: number, limit?: number) {
+        return await credentialIssuanceRepository.findCredentialsByIssuerId(issuerId, limit);
+    }
 }
 
 export const credentialIssuanceService = new CredentialIssuanceService();

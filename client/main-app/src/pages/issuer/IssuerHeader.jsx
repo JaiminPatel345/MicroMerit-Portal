@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { issuerLogout } from "../../store/authIssuerSlice";
 import { Outlet } from "react-router-dom";
 import { useLocation } from "react-router-dom";
+import logo from "../../assets/logo.png";
 
 
 // Stubbed Icons (using inline SVG for executability)
@@ -21,7 +22,7 @@ const ChevronDown = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg
 
 const navigation = [
   { name: 'Dashboard', href: '/issuer/dashboard', icon: LayoutDashboard },
-  { name: 'Credential ', href: '/issuer/templates', icon: Award },
+  { name: 'Credentials', href: '/issuer/credentials', icon: Award },
   { name: 'New Issuance', href: '/issuer/issuance', icon: Send },
   { name: 'Recipient ', href: '/issuer/recipients', icon: Users },
   { name: 'Analytics', href: '/issuer/analytics', icon: BarChart3 },
@@ -35,6 +36,7 @@ const secondaryNavigation = [
 
 const IssuerLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const { pathname: currentPath } = useLocation();
 
@@ -61,11 +63,13 @@ const IssuerLayout = () => {
             ? 'bg-blue-chill-600 text-white shadow-md'
             : 'text-blue-chill-100 hover:bg-blue-chill-700 hover:text-white'
           }
+          ${isCollapsed ? 'justify-center' : ''}
         `}
         onClick={() => setIsSidebarOpen(false)} // Close sidebar on mobile after navigation
+        title={isCollapsed ? item.name : ''}
       >
-        <item.icon className="w-5 h-5" />
-        <span className="truncate">{item.name}</span>
+        <item.icon className="w-5 h-5 flex-shrink-0" />
+        {!isCollapsed && <span className="truncate">{item.name}</span>}
       </Link>
     );
   };
@@ -80,7 +84,7 @@ const IssuerLayout = () => {
     <div className="flex min-h-screen bg-gray-50 font-sans">
 
       {/* Mobile Sidebar Toggle Button and Header (Fixed Top Bar) */}
-      <header className="fixed top-0 left-0 lg:left-64 right-0 z-40 bg-white border-b border-gray-200 shadow-sm p-3 flex justify-between items-center lg:pl-4">
+      <header className={`fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 shadow-sm p-3 flex justify-between items-center transition-all duration-300 ${isCollapsed ? 'lg:left-20' : 'lg:left-64'} lg:pl-4`}>
 
         {/* Mobile Sidebar Toggle */}
         <button
@@ -142,28 +146,31 @@ const IssuerLayout = () => {
       {/* Sidebar (Responsive) */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-100 w-64 bg-blue-chill-900 text-white flex flex-col p-5 
-          transition-transform transform duration-300 ease-in-out lg:translate-x-0 
-          ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
+          fixed inset-y-0 left-0 z-50 bg-blue-chill-900 text-white flex flex-col p-5 
+          transition-all transform duration-300 ease-in-out 
+          ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'}
+          ${isCollapsed ? 'w-20' : 'w-64'}
         `}
       >
 
         {/* Portal Branding (UPDATED) */}
-        <div className="flex items-center mb-10 pt-4">
-          <Award className="w-8 h-8 text-blue-chill-300 mr-3" />
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-extrabold tracking-tight text-white leading-none">
-              Micro Merit
-            </h1>
-            <p className="text-xs text-blue-chill-300">
-              Issuer Portal
-            </p>
-          </div>
+        <div className={`flex items-center mb-10 pt-4 ${isCollapsed ? 'justify-center' : ''}`}>
+          <img src={logo} alt="MicroMerit Logo" className="w-10 h-10 rounded-lg flex-shrink-0" />
+          {!isCollapsed && (
+            <div className="flex flex-col ml-3 overflow-hidden">
+              <h1 className="text-2xl font-extrabold tracking-tight text-white leading-none truncate">
+                Micro Merit
+              </h1>
+              <p className="text-xs text-blue-chill-300 truncate">
+                Issuer Portal
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Primary Navigation */}
-        <nav className="flex flex-col gap-1.5 flex-grow">
-          <div className="text-xs font-semibold uppercase text-blue-chill-300 mb-2 mt-4">Core Tools</div>
+        <nav className="flex flex-col gap-1.5 flex-grow overflow-y-auto overflow-x-hidden">
+          {!isCollapsed && <div className="text-xs font-semibold uppercase text-blue-chill-300 mb-2 mt-4">Core Tools</div>}
           {navigation.map((item) => (
             <NavItem key={item.name} item={item} />
           ))}
@@ -171,29 +178,40 @@ const IssuerLayout = () => {
 
         {/* Secondary Navigation / Footer */}
         <nav className="flex flex-col gap-1.5 pt-6 border-t border-blue-chill-700">
-          <div className="text-xs font-semibold uppercase text-blue-chill-300 mb-2">Account</div>
+          {!isCollapsed && <div className="text-xs font-semibold uppercase text-blue-chill-300 mb-2">Account</div>}
           {secondaryNavigation.map((item) => (
             <NavItem key={item.name} item={item} />
           ))}
         </nav>
 
+        {/* Collapse Toggle Button */}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="mt-4 p-2 rounded-lg hover:bg-blue-chill-700 text-blue-chill-200 hover:text-white transition-colors flex justify-center hidden lg:flex"
+          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          {isCollapsed ? (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg>
+          )}
+        </button>
+
       </aside>
 
       {/* Main Content Area */}
       {/* Added padding-top for fixed header */}
-      <main className="flex-1 lg:ml-64 p-4 sm:p-8 pt-20 lg:pt-8  min-h-screen">
+      <main className={`flex-1 p-4 sm:p-8 pt-20 lg:pt-8 min-h-screen transition-all duration-300 ${isCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
 
         {/* Backdrop for mobile (closes sidebar when clicked) */}
         {isSidebarOpen && (
           <div
-            className="fixed inset-0 bg-black opacity-50 z-20 lg:hidden"
+            className="fixed inset-0 bg-black opacity-50 z-40 lg:hidden"
             onClick={() => setIsSidebarOpen(false)}
           ></div>
         )}
 
         <div className="max-w-7xl mx-auto px-4 lg:px-0 mt-12 w-full">
-
-
 
           {/* Nested Content Container */}
           <div className=" p-6 min-h-[70vh]">

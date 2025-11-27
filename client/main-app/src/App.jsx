@@ -24,7 +24,7 @@ import { PersistGate } from 'redux-persist/integration/react';
 import Verification from './pages/learner/Verification';
 import AppHeader from './AppHeader';
 import IssuerHeader from './pages/issuer/IssuerHeader';
-import CredentialTemplates from './pages/issuer/CredentialTemplates';
+import Credentials from './pages/issuer/Credentials';
 import NewIssuance from './pages/issuer/NewIssuance';
 import RecipientManagement from './pages/issuer/RecepientManagement';
 import IssuerAnalytics from './pages/issuer/IssuerAnalytics';
@@ -117,7 +117,7 @@ function Layout() {
                 </AuthRoutes>
               }>
                 <Route path="dashboard" element={<IssuerDashboard />} />
-                <Route path="templates" element={<CredentialTemplates />} />
+                <Route path="credentials" element={<Credentials />} />
                 <Route path="issuance" element={<NewIssuance />} />
                 <Route path="recipients" element={<RecipientManagement />} />
                 <Route path="analytics" element={<IssuerAnalytics />} />

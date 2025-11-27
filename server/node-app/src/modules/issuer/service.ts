@@ -260,7 +260,7 @@ export class IssuerService {
   async refresh(refreshToken: string): Promise<TokenResponse> {
     try {
       const decoded = verifyRefreshToken(refreshToken);
-      
+
       // Verify issuer still exists and is valid
       const issuer = await issuerRepository.findById(decoded.id);
       if (!issuer) {
@@ -326,6 +326,13 @@ export class IssuerService {
     const issuer = await issuerRepository.update(issuerId, updateData);
     logger.info('Issuer profile updated', { issuerId });
     return this.sanitizeIssuer(issuer);
+  }
+
+  /**
+   * Get dashboard stats
+   */
+  async getDashboardStats(issuerId: number) {
+    return issuerRepository.getStats(issuerId);
   }
 }
 

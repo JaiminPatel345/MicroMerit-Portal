@@ -27,4 +27,14 @@ router.post(
     asyncHandler(credentialIssuanceController.issueCredential.bind(credentialIssuanceController))
 );
 
+/**
+ * GET /credentials/issuer/my-credentials
+ * Get credentials issued by the authenticated issuer
+ */
+router.get(
+    '/issuer/my-credentials',
+    authenticateIssuer,
+    asyncHandler(credentialIssuanceController.getIssuerCredentials.bind(credentialIssuanceController))
+);
+
 export default router;
