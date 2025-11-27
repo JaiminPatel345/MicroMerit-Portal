@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic
+pymongo
+pillow
+pytesseract
+PyPDF2
+groq
+requests
