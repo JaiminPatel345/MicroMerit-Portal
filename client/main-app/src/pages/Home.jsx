@@ -144,7 +144,7 @@ const Home = () => {
             {/* Left Content */}
             <motion.div {...fadeInUp} className="order-2 lg:order-1">
               <span className="inline-flex items-center rounded-full bg-blue-chill-100 px-3 py-1 text-sm font-semibold text-blue-chill-700 mb-4 border border-blue-chill-300">
-                <Zap className="w-4 h-4 mr-1 text-blue-chill-600" /> AI & Blockchain Powered
+                <Zap className="w-4 h-4 mr-1 text-blue-chill-600" /> Blockchain, IPFS & AI Powered
               </span>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-6 leading-tight">
                 Your Verifiable <br /> <span className="text-blue-chill-700">Credential Hub</span> for India
@@ -164,7 +164,7 @@ const Home = () => {
 
               <div className="flex items-center space-x-4 pt-4 border-t border-gray-200">
                 <Shield className="w-5 h-5 text-green-600" />
-                <p className="text-sm text-gray-600 font-medium">100% Secure & NSQF Compliant Platform</p>
+                <p className="text-sm text-gray-600 font-medium">100% Open Source, Secure & NSQF Compliant Platform</p>
               </div>
             </motion.div>
 

@@ -11,6 +11,7 @@ import {
 import type { IssuerStatus, IssuerProfile } from '../api/issuerAPI.ts';
 import IssuerDetailsModal from '../components/IssuerDetailsModal.tsx';
 import RejectModal from '../components/RejectModal.tsx';
+import ApproveModal from '../components/ApproveModal.tsx';
 import BlockModal from '../components/BlockModal.tsx';
 import UnblockModal from '../components/UnblockModal.tsx';
 
@@ -23,6 +24,7 @@ const Issuers = () => {
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [showBlockModal, setShowBlockModal] = useState(false);
     const [showUnblockModal, setShowUnblockModal] = useState(false);
+    const [showApproveModal, setShowApproveModal] = useState(false);
     const [selectedIssuerForAction, setSelectedIssuerForAction] = useState<IssuerProfile | null>(
         null
     );
@@ -56,11 +58,9 @@ const Issuers = () => {
         setSearchParams(params);
     };
 
-    const handleApprove = async (issuer: IssuerProfile) => {
-        if (window.confirm(`Are you sure you want to approve ${issuer.name}?`)) {
-            await dispatch(approveIssuer(issuer.id));
-            dispatch(fetchIssuers(filters));
-        }
+    const handleApprove = (issuer: IssuerProfile) => {
+        setSelectedIssuerForAction(issuer);
+        setShowApproveModal(true);
     };
 
     const handleReject = (issuer: IssuerProfile) => {
@@ -342,6 +342,15 @@ const Issuers = () => {
                         isOpen={showRejectModal}
                         onClose={() => {
                             setShowRejectModal(false);
+                            setSelectedIssuerForAction(null);
+                        }}
+                        issuer={selectedIssuerForAction}
+                    />
+
+                    <ApproveModal
+                        isOpen={showApproveModal}
+                        onClose={() => {
+                            setShowApproveModal(false);
                             setSelectedIssuerForAction(null);
                         }}
                         issuer={selectedIssuerForAction}
