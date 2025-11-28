@@ -27,7 +27,7 @@ class GroqService:
         elif not self.api_key:
             logger.warning("No GROQ_API_KEY found - running without AI capabilities")
     
-    def chat_completion(self, messages: list, temperature: float = 0.3) -> Optional[str]:
+    def chat_completion(self, messages: list, temperature: float = 0.3, use_json_mode: bool = False) -> Optional[str]:
         """
         Send messages to Groq LLM and get response
         """
@@ -35,12 +35,18 @@ class GroqService:
             return self._mock_response()
         
         try:
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=messages,
-                temperature=temperature,
-                timeout=self.timeout
-            )
+            params = {
+                "model": self.model_name,
+                "messages": messages,
+                "temperature": temperature,
+                "timeout": self.timeout
+            }
+            
+            # Enable JSON mode if requested (forces LLM to return valid JSON)
+            if use_json_mode:
+                params["response_format"] = {"type": "json_object"}
+            
+            response = self.client.chat.completions.create(**params)
             return response.choices[0].message.content
         except Exception as e:
             logger.error(f"Groq API error: {e}")

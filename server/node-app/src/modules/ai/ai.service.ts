@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { PrismaClient } from '@prisma/client';
+import FormData from 'form-data'; // Use import for FormData
 
 const prisma = new PrismaClient();
 
@@ -35,16 +36,40 @@ export class AIService {
             });
 
             // Send certificate data to AI service
+            // Only send relevant data, exclude hashes, blockchain info, etc.
             const response = await axios.post(
                 `${this.aiServiceUrl}/recommendations`,
                 {
                     learner_email: learnerEmail,
-                    certificates: certificates.map(cert => ({
-                        certificate_title: cert.certificate_title,
-                        issuer_name: cert.issuer.name,
-                        issued_at: cert.issued_at,
-                        metadata: cert.metadata
-                    }))
+                    certificates: certificates.map(cert => {
+                        const metadata = cert.metadata as any;
+
+                        // Extract only relevant data for AI processing
+                        const aiRelevantData: any = {
+                            certificate_title: cert.certificate_title,
+                            issuer_name: cert.issuer.name,
+                            issued_at: cert.issued_at,
+                            metadata: {}
+                        };
+
+                        // Include AI-extracted data if available
+                        if (metadata?.ai_extracted) {
+                            aiRelevantData.metadata.ai_extracted = {
+                                skills: metadata.ai_extracted.skills || [],
+                                nsqf: metadata.ai_extracted.nsqf || {},
+                                keywords: metadata.ai_extracted.keywords || [],
+                                description: metadata.ai_extracted.description || '',
+                                certificate_metadata: metadata.ai_extracted.certificate_metadata || {}
+                            };
+                        }
+
+                        // Include issuer name from metadata if available
+                        if (metadata?.issuer_name) {
+                            aiRelevantData.metadata.issuer_name = metadata.issuer_name;
+                        }
+
+                        return aiRelevantData;
+                    })
                 },
                 {
                     headers: { 'Content-Type': 'application/json' },
@@ -90,7 +115,6 @@ export class AIService {
         issuerName: string
     ): Promise<any> {
         try {
-            const FormData = require('form-data');
             const formData = new FormData();
 
             formData.append('file', fileBuffer, filename);
