@@ -28,16 +28,39 @@ const processQueue = (error, token = null) => {
 
 api.interceptors.request.use((config) => {
   const state = store.getState();
+  const url = config.url || '';
 
-  const active =
-    state.authIssuer.isAuthenticated
-      ? state.authIssuer
-      : state.authLearner.isAuthenticated
-        ? state.authLearner
-        : null;
+  let token = null;
 
-  if (active?.accessToken) {
-    config.headers.Authorization = `Bearer ${active.accessToken}`;
+  // Determine which token to use based on URL
+  if (url.startsWith('/learner') || url.startsWith('/auth/learner') || url.startsWith('/ai')) {
+    // Prioritize Learner token for learner-specific routes
+    if (state.authLearner.isAuthenticated) {
+      token = state.authLearner.accessToken;
+    }
+  } else if (url.startsWith('/issuer') || url.startsWith('/auth/issuer')) {
+    // Prioritize Issuer token for issuer-specific routes
+    if (state.authIssuer.isAuthenticated) {
+      token = state.authIssuer.accessToken;
+    }
+  }
+
+  // Fallback: If no specific URL match or token not found yet, use default priority
+  if (!token) {
+    const active =
+      state.authIssuer.isAuthenticated
+        ? state.authIssuer
+        : state.authLearner.isAuthenticated
+          ? state.authLearner
+          : null;
+
+    if (active?.accessToken) {
+      token = active.accessToken;
+    }
+  }
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
 
   return config;

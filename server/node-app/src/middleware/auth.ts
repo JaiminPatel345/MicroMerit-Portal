@@ -121,3 +121,37 @@ export const authenticateIssuer = (
     sendUnauthorized(res, 'Invalid or expired token');
   }
 };
+
+/**
+ * Middleware to verify learner authentication
+ * Ensures the user is authenticated and is a learner
+ */
+export const authenticateLearner = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      sendUnauthorized(res, 'Access token is required');
+      return;
+    }
+
+    const decoded = verifyAccessToken(token);
+
+    // Check if the user is a learner
+    if (decoded.role !== 'learner') {
+      sendUnauthorized(res, 'Only learners can access this endpoint');
+      return;
+    }
+
+    req.user = decoded;
+    next();
+  } catch (error) {
+    logger.error('Learner token verification failed', { error });
+    sendUnauthorized(res, 'Invalid or expired token');
+  }
+};

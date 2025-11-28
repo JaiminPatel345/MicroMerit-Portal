@@ -163,26 +163,58 @@ const CredentialDetails = () => {
                                 <Award size={18} className="text-orange-500" /> Skills & Standards
                             </h3>
 
-                            <div className="mb-6">
-                                <h4 className="text-sm font-medium text-gray-700 mb-2">NSQF Mapping</h4>
-                                <div className="flex items-center gap-3">
-                                    <span className="px-3 py-1.5 bg-purple-50 text-purple-700 text-sm font-medium rounded-lg border border-purple-100">
-                                        Level 4
-                                    </span>
-                                    <span className="text-sm text-gray-500">Aligned with National Skills Qualifications Framework</span>
-                                </div>
-                            </div>
+                            {credential.metadata?.ai_extracted ? (
+                                <>
+                                    <div className="mb-6">
+                                        <h4 className="text-sm font-medium text-gray-700 mb-2">NSQF Mapping</h4>
+                                        <div className="flex items-center gap-3">
+                                            <span className="px-3 py-1.5 bg-purple-50 text-purple-700 text-sm font-medium rounded-lg border border-purple-100">
+                                                Level {credential.metadata.ai_extracted.nsqf?.level || 'N/A'}
+                                            </span>
+                                            <span className="text-sm text-gray-500">
+                                                {credential.metadata.ai_extracted.nsqf?.reasoning || 'Aligned with National Skills Qualifications Framework'}
+                                            </span>
+                                        </div>
+                                    </div>
 
-                            <div>
-                                <h4 className="text-sm font-medium text-gray-700 mb-2">Verified Skills</h4>
-                                <div className="flex flex-wrap gap-2">
-                                    {['Python Programming', 'Data Analysis', 'Problem Solving'].map(skill => (
-                                        <span key={skill} className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg">
-                                            {skill}
-                                        </span>
-                                    ))}
+                                    <div>
+                                        <h4 className="text-sm font-medium text-gray-700 mb-2">Verified Skills</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {credential.metadata.ai_extracted.skills?.length > 0 ? (
+                                                credential.metadata.ai_extracted.skills.map((skill, index) => (
+                                                    <span key={index} className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg flex items-center gap-2">
+                                                        {skill.name}
+                                                        {skill.proficiency_level && (
+                                                            <span className="text-xs text-gray-500 bg-white px-1.5 py-0.5 rounded border border-gray-200">
+                                                                {skill.proficiency_level}
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className="text-sm text-gray-500 italic">No specific skills extracted.</span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {credential.metadata.ai_extracted.keywords?.length > 0 && (
+                                        <div className="mt-6">
+                                            <h4 className="text-sm font-medium text-gray-700 mb-2">Keywords</h4>
+                                            <div className="flex flex-wrap gap-1">
+                                                {credential.metadata.ai_extracted.keywords.map((keyword, index) => (
+                                                    <span key={index} className="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded-md">
+                                                        #{keyword}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="text-center py-8">
+                                    <p className="text-gray-500 text-sm">AI analysis in progress or unavailable.</p>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* AI Insights */}
@@ -197,25 +229,37 @@ const CredentialDetails = () => {
 
                             <div className="space-y-4 relative z-10">
                                 <p className="text-gray-300 text-sm">
-                                    This credential proves your competency in <strong>Software Development</strong>.
-                                    Based on market trends, here is your recommended path:
+                                    {credential.metadata?.ai_extracted?.description ? (
+                                        <>
+                                            <strong>Analysis:</strong> {credential.metadata.ai_extracted.description}
+                                        </>
+                                    ) : (
+                                        <>
+                                            This credential proves your competency in <strong>{credential.certificate_title}</strong>.
+                                        </>
+                                    )}
                                 </p>
 
-                                <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-white/10 hover:bg-white/20 transition-colors cursor-pointer group">
+                                <Link
+                                    to="/roadmap"
+                                    state={{
+                                        skills: credential.metadata?.ai_extracted?.skills || [],
+                                        title: credential.certificate_title
+                                    }}
+                                    className="block bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-white/10 hover:bg-white/20 transition-colors cursor-pointer group"
+                                >
                                     <div className="flex justify-between items-center">
                                         <div>
-                                            <h4 className="font-bold text-blue-300 group-hover:text-blue-200">Next: Advanced Data Structures</h4>
-                                            <p className="text-xs text-gray-400 mt-1">Estimated salary increase: 15%</p>
+                                            <h4 className="font-bold text-blue-300 group-hover:text-blue-200">
+                                                View Career Pathways
+                                            </h4>
+                                            <p className="text-xs text-gray-400 mt-1">
+                                                Explore opportunities based on your skills
+                                            </p>
                                         </div>
                                         <ArrowRight size={18} className="text-gray-400 group-hover:text-white" />
                                     </div>
-                                </div>
-
-                                <div className="flex gap-3 mt-4">
-                                    <Link to="/roadmap" className="text-sm text-blue-300 hover:text-blue-200 hover:underline">
-                                        View Full Roadmap
-                                    </Link>
-                                </div>
+                                </Link>
                             </div>
                         </div>
 

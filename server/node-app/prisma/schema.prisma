@@ -137,4 +137,6 @@ model Credential {
   @@index([ipfs_cid])
   @@index([tx_hash])
   @@index([status])
+  @@index([metadata(ops: JsonbPathOps)], type: Gin) // GIN index for JSON queries (skills/keywords search)
+  @@index([certificate_title]) // For text search on certificate titles
 }

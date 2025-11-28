@@ -3,6 +3,16 @@ import { credentialIssuanceRepository } from '../modules/credential-issuance/rep
 import { uploadToFilebase } from '../utils/filebase';
 import { writeToBlockchain } from '../utils/blockchain';
 
+// Mock uuid module
+jest.mock('uuid', () => {
+    const mockFn = () => '123e4567-e89b-12d3-a456-426614174000';
+    return {
+        v4: mockFn,
+        __esModule: true,
+        default: { v4: mockFn }
+    };
+});
+
 jest.mock('../modules/credential-issuance/repository');
 jest.mock('../utils/filebase');
 jest.mock('../utils/blockchain');

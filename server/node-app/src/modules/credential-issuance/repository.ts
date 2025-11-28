@@ -146,6 +146,34 @@ export class CredentialIssuanceRepository {
             };
         });
     }
+
+    /**
+     * Update credential metadata with AI-extracted data
+     * Called asynchronously after OCR processing completes
+     */
+    async updateCredentialMetadata(credential_id: string, ai_extracted_data: any) {
+        const credential = await prisma.credential.findUnique({
+            where: { credential_id },
+        });
+
+        if (!credential) {
+            throw new Error(`Credential not found: ${credential_id}`);
+        }
+
+        // Merge AI-extracted data into existing metadata
+        const existingMetadata = (credential.metadata as any) || {};
+        const updatedMetadata = {
+            ...existingMetadata,
+            ai_extracted: ai_extracted_data,
+        };
+
+        return await prisma.credential.update({
+            where: { credential_id },
+            data: {
+                metadata: updatedMetadata,
+            },
+        });
+    }
 }
 
 export const credentialIssuanceRepository = new CredentialIssuanceRepository();

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
     Map,
@@ -14,9 +15,13 @@ import {
 import api from '../../services/axiosInstance';
 
 const Roadmap = () => {
+    const location = useLocation();
     const [loading, setLoading] = useState(true);
     const [recommendations, setRecommendations] = useState(null);
     const [error, setError] = useState(null);
+
+    // Use passed state from CredentialDetails if available
+    const initialSkills = location.state?.skills || [];
 
     useEffect(() => {
         fetchRecommendations();

@@ -12,6 +12,7 @@ import { adminAuthRoutes, adminResourceRoutes } from './modules/admin/routes';
 import pdfRoutes from './modules/pdf/routes';
 import credentialIssuanceRoutes from './modules/credential-issuance/routes';
 import credentialVerificationRoutes from './modules/credential-verification/routes';
+import aiRoutes from './modules/ai/ai.routes';
 
 
 const app: Application = express();
@@ -74,6 +75,7 @@ app.use('/admin', adminResourceRoutes);
 app.use('/credentials', credentialIssuanceRoutes); // New credential issuance system
 app.use('/credentials', credentialVerificationRoutes); // New credential verification system
 app.use('/pdf', pdfRoutes);
+app.use('/ai', aiRoutes); // AI-powered recommendations and OCR
 
 // Root route
 app.get('/', (req, res) => {
@@ -93,6 +95,7 @@ app.get('/', (req, res) => {
         admin: '/admin',
         credentials: '/credentials',
         pdf: '/pdf',
+        ai: '/ai',
       },
       health: '/health',
     },

@@ -1,4 +1,3 @@
-// @ts-expect-error - uuid package provides its own types but tsc may not detect them properly
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { credentialIssuanceRepository } from './repository';
@@ -82,12 +81,23 @@ export class CredentialIssuanceService {
 
         const uniqueFileName = `credential/${identifier}/${sanitizedTitle}-${randomSuffix}.${extension}`;
 
-        const { cid: ipfs_cid, gateway_url: pdf_url } = await uploadToFilebase(
-            original_pdf,
-            uniqueFileName,
-            mimetype || 'application/pdf'
-        );
-        logger.info('Uploaded to IPFS', { credential_id, ipfs_cid, pdf_url });
+        let ipfs_cid: string;
+        let pdf_url: string;
+
+        if (process.env.BLOCKCHAIN_MOCK_ENABLED === 'true') {
+            logger.info('Mocking Filebase upload (BLOCKCHAIN_MOCK_ENABLED=true)');
+            ipfs_cid = `mock-cid-${uuidv4()}`;
+            pdf_url = `https://mock-ipfs-gateway.com/${ipfs_cid}`;
+        } else {
+            const result = await uploadToFilebase(
+                original_pdf,
+                uniqueFileName,
+                mimetype || 'application/pdf'
+            );
+            ipfs_cid = result.cid;
+            pdf_url = result.gateway_url;
+            logger.info('Uploaded to IPFS', { credential_id, ipfs_cid, pdf_url });
+        }
 
         // Step 5: Build canonical JSON with IPFS data but before blockchain (tx_hash and data_hash still null)
         let canonicalJson = buildCanonicalJson({
@@ -125,7 +135,7 @@ export class CredentialIssuanceService {
             data_hash,
         });
 
-        // Step 9: Store in database
+        // Step 9: Store in database (without AI data initially)
         const credential = await credentialIssuanceRepository.createCredential({
             credential_id,
             learner_id,
@@ -137,7 +147,11 @@ export class CredentialIssuanceService {
             pdf_url,
             tx_hash,
             data_hash,
-            metadata: canonicalJson,
+            metadata: {
+                ...canonicalJson,
+                issuer_name: issuer.name,
+                ai_extracted: {} // Will be updated asynchronously
+            },
             status,
         });
 
@@ -146,6 +160,22 @@ export class CredentialIssuanceService {
             learner_id,
             learner_email,
             status,
+        });
+
+        // Step 10: Process OCR asynchronously (fire and forget - don't await)
+        // This happens in background after response is sent to user
+        this.processOCRAsync(
+            credential_id,
+            original_pdf,
+            original_pdf_filename,
+            learner_email,
+            certificate_title,
+            issuer.name
+        ).catch(error => {
+            logger.error('Async OCR processing failed', {
+                credential_id,
+                error: error.message
+            });
         });
 
         return {
@@ -160,6 +190,62 @@ export class CredentialIssuanceService {
             status,
             issued_at,
         };
+    }
+
+    /**
+     * Process OCR asynchronously and update credential metadata when complete
+     * This runs in background and doesn't block the response to user
+     */
+    private async processOCRAsync(
+        credential_id: string,
+        original_pdf: Buffer,
+        original_pdf_filename: string,
+        learner_email: string,
+        certificate_title: string,
+        issuer_name: string
+    ): Promise<void> {
+        try {
+            logger.info('Starting async OCR processing', { credential_id, certificate_title });
+
+            const { aiService } = await import('../ai/ai.service');
+            const ocrResult = await aiService.processOCR(
+                original_pdf,
+                original_pdf_filename,
+                learner_email,
+                certificate_title,
+                issuer_name
+            );
+
+            const ai_extracted_data = {
+                skills: ocrResult.skills || [],
+                nsqf: ocrResult.nsqf || { level: 1, confidence: 0.0, reasoning: '' },
+                keywords: ocrResult.keywords || [],
+                certificate_metadata: ocrResult.certificate_metadata || {},
+                description: ocrResult.description || '',
+                extracted_text_preview: ocrResult.extracted_text?.substring(0, 500) || '',
+                processed_at: new Date().toISOString()
+            };
+
+            // Update the credential with AI-extracted data
+            await credentialIssuanceRepository.updateCredentialMetadata(
+                credential_id,
+                ai_extracted_data
+            );
+
+            logger.info('Async OCR processing complete and DB updated', {
+                credential_id,
+                skills_count: ai_extracted_data.skills.length,
+                keywords_count: ai_extracted_data.keywords.length,
+                nsqf_level: ai_extracted_data.nsqf.level
+            });
+        } catch (error: any) {
+            logger.error('Async OCR processing failed', {
+                credential_id,
+                error: error.message,
+                stack: error.stack
+            });
+            // Don't throw - this is fire-and-forget
+        }
     }
 
     /**
