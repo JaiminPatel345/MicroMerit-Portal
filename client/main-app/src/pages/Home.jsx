@@ -216,7 +216,7 @@ const Home = () => {
               transition={{ duration: 1.0, ease: "easeOut" }}
               className="relative w-full max-w-lg mx-auto order-1 lg:order-2 mb-8 lg:mb-0"
             >
-              <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl p-6 md:p-8 border border-white/50 ring-1 ring-gray-100 transform lg:rotate-2 transition-transform duration-500 ease-out">
+              <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 border border-gray-200 ring-1 ring-gray-100 transform lg:rotate-2 transition-transform duration-500 ease-out">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-bold text-gray-900 flex items-center"><Wallet className="w-5 h-5 mr-2 text-blue-chill-600" /> Live Credentials</h3>
                   <div className="text-right">
