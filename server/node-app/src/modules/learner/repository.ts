@@ -190,7 +190,7 @@ export class LearnerRepository {
     });
   }
   async getDashboardStats(learnerId: number) {
-    const [totalCredentials, recentCredentials] = await Promise.all([
+    const [totalCredentials, recentCredentials, allCredentials] = await Promise.all([
       prisma.credential.count({
         where: { learner_id: learnerId, status: 'issued' },
       }),
@@ -207,11 +207,39 @@ export class LearnerRepository {
           },
         },
       }),
+      prisma.credential.findMany({
+        where: { learner_id: learnerId, status: 'issued' },
+        select: {
+          metadata: true
+        }
+      })
     ]);
+
+    // Calculate top skills
+    const skillCounts: Record<string, number> = {};
+    allCredentials.forEach((cred: any) => {
+      const skills = cred.metadata?.ai_extracted?.skills || [];
+      if (Array.isArray(skills)) {
+        skills.forEach((skill: any) => {
+          // Handle both string and object formats (SkillExtraction schema)
+          const skillName = typeof skill === 'string' ? skill : skill?.name;
+
+          if (skillName && typeof skillName === 'string') {
+            skillCounts[skillName] = (skillCounts[skillName] || 0) + 1;
+          }
+        });
+      }
+    });
+
+    const topSkills = Object.entries(skillCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([skill, count]) => ({ skill, count }));
 
     return {
       totalCredentials,
       recentCredentials,
+      topSkills
     };
   }
   async getCredentialById(credentialId: string) {

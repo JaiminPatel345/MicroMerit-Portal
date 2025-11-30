@@ -18,3 +18,66 @@
   --color-blue-chill-900: #254c54;
   --color-blue-chill-950: #143238;
 }
+
+/* React Datepicker Customization */
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background-color: var(--color-blue-chill-600) !important;
+  color: white !important;
+}
+
+.react-datepicker__day--selected:hover,
+.react-datepicker__day--keyboard-selected:hover {
+  background-color: var(--color-blue-chill-700) !important;
+}
+
+.react-datepicker__header {
+  background-color: var(--color-blue-chill-50) !important;
+  border-bottom: 1px solid var(--color-blue-chill-200) !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker-year-header {
+  color: var(--color-blue-chill-900) !important;
+}
+
+.react-datepicker__day-name {
+  color: var(--color-blue-chill-700) !important;
+}
+
+.react-datepicker {
+  border: 1px solid var(--color-blue-chill-200) !important;
+  font-family: "Google Sans Flex", monospace !important;
+}
+
+/* Animation Utilities */
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}

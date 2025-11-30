@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Mail, Phone, Calendar, Upload, CheckCircle, Lock } from 'lucide-react';
+import { User, Mail, Phone, Calendar, Upload, CheckCircle, Lock, Check, X } from 'lucide-react';
 import { useDispatch } from 'react-redux';
 import { learnerLoginSuccess } from '../../store/authLearnerSlice';
 import { completeProfile } from '../../services/authServices';
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
 const ProfileBuilder = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -31,6 +33,38 @@ const ProfileBuilder = () => {
   const [profilePreview, setProfilePreview] = useState(null);
   const [profilePhotoFile, setProfilePhotoFile] = useState(null);
 
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [passwordCriteria, setPasswordCriteria] = useState({
+    minLength: false,
+    hasUpper: false,
+    hasLower: false,
+    hasNumber: false,
+    hasSpecial: false
+  });
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (formData.confirmPassword && formData.password !== formData.confirmPassword) {
+        setConfirmPasswordError('Passwords do not match');
+      } else {
+        setConfirmPasswordError('');
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [formData.password, formData.confirmPassword]);
+
+  const checkPasswordCriteria = (password) => {
+    setPasswordCriteria({
+      minLength: password.length >= 6,
+      hasUpper: /[A-Z]/.test(password),
+      hasLower: /[a-z]/.test(password),
+      hasNumber: /[0-9]/.test(password),
+      hasSpecial: /[^A-Za-z0-9]/.test(password)
+    });
+  };
+
   useEffect(() => {
     if (loginMethod === 'google' || loginMethod === 'digilocker') {
       return;
@@ -57,8 +91,12 @@ const ProfileBuilder = () => {
     // ⬇️ Password validation added
     if (!formData.password.trim()) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
+    } else {
+      if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
+      if (!/[A-Z]/.test(formData.password)) newErrors.password = 'Password must contain an uppercase letter';
+      if (!/[a-z]/.test(formData.password)) newErrors.password = 'Password must contain a lowercase letter';
+      if (!/[0-9]/.test(formData.password)) newErrors.password = 'Password must contain a number';
+      if (!/[^A-Za-z0-9]/.test(formData.password)) newErrors.password = 'Password must contain a special character';
     }
 
     if (formData.confirmPassword !== formData.password) {
@@ -77,12 +115,25 @@ const ProfileBuilder = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
+
+    if (name === 'password') {
+      checkPasswordCriteria(value);
+    }
+
+    if (name === 'password' || name === 'confirmPassword') {
+      setConfirmPasswordError('');
+    }
   };
 
   const handleConsentChange = (e) => {
     const { name, checked } = e.target;
     setConsents((prev) => ({ ...prev, [name]: checked }));
     if (errors.consents) setErrors((prev) => ({ ...prev, consents: '' }));
+  };
+
+  const handleDateChange = (date) => {
+    setFormData((prev) => ({ ...prev, dateOfBirth: date }));
+    if (errors.dateOfBirth) setErrors((prev) => ({ ...prev, dateOfBirth: '' }));
   };
 
   const handleFileChange = (e) => {
@@ -92,10 +143,10 @@ const ProfileBuilder = () => {
       setErrors((prev) => ({ ...prev, profilePic: 'File size must be less than 5MB' }));
       return;
     }
-    
+
     // Store the actual file for upload
     setProfilePhotoFile(file);
-    
+
     // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -119,23 +170,23 @@ const ProfileBuilder = () => {
 
     try {
       setLoading(true);
-      
+
       // Create FormData for multipart/form-data submission (binary file upload)
       const submitData = new FormData();
       submitData.append('name', formData.fullName);
-      
+
       // Password is optional
       if (formData.password && formData.password.trim()) {
         submitData.append('password', formData.password.trim());
       }
-      
+
       // Add optional fields only if they have values
       // Backend expects 'dob' as ISO datetime string
       if (formData.dateOfBirth) {
         const dobDate = new Date(formData.dateOfBirth);
         submitData.append('dob', dobDate.toISOString());
       }
-      
+
       // Map frontend gender values to backend enum
       if (formData.gender) {
         const genderMap = {
@@ -146,19 +197,19 @@ const ProfileBuilder = () => {
         };
         submitData.append('gender', genderMap[formData.gender] || formData.gender);
       }
-      
+
       // Append the actual File object (binary data, not base64)
       if (profilePhotoFile) {
         submitData.append('profilePhoto', profilePhotoFile);
         console.log('Profile photo attached:', profilePhotoFile.name, profilePhotoFile.size, 'bytes');
       }
-      
+
       // Log FormData entries
       console.log('FormData contents:');
       for (let pair of submitData.entries()) {
         console.log(pair[0] + ':', pair[1]);
       }
-      
+
       console.log('Sending request to backend...');
       const response = await completeProfile.complete(submitData, {
         headers: {
@@ -255,19 +306,25 @@ const ProfileBuilder = () => {
 
 
               {/* DOB */}
+              {/* DOB */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Date of Birth</label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
                     <Calendar className="h-5 w-5 text-gray-400" />
                   </div>
-                  <input
-                    type="date"
-                    name="dateOfBirth"
-                    value={formData.dateOfBirth}
-                    onChange={handleInputChange}
+                  <DatePicker
+                    selected={formData.dateOfBirth ? new Date(formData.dateOfBirth) : null}
+                    onChange={handleDateChange}
+                    dateFormat={['dd/MM/yyyy', 'ddMMyyyy', 'dd-MM-yyyy']}
+                    showYearDropdown
+                    scrollableYearDropdown
+                    yearDropdownItemNumber={100}
+                    placeholderText="dd/mm/yyyy"
                     className={`block w-full pl-10 pr-3 py-3 border ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
-                      } rounded-lg focus:ring-2 focus:ring-blue-chill-500`}
+                      } rounded-lg focus:ring-2 focus:ring-blue-chill-500 outline-none`}
+                    wrapperClassName="w-full"
+                    maxDate={new Date()}
                   />
                 </div>
                 {errors.dateOfBirth && <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth}</p>}
@@ -304,12 +361,41 @@ const ProfileBuilder = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
                     className={`block w-full pl-10 pr-3 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'
                       } rounded-lg focus:ring-2 focus:ring-blue-chill-500`}
                     placeholder="Enter your password"
                   />
                 </div>
                 {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+
+                {/* Password Criteria Checklist */}
+                {passwordFocused && (
+                  <div className="absolute z-50 mt-2 p-3 bg-white rounded-lg border border-gray-200 shadow-xl w-full max-w-xs transform transition-all duration-200 ease-out">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Password Requirements</p>
+                    <ul className="space-y-2 text-sm">
+                      {[
+                        { met: passwordCriteria.minLength, text: 'At least 6 characters' },
+                        { met: passwordCriteria.hasUpper, text: 'One uppercase letter' },
+                        { met: passwordCriteria.hasLower, text: 'One lowercase letter' },
+                        { met: passwordCriteria.hasNumber, text: 'One number' },
+                        { met: passwordCriteria.hasSpecial, text: 'One special character' }
+                      ].map((item, index) => (
+                        <li key={index} className={`flex items-center ${item.met ? 'text-green-600' : 'text-gray-500'}`}>
+                          {item.met ? (
+                            <Check className="w-4 h-4 mr-2 flex-shrink-0" />
+                          ) : (
+                            <div className="w-4 h-4 mr-2 border-2 border-gray-300 rounded-full flex-shrink-0" />
+                          )}
+                          <span className={item.met ? 'font-medium' : ''}>{item.text}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    {/* Little arrow pointing up */}
+                    <div className="absolute -top-2 left-6 w-4 h-4 bg-white border-t border-l border-gray-200 transform rotate-45"></div>
+                  </div>
+                )}
               </div>
 
               {/* Confirm Password */}
@@ -326,13 +412,13 @@ const ProfileBuilder = () => {
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
-                    className={`block w-full pl-10 pr-3 py-3 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                    className={`block w-full pl-10 pr-3 py-3 border ${confirmPasswordError || errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                       } rounded-lg focus:ring-2 focus:ring-blue-chill-500`}
                     placeholder="Re-enter password"
                   />
                 </div>
-                {errors.confirmPassword && (
-                  <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+                {(confirmPasswordError || errors.confirmPassword) && (
+                  <p className="mt-1 text-sm text-red-600">{confirmPasswordError || errors.confirmPassword}</p>
                 )}
               </div>
             </div>
@@ -375,7 +461,7 @@ const ProfileBuilder = () => {
                     </span>
                     <span className="text-red-500"> *</span>
                     <p className="text-gray-600 mt-1">
-                      This is mandatory for using MicroMerit as per legal requirements
+                      This is mandatory for using MicroMerit as per legal requirements. <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-chill-600 hover:text-blue-chill-800 underline">Terms</a>
                     </p>
                   </label>
                 </div>

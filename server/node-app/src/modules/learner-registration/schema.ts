@@ -26,7 +26,13 @@ export const verifyOTPSchema = z.object({
 export const completeRegistrationSchema = z.object({
   body: z.object({
     name: z.string().min(1).max(255),
-    password: z.string().min(8).optional(),
+    password: z.string()
+      .min(6, 'Password must be at least 6 characters')
+      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+      .regex(/[0-9]/, 'Password must contain at least one number')
+      .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character')
+      .optional(),
     dob: z.string().datetime().optional(), // ISO 8601 date string
     gender: z.enum(['Male', 'Female', 'Others', 'Not to disclose']).optional(),
   }),

@@ -19,13 +19,32 @@ import {
 } from 'lucide-react';
 // Assuming Link is correctly imported from react-router-dom in your environment
 import { Link, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { credentialServices } from '../services/credentialServices';
 
 const Home = () => {
   const navigate = useNavigate();
   const { isAuthenticated: isIssuerAuth } = useSelector((state) => state.authIssuer);
   const { isAuthenticated: isLearnerAuth } = useSelector((state) => state.authLearner);
+
+  const [latestCredentials, setLatestCredentials] = useState([]);
+  const [totalCredentials, setTotalCredentials] = useState(0);
+  const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
+
+  const fetchLatestCredentials = async () => {
+    try {
+      const response = await credentialServices.getLatestCredentials();
+      if (response.success && response.data) {
+        setLatestCredentials(response.data.credentials || []);
+        setTotalCredentials(response.data.totalCount || 0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch latest credentials:', error);
+    } finally {
+      setIsLoadingCredentials(false);
+    }
+  };
 
   useEffect(() => {
     if (isIssuerAuth) {
@@ -34,6 +53,19 @@ const Home = () => {
       navigate('/dashboard');
     }
   }, [isIssuerAuth, isLearnerAuth, navigate]);
+
+  useEffect(() => {
+    // Initial fetch
+    fetchLatestCredentials();
+
+    // Set up interval to refresh every 5 seconds
+    const interval = setInterval(() => {
+      fetchLatestCredentials();
+    }, 5000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(interval);
+  }, []);
   // FIXED: Simplified the transition to use a standard "easeOut" for professionalism
   // and to resolve the WAAPI compatibility error.
   const fadeInUp = {
@@ -137,34 +169,43 @@ const Home = () => {
     <div className="min-h-screen bg-white font-sans">
 
       {/* ---------------------------------- Hero Section (Responsive) ---------------------------------- */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-white via-blue-chill-50 to-blue-chill-100 py-16 md:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+      <section className="min-h-[calc(100vh-4rem)] flex relative overflow-hidden bg-gradient-to-br from-white via-blue-chill-50 to-blue-chill-100 py-8 md:py-16">
+        {/* Decorative Background Blobs */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+          <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-chill-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+          <div className="absolute top-0 -right-4 w-72 h-72 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+          <div className="absolute -bottom-8 left-20 w-72 h-72 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start mt-8 md:mt-12">
 
             {/* Left Content */}
             <motion.div {...fadeInUp} className="order-2 lg:order-1">
-              <span className="inline-flex items-center rounded-full bg-blue-chill-100 px-3 py-1 text-sm font-semibold text-blue-chill-700 mb-4 border border-blue-chill-300">
-                <Zap className="w-4 h-4 mr-1 text-blue-chill-600" /> Blockchain, IPFS & AI Powered
+              <span className="inline-flex items-center rounded-full bg-white/80 backdrop-blur-sm px-4 py-1.5 text-sm font-semibold text-blue-chill-700 mb-6 border border-blue-chill-200 shadow-sm">
+                <Zap className="w-4 h-4 mr-2 text-blue-chill-600 fill-current" /> Blockchain, IPFS & AI Powered
               </span>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-6 leading-tight">
-                Your Verifiable <br /> <span className="text-blue-chill-700">Credential Hub</span> for India
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-6 leading-tight tracking-tight">
+                Your Skills, <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-chill-600 to-teal-500">Unified & Verified.</span>
               </h1>
-              <p className="text-lg md:text-xl text-gray-700 mb-8 leading-relaxed">
-                MicroMerit unifies all your certifications — from government skilling bodies, colleges, and ed-tech platforms — into a secure, AI-powered digital wallet verified by blockchain.
+              <p className="text-lg text-gray-600 mb-8 leading-relaxed max-w-lg">
+                MicroMerit is India's first decentralized credential wallet. Collect, verify, and showcase your achievements from universities, government bodies, and ed-tech platforms in one secure place.
               </p>
 
               <motion.div variants={stagger} initial="initial" animate="animate" className="flex flex-col sm:flex-row flex-wrap gap-4 mb-8">
-                <Link to="/signup" className="bg-blue-chill-600 text-white px-6 md:px-8 py-3 md:py-4 rounded-full hover:bg-blue-chill-700 transition font-bold text-base md:text-lg shadow-xl shadow-blue-chill-200 transform hover:-translate-y-1">
-                  Create Wallet Now &rarr;
+                <Link to="/signup" className="bg-blue-chill-600 text-white px-6 py-3 rounded-full hover:bg-blue-chill-700 transition font-bold text-base shadow-lg shadow-blue-chill-200 hover:shadow-xl text-center">
+                  Create Free Wallet
                 </Link>
-                <Link to="/demo" className="bg-white text-blue-chill-600 border-2 border-blue-chill-600 px-6 md:px-8 py-3 md:py-4 rounded-full hover:bg-blue-chill-50 transition font-semibold text-base md:text-lg">
-                  Watch Live Demo
+                <Link to="/login" className="bg-white text-gray-700 border border-gray-200 px-6 py-3 rounded-full hover:border-blue-chill-600 hover:text-blue-chill-600 transition font-semibold text-base text-center hover:bg-blue-chill-50 shadow-sm hover:shadow-md">
+                  Log In
                 </Link>
               </motion.div>
 
-              <div className="flex items-center space-x-4 pt-4 border-t border-gray-200">
-                <Shield className="w-5 h-5 text-green-600" />
-                <p className="text-sm text-gray-600 font-medium">100% Open Source, Secure & NSQF Compliant Platform</p>
+              <div className="flex items-center space-x-2 text-sm text-gray-500 font-medium">
+                <span>Are you an institution?</span>
+                <Link to="/issuer/login" className="text-blue-chill-600 hover:underline flex items-center font-semibold">
+                  Issue Credentials <ChevronRight className="w-4 h-4 ml-0.5" />
+                </Link>
               </div>
             </motion.div>
 
@@ -175,27 +216,67 @@ const Home = () => {
               transition={{ duration: 1.0, ease: "easeOut" }}
               className="relative w-full max-w-lg mx-auto order-1 lg:order-2 mb-8 lg:mb-0"
             >
-              <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-10 border-4 border-blue-chill-300 transform lg:rotate-3 transition-transform duration-500 ease-out">
+              <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 border border-gray-200 ring-1 ring-gray-100 transform lg:rotate-2 transition-transform duration-500 ease-out">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center"><Wallet className="w-6 h-6 mr-2 text-blue-chill-600" /> MicroMerit Wallet</h3>
-                  <span className="text-sm font-medium text-gray-500">3 Verified Records</span>
+                  <h3 className="text-xl font-bold text-gray-900 flex items-center"><Wallet className="w-5 h-5 mr-2 text-blue-chill-600" /> Live Credentials</h3>
+                  <div className="text-right">
+                    {isLoadingCredentials ? (
+                      <span className="text-xs font-medium text-gray-500 animate-pulse">Loading...</span>
+                    ) : (
+                      <p className="text-xs font-bold text-blue-chill-600 bg-blue-chill-50 px-2 py-1 rounded-md">
+                        {totalCredentials.toLocaleString()} Issued
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-4">
-                  {[
-                    { title: "Skill India Digital Course", date: "Jan 2025" },
-                    { title: "University Degree (B.Tech)", date: "May 2024" },
-                    { title: "EdTech Platform Certificate", date: "Sep 2025" },
-                  ].map((cert, i) => (
-                    <div key={i} className="bg-gradient-to-r from-blue-chill-600 to-blue-chill-700 rounded-xl p-4 text-white shadow-md">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold">{cert.title}</p>
-                          <p className="text-xs opacity-90">{cert.date} | Verified</p>
+                <div className="space-y-3">
+                  {isLoadingCredentials ? (
+                    // Loading skeleton
+                    [1, 2, 3].map((i) => (
+                      <div key={i} className="bg-gray-100 animate-pulse rounded-xl p-3 h-16"></div>
+                    ))
+                  ) : latestCredentials.length > 0 ? (
+                    latestCredentials.map((cert, i) => {
+                      const issueDate = new Date(cert.issued_at);
+
+                      // Format time as HH:MM
+                      const hours = issueDate.getHours().toString().padStart(2, '0');
+                      const minutes = issueDate.getMinutes().toString().padStart(2, '0');
+                      const timeString = `${hours}:${minutes}`;
+
+                      // Format date
+                      const dateString = issueDate.toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric'
+                      });
+
+                      const issuerName = cert.issuer?.name || 'Verified Issuer';
+
+                      return (
+                        <div key={i} className="group bg-white border border-gray-100 rounded-xl p-4 hover:border-blue-chill-300 transition-all duration-300 shadow-sm hover:shadow-md">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 pr-3">
+                              <p className="font-bold text-gray-800 text-base truncate group-hover:text-blue-chill-700 transition-colors">{cert.certificate_title}</p>
+                              <div className="flex items-center mt-1.5 space-x-2">
+                                <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-md font-medium">{timeString} • {dateString}</span>
+                              </div>
+                              <p className="text-xs text-gray-600 mt-1 font-medium">Issuer: {issuerName}</p>
+                            </div>
+                            <div className="bg-blue-chill-50 p-2.5 rounded-full group-hover:bg-blue-chill-100 transition-colors">
+                              <Award className="w-5 h-5 text-blue-chill-600" />
+                            </div>
+                          </div>
                         </div>
-                        <Award className="w-5 h-5" />
-                      </div>
+                      );
+                    })
+                  ) : (
+                    // No credentials state
+                    <div className="text-center py-8">
+                      <p className="text-gray-500 text-sm">No credentials issued yet</p>
+                      <p className="text-xs text-gray-400 mt-1">Be the first to join!</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -204,7 +285,7 @@ const Home = () => {
       </section>
 
       {/* ---------------------------------- Features Section (Responsive) ---------------------------------- */}
-      <section className="py-16 md:py-24 bg-gray-50">
+      <section className="min-h-screen flex items-center py-16 md:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -362,7 +443,7 @@ const Home = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.15, duration: 0.7 }}
-                className={`rounded-2xl shadow-xl overflow-hidden transform hover:-translate-y-2 transition-transform duration-500`}
+                className={`rounded-2xl shadow-xl overflow-hidden transform hover:scale-[1.02] transition-transform duration-500`}
               >
                 {/* Header */}
                 <div className={`${type.color} text-white p-6 md:p-8 flex flex-col items-center justify-center`}>
@@ -380,8 +461,8 @@ const Home = () => {
                       </li>
                     ))}
                   </ul>
-                  <Link to={`/for-${type.title.toLowerCase().replace(' ', '-')}`} className={`mt-8 inline-block w-full text-center ${type.color} text-white px-6 py-3 rounded-full font-semibold hover:opacity-90 transition text-base`}>
-                    Learn More <ChevronRight className="w-4 h-4 inline-block ml-1" />
+                  <Link to={type.title === "For Providers" ? "/issuer/signup" : `/for-${type.title.toLowerCase().replace(' ', '-')}`} className={`mt-8 inline-block w-full text-center ${type.color} text-white px-6 py-3 rounded-full font-semibold hover:opacity-90 transition text-base`}>
+                    {type.title === "For Providers" ? "Join as Issuer" : "Learn More"} <ChevronRight className="w-4 h-4 inline-block ml-1" />
                   </Link>
                 </div>
               </motion.div>
@@ -411,7 +492,7 @@ const Home = () => {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-xl px-6 py-4 shadow-lg border-2 border-gray-100 hover:border-blue-chill-400 transition transform hover:-translate-y-1"
+                className="bg-white rounded-xl px-6 py-4 shadow-lg border-2 border-gray-100 hover:border-blue-chill-400 transition transform hover:scale-105"
               >
                 <p className="text-lg font-bold text-gray-800 tracking-wider">{integration}</p>
               </motion.div>

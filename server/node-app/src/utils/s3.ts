@@ -26,6 +26,10 @@ class S3Service {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
       },
+      requestHandler: {
+        connectionTimeout: 30000, // 30 seconds
+        socketTimeout: 30000, // 30 seconds
+      },
     });
 
     logger.info(`S3 Service initialized with bucket: ${this.bucketName}`);

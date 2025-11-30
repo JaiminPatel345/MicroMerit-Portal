@@ -61,3 +61,15 @@ export class ConflictError extends Error {
     this.code = code;
   }
 }
+
+export class DatabaseError extends Error {
+  statusCode: number;
+  code: string;
+
+  constructor(message: string, statusCode: number = 500, code: string = 'DATABASE_ERROR') {
+    super(message);
+    this.name = 'DatabaseError';
+    this.statusCode = statusCode;
+    this.code = code;
+  }
+}
