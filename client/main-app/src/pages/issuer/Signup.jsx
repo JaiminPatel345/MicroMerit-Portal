@@ -173,10 +173,33 @@ function IssuerSignUp() {
         });
       }
     } catch (error) {
-      setErrors({
-        submit: error.response?.data?.message || "Signup failed. Please try again.",
-      });
       console.error("Signup error:", error);
+      
+      // Parse validation errors from backend
+      let errorMessage = "Signup failed. Please try again.";
+      
+      if (error.response?.data?.error) {
+        try {
+          // Try to parse Zod validation errors
+          const validationErrors = JSON.parse(error.response.data.error);
+          if (Array.isArray(validationErrors) && validationErrors.length > 0) {
+            // Create a detailed error message from all validation errors
+            errorMessage = validationErrors.map(err => {
+              const field = err.path?.join('.') || 'field';
+              return `${field}: ${err.message}`;
+            }).join('; ');
+          }
+        } catch (parseError) {
+          // If not JSON, use the error string directly
+          errorMessage = error.response.data.error;
+        }
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      setErrors({
+        submit: errorMessage,
+      });
     } finally {
       setLoading(false);
     }

@@ -111,15 +111,16 @@ export const validateURL = (url) => {
   }
 };
 
-// DOMAIN NAME (example.com, mysite.in, etc.)
+// DOMAIN NAME (example.com, mysite.in, subdomain.example.com, etc.)
 export const validateDomain = (domain) => {
   if (!domain) return 'Domain name is required';
 
-  // Domain: letters, numbers, hyphens, must include a dot + TLD
-  const domainRegex = /^(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.[A-Za-z]{2,}$/;
+  // Domain: supports subdomains, letters, numbers, hyphens, dots, must end with valid TLD
+  // Allows: example.com, sub.example.com, my-site.co.in, bvmengineering.ac.in
+  const domainRegex = /^(?!-)[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
 
   if (!domainRegex.test(domain)) {
-    return 'Invalid domain name (example: yoursite.com)';
+    return 'Invalid domain name (example: yoursite.com or subdomain.example.com)';
   }
 
   return '';

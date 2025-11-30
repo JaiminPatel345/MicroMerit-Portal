@@ -6,7 +6,7 @@ import { z } from 'zod';
 export const startIssuerRegistrationSchema = z.object({
   email: z.string().email('Invalid email address'),
   name: z.string().min(3, 'Name must be at least 3 characters').max(255),
-  official_domain: z.string().url('Invalid URL').optional(),
+  official_domain: z.string().regex(/^(?!-)[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/, 'Invalid domain name (e.g., example.com or subdomain.example.com)').optional(),
   website_url: z.string().url('Invalid URL').optional(),
   type: z.enum(['university', 'edtech', 'company', 'training_provider'], {
     errorMap: () => ({ message: 'Type must be one of: university, edtech, company, training_provider' }),
@@ -37,7 +37,7 @@ export type VerifyIssuerOTPInput = z.infer<typeof verifyIssuerOTPSchema>;
  */
 export const issuerRegistrationSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters').max(255),
-  official_domain: z.string().url('Invalid URL').optional(),
+  official_domain: z.string().regex(/^(?!-)[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/, 'Invalid domain name (e.g., example.com or subdomain.example.com)').optional(),
   website_url: z.string().url('Invalid URL').optional(),
   type: z.enum(['university', 'edtech', 'company', 'training_provider'], {
     errorMap: () => ({ message: 'Type must be one of: university, edtech, company, training_provider' }),
@@ -79,7 +79,7 @@ export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
  */
 export const updateIssuerProfileSchema = z.object({
   name: z.string().min(3).max(255).optional(),
-  official_domain: z.string().url('Invalid URL').optional(),
+  official_domain: z.string().regex(/^(?!-)[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/, 'Invalid domain name (e.g., example.com or subdomain.example.com)').optional(),
   website_url: z.string().url('Invalid URL').optional(),
   type: z.enum(['university', 'edtech', 'company', 'training_provider']).optional(),
   phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number').optional(),

@@ -156,8 +156,28 @@ export class RegistrationService {
         logger.info('Profile photo uploaded', { sessionId, hasPhoto: !!profilePhotoUrl });
       } catch (error: any) {
         logger.error('Profile photo upload failed', { error: error.message });
+        
+        // Check if it's a timeout error
+        if (error.name === 'RequestTimeout' || error.message?.includes('timeout')) {
+          throw new ValidationError(
+            'Profile photo upload timed out. Please try again with a smaller image or check your internet connection',
+            408,
+            'UPLOAD_TIMEOUT'
+          );
+        }
+        
+        // Check if it's a network/connection error
+        if (error.name === 'NetworkingError' || error.message?.includes('connect')) {
+          throw new ValidationError(
+            'Unable to upload profile photo due to network issues. Please try again later',
+            503,
+            'UPLOAD_NETWORK_ERROR'
+          );
+        }
+        
+        // Generic upload error
         throw new ValidationError(
-          `Profile photo upload failed: ${error.message}`,
+          'Failed to upload profile photo. Please try again or skip this step',
           400,
           'PROFILE_PHOTO_UPLOAD_FAILED'
         );

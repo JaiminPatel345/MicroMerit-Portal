@@ -8,6 +8,7 @@ import {
   NotFoundError,
   ForbiddenError,
   ConflictError,
+  DatabaseError,
 } from '../utils/errors';
 
 /**
@@ -52,6 +53,11 @@ export const errorHandler = (
     return;
   }
 
+  if (error instanceof DatabaseError) {
+    sendError(res, error.code, error.message, error.statusCode);
+    return;
+  }
+
   // Handle Multer errors
   if (error.name === 'MulterError') {
     if (error.code === 'LIMIT_FILE_SIZE') {
@@ -74,21 +80,59 @@ export const errorHandler = (
 
   // Handle Zod validation errors
   if (error instanceof ZodError) {
-    const errorMessages = error.errors.map((err) => `${err.path.join('.')}: ${err.message}`).join(', ');
-    sendError(res, 'VALIDATION_ERROR', errorMessages, 400);
+    // Create user-friendly error messages
+    const formattedErrors = error.errors.map((err) => {
+      const field = err.path.join('.') || 'field';
+      return `${field}: ${err.message}`;
+    });
+    
+    // Send detailed message in the message field for better UX
+    const detailedMessage = formattedErrors.join('; ');
+    sendError(res, 'VALIDATION_ERROR', detailedMessage, 400);
     return;
   }
 
   // Handle Prisma errors
   if (error.code && error.code.startsWith('P')) {
+    if (error.code === 'P1001') {
+      sendError(res, 'DATABASE_CONNECTION_ERROR', 'Unable to connect to the database. Please try again later', 503);
+      return;
+    }
     if (error.code === 'P2002') {
-      sendError(res, 'DUPLICATE_ENTRY', 'A record with this value already exists', 409);
+      // Extract field name from meta if available
+      const field = error.meta?.target?.[0] || 'field';
+      sendError(res, 'DUPLICATE_ENTRY', `This ${field} is already registered`, 409);
       return;
     }
     if (error.code === 'P2025') {
-      sendError(res, 'NOT_FOUND', 'Record not found', 404);
+      sendError(res, 'NOT_FOUND', 'The requested record was not found', 404);
       return;
     }
+    if (error.code === 'P2003') {
+      sendError(res, 'INVALID_REFERENCE', 'Invalid reference to related record', 400);
+      return;
+    }
+    if (error.code === 'P2014') {
+      sendError(res, 'INVALID_RELATION', 'The change violates a required relation', 400);
+      return;
+    }
+    // Generic Prisma error
+    logger.error('Unhandled Prisma error', { code: error.code, meta: error.meta });
+    sendError(res, 'DATABASE_ERROR', 'A database error occurred. Please try again', 500);
+    return;
+  }
+
+  // Handle Prisma Client Initialization Errors
+  if (error.name === 'PrismaClientInitializationError') {
+    sendError(res, 'DATABASE_CONNECTION_ERROR', 'Unable to connect to the database. Please try again later', 503);
+    return;
+  }
+
+  // Handle Prisma Client Known Request Errors (table doesn't exist, etc)
+  if (error.name === 'PrismaClientKnownRequestError') {
+    logger.error('Prisma known request error', { code: error.code, message: error.message });
+    sendError(res, 'DATABASE_ERROR', 'A database error occurred. Please contact support if this persists', 500);
+    return;
   }
 
   // Handle JWT errors
@@ -99,6 +143,23 @@ export const errorHandler = (
 
   if (error.name === 'TokenExpiredError') {
     sendError(res, 'TOKEN_EXPIRED', 'Authentication token has expired', 401);
+    return;
+  }
+
+  // Handle AWS S3 errors
+  if (error.name === 'RequestTimeout') {
+    sendError(res, 'UPLOAD_TIMEOUT', 'File upload timed out. Please try again with a smaller file or check your connection', 408);
+    return;
+  }
+
+  if (error.name === 'NetworkingError') {
+    sendError(res, 'NETWORK_ERROR', 'Network error occurred. Please check your connection and try again', 503);
+    return;
+  }
+
+  if (error.name === 'CredentialsError') {
+    logger.error('AWS Credentials error - check environment variables');
+    sendError(res, 'SERVER_CONFIGURATION_ERROR', 'Server configuration error. Please contact support', 500);
     return;
   }
 
