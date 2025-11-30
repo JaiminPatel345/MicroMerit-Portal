@@ -196,13 +196,15 @@ const Header = () => {
             </div>
 
 
-            <>
-              <Link to="/login" className="text-blue-chill-600 font-medium">Login</Link>
-              <div className="h-6 w-px bg-gray-400"></div>
-              <Link to="/issuer/signup" className="bg-blue-chill-600 text-white px-6 py-2 rounded-lg">
-                Start Now As Issuer
+            <div className="flex items-center space-x-3">
+              <Link to="/login" className="text-gray-700 hover:text-blue-chill-600 font-medium">Log In</Link>
+              <Link to="/signup" className="bg-blue-chill-600 text-white px-5 py-2 rounded-lg hover:bg-blue-chill-700 transition shadow-md">
+                Sign Up
               </Link>
-            </>
+              <Link to="/issuer/login" className="text-blue-chill-600 font-medium hover:bg-blue-chill-50 px-4 py-2 rounded-lg border border-blue-chill-200 transition">
+                Issuer Portal
+              </Link>
+            </div>
           </div>
 
           {/* MOBILE TOGGLE */}
@@ -294,11 +296,19 @@ const Header = () => {
 
             {/* AUTH (mobile) */}
 
-            <div className="pt-4 space-y-3">
-              <Link to="/login" className="block text-center border px-6 py-2 rounded-lg">Login</Link>
-              <Link to="/issuer/signup" className="block text-center bg-blue-chill-600 text-white px-6 py-2 rounded-lg">
-                Start Now As Issuer
-              </Link>
+            <div className="pt-4 space-y-3 border-t">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Learners</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Link to="/login" className="block text-center border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50">Log In</Link>
+                <Link to="/signup" className="block text-center bg-blue-chill-600 text-white px-4 py-2 rounded-lg hover:bg-blue-chill-700">Sign Up</Link>
+              </div>
+
+              <div className="pt-2">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Issuers</p>
+                <Link to="/issuer/login" className="block text-center border border-blue-chill-200 text-blue-chill-600 px-6 py-2 rounded-lg hover:bg-blue-chill-50">
+                  Issuer Portal
+                </Link>
+              </div>
             </div>
 
           </div>

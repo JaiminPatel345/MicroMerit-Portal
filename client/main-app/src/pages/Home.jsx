@@ -147,24 +147,26 @@ const Home = () => {
                 <Zap className="w-4 h-4 mr-1 text-blue-chill-600" /> Blockchain, IPFS & AI Powered
               </span>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-6 leading-tight">
-                Your Verifiable <br /> <span className="text-blue-chill-700">Credential Hub</span> for India
+                Your Skills, <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-chill-600 to-teal-500">Unified & Verified.</span>
               </h1>
               <p className="text-lg md:text-xl text-gray-700 mb-8 leading-relaxed">
-                MicroMerit unifies all your certifications — from government skilling bodies, colleges, and ed-tech platforms — into a secure, AI-powered digital wallet verified by blockchain.
+                MicroMerit is India's first decentralized credential wallet. Collect, verify, and showcase your achievements from universities, government bodies, and ed-tech platforms in one secure place.
               </p>
 
-              <motion.div variants={stagger} initial="initial" animate="animate" className="flex flex-col sm:flex-row flex-wrap gap-4 mb-8">
-                <Link to="/signup" className="bg-blue-chill-600 text-white px-6 md:px-8 py-3 md:py-4 rounded-full hover:bg-blue-chill-700 transition font-bold text-base md:text-lg shadow-xl shadow-blue-chill-200 transform hover:-translate-y-1">
-                  Create Wallet Now &rarr;
+              <motion.div variants={stagger} initial="initial" animate="animate" className="flex flex-col sm:flex-row flex-wrap gap-4 mb-6">
+                <Link to="/signup" className="bg-blue-chill-600 text-white px-8 py-4 rounded-full hover:bg-blue-chill-700 transition font-bold text-lg shadow-lg shadow-blue-chill-200 hover:shadow-xl text-center">
+                  Create Free Wallet
                 </Link>
-                <Link to="/demo" className="bg-white text-blue-chill-600 border-2 border-blue-chill-600 px-6 md:px-8 py-3 md:py-4 rounded-full hover:bg-blue-chill-50 transition font-semibold text-base md:text-lg">
-                  Watch Live Demo
+                <Link to="/login" className="bg-white text-gray-700 border-2 border-gray-200 px-8 py-4 rounded-full hover:border-blue-chill-600 hover:text-blue-chill-600 transition font-semibold text-lg text-center hover:bg-blue-chill-50">
+                  Log In
                 </Link>
               </motion.div>
 
-              <div className="flex items-center space-x-4 pt-4 border-t border-gray-200">
-                <Shield className="w-5 h-5 text-green-600" />
-                <p className="text-sm text-gray-600 font-medium">100% Open Source, Secure & NSQF Compliant Platform</p>
+              <div className="flex items-center space-x-2 text-sm text-gray-500 font-medium">
+                <span>Are you an institution?</span>
+                <Link to="/issuer/login" className="text-blue-chill-600 hover:underline flex items-center">
+                  Issue Credentials <ChevronRight className="w-4 h-4" />
+                </Link>
               </div>
             </motion.div>
 
@@ -362,7 +364,7 @@ const Home = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.15, duration: 0.7 }}
-                className={`rounded-2xl shadow-xl overflow-hidden transform hover:-translate-y-2 transition-transform duration-500`}
+                className={`rounded-2xl shadow-xl overflow-hidden transform hover:scale-[1.02] transition-transform duration-500`}
               >
                 {/* Header */}
                 <div className={`${type.color} text-white p-6 md:p-8 flex flex-col items-center justify-center`}>
@@ -380,8 +382,8 @@ const Home = () => {
                       </li>
                     ))}
                   </ul>
-                  <Link to={`/for-${type.title.toLowerCase().replace(' ', '-')}`} className={`mt-8 inline-block w-full text-center ${type.color} text-white px-6 py-3 rounded-full font-semibold hover:opacity-90 transition text-base`}>
-                    Learn More <ChevronRight className="w-4 h-4 inline-block ml-1" />
+                  <Link to={type.title === "For Providers" ? "/issuer/signup" : `/for-${type.title.toLowerCase().replace(' ', '-')}`} className={`mt-8 inline-block w-full text-center ${type.color} text-white px-6 py-3 rounded-full font-semibold hover:opacity-90 transition text-base`}>
+                    {type.title === "For Providers" ? "Join as Issuer" : "Learn More"} <ChevronRight className="w-4 h-4 inline-block ml-1" />
                   </Link>
                 </div>
               </motion.div>
@@ -411,7 +413,7 @@ const Home = () => {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-xl px-6 py-4 shadow-lg border-2 border-gray-100 hover:border-blue-chill-400 transition transform hover:-translate-y-1"
+                className="bg-white rounded-xl px-6 py-4 shadow-lg border-2 border-gray-100 hover:border-blue-chill-400 transition transform hover:scale-105"
               >
                 <p className="text-lg font-bold text-gray-800 tracking-wider">{integration}</p>
               </motion.div>
