@@ -18,3 +18,35 @@
   --color-blue-chill-900: #254c54;
   --color-blue-chill-950: #143238;
 }
+
+/* React Datepicker Customization */
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background-color: var(--color-blue-chill-600) !important;
+  color: white !important;
+}
+
+.react-datepicker__day--selected:hover,
+.react-datepicker__day--keyboard-selected:hover {
+  background-color: var(--color-blue-chill-700) !important;
+}
+
+.react-datepicker__header {
+  background-color: var(--color-blue-chill-50) !important;
+  border-bottom: 1px solid var(--color-blue-chill-200) !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker-year-header {
+  color: var(--color-blue-chill-900) !important;
+}
+
+.react-datepicker__day-name {
+  color: var(--color-blue-chill-700) !important;
+}
+
+.react-datepicker {
+  border: 1px solid var(--color-blue-chill-200) !important;
+  font-family: "Google Sans Flex", monospace !important;
+}

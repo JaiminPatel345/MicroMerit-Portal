@@ -4,6 +4,8 @@ import { User, Mail, Phone, Calendar, Upload, CheckCircle, Lock } from 'lucide-r
 import { useDispatch } from 'react-redux';
 import { learnerLoginSuccess } from '../../store/authLearnerSlice';
 import { completeProfile } from '../../services/authServices';
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
 const ProfileBuilder = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -85,6 +87,11 @@ const ProfileBuilder = () => {
     if (errors.consents) setErrors((prev) => ({ ...prev, consents: '' }));
   };
 
+  const handleDateChange = (date) => {
+    setFormData((prev) => ({ ...prev, dateOfBirth: date }));
+    if (errors.dateOfBirth) setErrors((prev) => ({ ...prev, dateOfBirth: '' }));
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -92,10 +99,10 @@ const ProfileBuilder = () => {
       setErrors((prev) => ({ ...prev, profilePic: 'File size must be less than 5MB' }));
       return;
     }
-    
+
     // Store the actual file for upload
     setProfilePhotoFile(file);
-    
+
     // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -119,23 +126,23 @@ const ProfileBuilder = () => {
 
     try {
       setLoading(true);
-      
+
       // Create FormData for multipart/form-data submission (binary file upload)
       const submitData = new FormData();
       submitData.append('name', formData.fullName);
-      
+
       // Password is optional
       if (formData.password && formData.password.trim()) {
         submitData.append('password', formData.password.trim());
       }
-      
+
       // Add optional fields only if they have values
       // Backend expects 'dob' as ISO datetime string
       if (formData.dateOfBirth) {
         const dobDate = new Date(formData.dateOfBirth);
         submitData.append('dob', dobDate.toISOString());
       }
-      
+
       // Map frontend gender values to backend enum
       if (formData.gender) {
         const genderMap = {
@@ -146,19 +153,19 @@ const ProfileBuilder = () => {
         };
         submitData.append('gender', genderMap[formData.gender] || formData.gender);
       }
-      
+
       // Append the actual File object (binary data, not base64)
       if (profilePhotoFile) {
         submitData.append('profilePhoto', profilePhotoFile);
         console.log('Profile photo attached:', profilePhotoFile.name, profilePhotoFile.size, 'bytes');
       }
-      
+
       // Log FormData entries
       console.log('FormData contents:');
       for (let pair of submitData.entries()) {
         console.log(pair[0] + ':', pair[1]);
       }
-      
+
       console.log('Sending request to backend...');
       const response = await completeProfile.complete(submitData, {
         headers: {
@@ -255,19 +262,25 @@ const ProfileBuilder = () => {
 
 
               {/* DOB */}
+              {/* DOB */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Date of Birth</label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
                     <Calendar className="h-5 w-5 text-gray-400" />
                   </div>
-                  <input
-                    type="date"
-                    name="dateOfBirth"
-                    value={formData.dateOfBirth}
-                    onChange={handleInputChange}
+                  <DatePicker
+                    selected={formData.dateOfBirth ? new Date(formData.dateOfBirth) : null}
+                    onChange={handleDateChange}
+                    dateFormat={['dd/MM/yyyy', 'ddMMyyyy', 'dd-MM-yyyy']}
+                    showYearDropdown
+                    scrollableYearDropdown
+                    yearDropdownItemNumber={100}
+                    placeholderText="dd/mm/yyyy"
                     className={`block w-full pl-10 pr-3 py-3 border ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
-                      } rounded-lg focus:ring-2 focus:ring-blue-chill-500`}
+                      } rounded-lg focus:ring-2 focus:ring-blue-chill-500 outline-none`}
+                    wrapperClassName="w-full"
+                    maxDate={new Date()}
                   />
                 </div>
                 {errors.dateOfBirth && <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth}</p>}
