@@ -11,6 +11,7 @@ import {
     Shield,
     Zap
 } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { learnerApi } from '../../services/authServices';
 
 const Dashboard = () => {
@@ -22,6 +23,7 @@ const Dashboard = () => {
         trustScore: 92 // Mocked
     });
     const [recentCertificates, setRecentCertificates] = useState([]);
+    const [topSkills, setTopSkills] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -31,6 +33,7 @@ const Dashboard = () => {
                 const data = dashboardRes.data?.data || {};
 
                 setRecentCertificates(data.recentCredentials || []);
+                setTopSkills(data.topSkills || []);
                 setStats({
                     totalCredentials: data.totalCredentials || 0,
                     profileCompletion: data.profileCompletion || 0,
@@ -67,12 +70,14 @@ const Dashboard = () => {
                         <p className="text-gray-500 mt-1">Here's what's happening with your credentials today.</p>
                     </div>
 
-                    <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
-                        <div className="bg-green-100 p-1.5 rounded-full">
-                            <Shield size={18} className="text-green-600" />
+                    {learner?.status === 'active' && (
+                        <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
+                            <div className="bg-green-100 p-1.5 rounded-full">
+                                <Shield size={18} className="text-green-600" />
+                            </div>
+                            <span className="text-sm font-medium text-gray-700">Verified User</span>
                         </div>
-                        <span className="text-sm font-medium text-gray-700">Verified User</span>
-                    </div>
+                    )}
                 </div>
 
                 {/* Stats Grid */}
@@ -158,45 +163,67 @@ const Dashboard = () => {
                         </div>
                     </div>
 
-                    {/* AI Recommended Skills */}
-                    <div className="space-y-6">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-gray-900">AI Recommendations</h2>
-                            <Link to="/roadmap" className="text-blue-chill-600 font-medium hover:underline text-sm">
-                                View Roadmap
+                    {/* Top Skills */}
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900">Top Skills</h2>
+                                <p className="text-sm text-gray-500 mt-1">Skills verified by your credentials</p>
+                            </div>
+                            <Link to="/wallet" className="text-blue-chill-600 font-medium hover:underline text-sm flex items-center gap-1">
+                                View Details <ArrowRight size={16} />
                             </Link>
                         </div>
 
-                        <div className="bg-gradient-to-br from-blue-chill-900 to-blue-chill-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-4 opacity-10">
-                                <Zap size={100} />
+                        {topSkills.length > 0 ? (
+                            <div className="grid grid-cols-1 gap-3">
+                                {topSkills.map((item, index) => (
+                                    <motion.div
+                                        key={index}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.1 }}
+                                        className="group flex items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-100 hover:border-blue-chill-200 hover:bg-blue-chill-50/30 transition-all duration-200"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-10 w-10 rounded-lg bg-white flex items-center justify-center text-blue-chill-600 shadow-sm border border-gray-100 group-hover:scale-110 transition-transform duration-200">
+                                                <Zap size={20} fill="currentColor" className="text-blue-chill-500" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold text-gray-900 group-hover:text-blue-chill-700 transition-colors">
+                                                    {item.skill}
+                                                </h3>
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <div className="h-1.5 w-16 bg-gray-200 rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full bg-blue-chill-500 rounded-full"
+                                                            style={{ width: `${Math.min((item.count / 5) * 100, 100)}%` }}
+                                                        />
+                                                    </div>
+                                                    <span className="text-xs text-gray-500 font-medium">
+                                                        {item.count} {item.count === 1 ? 'Credential' : 'Credentials'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                            <div className="p-1.5 rounded-full bg-white text-blue-chill-600 shadow-sm">
+                                                <CheckCircle size={16} />
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
                             </div>
-
-                            <h3 className="font-semibold text-lg mb-1">Next Best Step</h3>
-                            <p className="text-blue-100 text-sm mb-6">Based on your recent Python certification</p>
-
-                            <div className="space-y-4 relative z-10">
-                                <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <span className="text-xs font-medium bg-blue-500/30 px-2 py-1 rounded text-blue-100">
-                                            Recommended
-                                        </span>
-                                        <span className="text-xs text-blue-200">High Demand</span>
-                                    </div>
-                                    <h4 className="font-bold text-lg">Data Structures & Algorithms</h4>
-                                    <p className="text-xs text-blue-100 mt-1">Boost your employability by 40%</p>
-                                </div>
-
-                                <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20">
-                                    <h4 className="font-bold text-sm">Advanced React Patterns</h4>
-                                    <p className="text-xs text-blue-100 mt-1">Complement your frontend skills</p>
-                                </div>
+                        ) : (
+                            <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                                <Zap className="mx-auto h-10 w-10 text-gray-300 mb-3" />
+                                <h3 className="text-gray-900 font-medium">No skills analyzed yet</h3>
+                                <p className="text-gray-500 text-sm mt-1 px-4">
+                                    Earn credentials to see your top skills visualized here.
+                                </p>
                             </div>
-
-                            <button className="w-full mt-6 bg-white text-blue-chill-800 py-2.5 rounded-lg font-semibold text-sm hover:bg-blue-50 transition-colors">
-                                Explore Learning Paths
-                            </button>
-                        </div>
+                        )}
                     </div>
 
                 </div>

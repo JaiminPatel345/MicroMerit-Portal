@@ -557,21 +557,30 @@ export class LearnerService {
    * Get learner dashboard data
    */
   async getDashboard(learnerId: number) {
-    const stats = await learnerRepository.getDashboardStats(learnerId);
+    const [stats, learner] = await Promise.all([
+      learnerRepository.getDashboardStats(learnerId),
+      learnerRepository.findById(learnerId)
+    ]);
 
-    // Calculate some derived stats if needed, or just return
-    // For example, we could calculate skill distribution here if we parse metadata
+    if (!learner) {
+      throw new Error('Learner not found');
+    }
+
+    // Calculate profile completion
+    let completion = 0;
+    if (learner.name) completion += 20;
+    if (learner.email || learner.phone) completion += 20;
+    if (learner.profileUrl) completion += 20;
+    if (learner.dob) completion += 20;
+    if (learner.gender) completion += 20;
 
     return {
       ...stats,
       // Mocking some AI/extra stats for now as they are not in DB yet
       nsqfLevel: 'Level 5',
-      profileCompletion: 85,
+      profileCompletion: completion,
       trustScore: 92,
-      aiRecommendations: [
-        { skill: 'Advanced React Patterns', type: 'Skill', match: 95 },
-        { skill: 'System Design', type: 'Skill', match: 88 },
-      ]
+      // aiRecommendations removed, frontend should use topSkills or fetch recommendations separately
     };
   }
   /**
