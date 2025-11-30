@@ -168,12 +168,45 @@ const CredentialDetails = () => {
                                     <div className="mb-6">
                                         <h4 className="text-sm font-medium text-gray-700 mb-2">NSQF Mapping</h4>
                                         <div className="flex items-center gap-3">
-                                            <span className="px-3 py-1.5 bg-purple-50 text-purple-700 text-sm font-medium rounded-lg border border-purple-100">
-                                                Level {credential.metadata.ai_extracted.nsqf?.level || 'N/A'}
-                                            </span>
-                                            <span className="text-sm text-gray-500">
-                                                {credential.metadata.ai_extracted.nsqf?.reasoning || 'Aligned with National Skills Qualifications Framework'}
-                                            </span>
+                                            {(() => {
+                                                const aiData = credential.metadata.ai_extracted;
+                                                const alignment = aiData.nsqf_alignment;
+                                                const rawNsqf = aiData.nsqf;
+
+                                                // If verified by issuer
+                                                if (alignment?.verified_by_issuer) {
+                                                    if (alignment.aligned) {
+                                                        return (
+                                                            <>
+                                                                <span className="px-3 py-1.5 bg-purple-50 text-purple-700 text-sm font-medium rounded-lg border border-purple-100">
+                                                                    Level {alignment.nsqf_level || 'N/A'}
+                                                                </span>
+                                                                <span className="text-sm text-gray-500">
+                                                                    {alignment.reasoning || 'Verified by Issuer'}
+                                                                </span>
+                                                            </>
+                                                        );
+                                                    } else {
+                                                        return (
+                                                            <span className="px-3 py-1.5 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg border border-gray-200">
+                                                                Not Aligned to NSQF
+                                                            </span>
+                                                        );
+                                                    }
+                                                }
+
+                                                // Fallback to raw AI data (if not verified yet)
+                                                return (
+                                                    <>
+                                                        <span className="px-3 py-1.5 bg-purple-50 text-purple-700 text-sm font-medium rounded-lg border border-purple-100">
+                                                            Level {rawNsqf?.level || 'N/A'}
+                                                        </span>
+                                                        <span className="text-sm text-gray-500">
+                                                            {rawNsqf?.reasoning || 'AI Suggested Mapping'}
+                                                        </span>
+                                                    </>
+                                                );
+                                            })()}
                                         </div>
                                     </div>
 

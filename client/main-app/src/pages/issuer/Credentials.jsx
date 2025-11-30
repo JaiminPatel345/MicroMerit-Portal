@@ -36,13 +36,15 @@ const Credentials = () => {
             const aiData = verifyingCredential.metadata?.ai_extracted || {};
             const nsqfAlignment = aiData.nsqf_alignment || {};
 
+            const isApproved = status === 'approved';
+
             const verificationData = {
-                aligned: status === 'approved',
-                qp_code: nsqfAlignment.qp_code,
-                nos_code: nsqfAlignment.nos_code,
-                nsqf_level: nsqfAlignment.nsqf_level,
+                aligned: isApproved,
+                qp_code: isApproved ? nsqfAlignment.qp_code : null,
+                nos_code: isApproved ? nsqfAlignment.nos_code : null,
+                nsqf_level: isApproved ? nsqfAlignment.nsqf_level : null,
                 confidence: nsqfAlignment.confidence,
-                reasoning: status === 'approved' ? 'Issuer approved AI mapping' : 'Issuer rejected AI mapping'
+                reasoning: isApproved ? 'Issuer approved AI mapping' : 'Issuer rejected AI mapping'
             };
 
             await credentialServices.verifyNSQFAlignment(verifyingCredential.credential_id, verificationData);
@@ -162,9 +164,15 @@ const Credentials = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {c.metadata?.ai_extracted?.nsqf_alignment?.verified_by_issuer ? (
-                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                                    Verified
-                                                </span>
+                                                c.metadata.ai_extracted.nsqf_alignment.aligned ? (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                                        Verified
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                                        Rejected
+                                                    </span>
+                                                )
                                             ) : c.metadata?.ai_extracted?.nsqf_alignment ? (
                                                 <button
                                                     onClick={() => setVerifyingCredential(c)}

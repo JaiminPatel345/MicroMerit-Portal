@@ -158,13 +158,15 @@ const NewIssuance = () => {
             // For now, let's construct the payload.
 
             const aiData = analyzingData.metadata.ai_extracted;
+            const isApproved = status === 'approved';
+
             const verificationStatus = {
-                aligned: status === 'approved',
-                qp_code: aiData.nsqf_alignment?.qp_code,
-                nos_code: aiData.nsqf_alignment?.nos_code,
-                nsqf_level: aiData.nsqf_alignment?.nsqf_level,
+                aligned: isApproved,
+                qp_code: isApproved ? aiData.nsqf_alignment?.qp_code : null,
+                nos_code: isApproved ? aiData.nsqf_alignment?.nos_code : null,
+                nsqf_level: isApproved ? aiData.nsqf_alignment?.nsqf_level : null,
                 confidence: aiData.nsqf_alignment?.confidence,
-                reasoning: status === 'approved' ? 'Issuer approved AI mapping' : 'Issuer rejected AI mapping'
+                reasoning: isApproved ? 'Issuer approved AI mapping' : 'Issuer rejected AI mapping'
             };
 
             // We'll send these as JSON strings and update controller to parse them

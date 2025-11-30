@@ -381,7 +381,7 @@ export class CredentialIssuanceService {
             }
         };
 
-        return await credentialIssuanceRepository.updateCredentialMetadata(credentialId, updatedMetadata);
+        return await credentialIssuanceRepository.updateCredentialMetadata(credentialId, updatedMetadata.ai_extracted);
     }
 }
 
