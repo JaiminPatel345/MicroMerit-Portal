@@ -77,7 +77,20 @@ api.interceptors.response.use(
     }
 
     const state = store.getState();
-    const isIssuer = state.authIssuer.isAuthenticated;
+    const url = original.url || '';
+
+    // Determine which token to refresh based on URL, similar to request interceptor
+    let isIssuer = false;
+
+    if (url.startsWith('/issuer') || url.startsWith('/auth/issuer')) {
+      isIssuer = true;
+    } else if (url.startsWith('/learner') || url.startsWith('/auth/learner') || url.startsWith('/ai')) {
+      isIssuer = false;
+    } else {
+      // Fallback for ambiguous URLs
+      isIssuer = state.authIssuer.isAuthenticated;
+    }
+
     const active = isIssuer ? state.authIssuer : state.authLearner;
 
     if (!active.refreshToken) {
