@@ -18,6 +18,15 @@ router.get(
 );
 
 /**
+ * GET /credentials/latest
+ * Get the latest 3 credentials for public display (home page)
+ */
+router.get(
+    '/latest',
+    asyncHandler(credentialIssuanceController.getLatestCredentials.bind(credentialIssuanceController))
+);
+
+/**
  * POST /credentials/issue
  * Issue a new credential
  * Protected by issuer authentication or API key

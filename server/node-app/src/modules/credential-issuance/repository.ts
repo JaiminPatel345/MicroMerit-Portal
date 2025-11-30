@@ -174,6 +174,35 @@ export class CredentialIssuanceRepository {
             },
         });
     }
+
+    /**
+     * Get the latest N credentials for public display
+     */
+    async getLatestCredentials(limit: number = 3) {
+        const [credentials, totalCount] = await Promise.all([
+            prisma.credential.findMany({
+                orderBy: {
+                    issued_at: 'desc',
+                },
+                take: limit,
+                select: {
+                    certificate_title: true,
+                    issued_at: true,
+                    issuer: {
+                        select: {
+                            name: true,
+                        },
+                    },
+                },
+            }),
+            prisma.credential.count(),
+        ]);
+
+        return {
+            credentials,
+            totalCount,
+        };
+    }
 }
 
 export const credentialIssuanceRepository = new CredentialIssuanceRepository();

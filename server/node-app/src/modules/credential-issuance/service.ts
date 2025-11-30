@@ -269,6 +269,13 @@ export class CredentialIssuanceService {
             last_issued: r._max.issued_at
         }));
     }
+
+    /**
+     * Get latest credentials for public display (e.g., home page widget)
+     */
+    async getLatestCredentials() {
+        return await credentialIssuanceRepository.getLatestCredentials(3);
+    }
 }
 
 export const credentialIssuanceService = new CredentialIssuanceService();

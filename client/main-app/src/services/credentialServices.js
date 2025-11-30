@@ -43,4 +43,9 @@ export const credentialServices = {
         const response = await api.get(`/credentials/${uid}`);
         return response.data;
     },
+
+    getLatestCredentials: async () => {
+        const response = await api.get('/credentials/latest');
+        return response.data;
+    },
 };

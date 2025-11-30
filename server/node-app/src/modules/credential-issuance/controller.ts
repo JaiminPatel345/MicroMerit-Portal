@@ -99,6 +99,19 @@ export class CredentialIssuanceController {
             next(error);
         }
     }
+
+    /**
+     * Get latest credentials for public display
+     * GET /credentials/latest
+     */
+    async getLatestCredentials(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+            const credentials = await credentialIssuanceService.getLatestCredentials();
+            sendSuccess(res, credentials, 'Latest credentials retrieved successfully');
+        } catch (error: any) {
+            next(error);
+        }
+    }
 }
 
 export const credentialIssuanceController = new CredentialIssuanceController();
