@@ -7,6 +7,11 @@ export const credentialServices = {
         return response.data;
     },
 
+    analyzeCredential: async (data) => {
+        const response = await api.post('/credentials/analyze', data);
+        return response.data;
+    },
+
     revokeCredential: async (data) => {
         const response = await api.post('/credentials/revoke', data);
         return response.data;
@@ -14,6 +19,11 @@ export const credentialServices = {
 
     getIssuerCredentials: async (params) => {
         const response = await api.get('/credentials/issuer/my-credentials', { params });
+        return response.data;
+    },
+
+    verifyNSQFAlignment: async (credentialId, data) => {
+        const response = await api.put(`/credentials/${credentialId}/nsqf-verification`, data);
         return response.data;
     },
 

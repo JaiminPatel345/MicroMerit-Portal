@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,12 +8,12 @@ datasource db {
 }
 
 model issuer {
-  id                         Int       @id @default(autoincrement())
+  id                         Int              @id @default(autoincrement())
   name                       String
   official_domain            String?
   website_url                String?
-  type                       String // enum: university, edtech, company, training_provider
-  email                      String    @unique
+  type                       String
+  email                      String           @unique
   phone                      String?
   password_hash              String?
   contact_person_name        String?
@@ -24,15 +21,14 @@ model issuer {
   address                    String?
   kyc_document_url           String?
   logo_url                   String?
-  status                     String    @default("pending") // pending, approved, rejected
+  status                     String           @default("pending")
   approved_at                DateTime?
   rejected_reason            String?
-  is_blocked                 Boolean   @default(false)
+  is_blocked                 Boolean          @default(false)
   blocked_reason             String?
-  created_at                 DateTime  @default(now())
-
-  apiKeys     issuer_api_key[]
-  credentials Credential[]
+  created_at                 DateTime         @default(now())
+  credentials                Credential[]
+  apiKeys                    issuer_api_key[]
 }
 
 model issuer_api_key {
@@ -48,26 +44,24 @@ model issuer_api_key {
   rate_limit_per_minute Int       @default(60)
   allowed_ips           String?
   created_at            DateTime  @default(now())
-
-  issuer issuer @relation(fields: [issuer_id], references: [id])
+  issuer                issuer    @relation(fields: [issuer_id], references: [id])
 }
 
 model learner {
-  id                     Int       @id @default(autoincrement())
-  name                   String?
-  email                  String?   @unique
-  phone                  String?   @unique
+  id                     Int          @id @default(autoincrement())
+  email                  String?      @unique
+  phone                  String?      @unique
   hashed_password        String?
   profileFolder          String?
   profileUrl             String?
   external_digilocker_id String?
-  status                 String    @default("active")
+  status                 String       @default("active")
   other_emails           String[]
+  created_at             DateTime     @default(now())
   dob                    DateTime?
-  gender                 String? // Male, Female, Others, Not to disclose
-  created_at             DateTime  @default(now())
-
-  credentials Credential[]
+  gender                 String?
+  name                   String?
+  credentials            Credential[]
 }
 
 model admin {
@@ -78,29 +72,19 @@ model admin {
 }
 
 model verification_session {
-  id           String @id @default(uuid())
-  session_type String // 'learner_registration', 'email_verification', 'issuer_registration', 'primary_contact_change'
-
-  // Related entity IDs (nullable based on type)
-  learner_id Int?
-  issuer_id  Int?
-
-  // Contact details
+  id           String    @id @default(uuid())
+  session_type String
+  learner_id   Int?
+  issuer_id    Int?
   email        String?
   phone        String?
-  contact_type String? // 'email' or 'phone' for primary contact changes
-
-  // OTP verification
-  otp_hash    String
-  is_verified Boolean   @default(false)
-  verified_at DateTime?
-
-  // Additional data (for issuer registration, etc.)
-  metadata Json?
-
-  // Lifecycle
-  expires_at DateTime
-  created_at DateTime @default(now())
+  contact_type String?
+  otp_hash     String
+  is_verified  Boolean   @default(false)
+  verified_at  DateTime?
+  metadata     Json?
+  expires_at   DateTime
+  created_at   DateTime  @default(now())
 
   @@index([session_type])
   @@index([learner_id])
@@ -123,12 +107,11 @@ model Credential {
   tx_hash           String?
   data_hash         String
   metadata          Json
-  status            String   @default("issued") // issued, claimed, unclaimed, revoked
+  status            String   @default("issued")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-
-  issuer  issuer   @relation(fields: [issuer_id], references: [id])
-  learner learner? @relation(fields: [learner_id], references: [id])
+  issuer            issuer   @relation(fields: [issuer_id], references: [id])
+  learner           learner? @relation(fields: [learner_id], references: [id])
 
   @@index([credential_id])
   @@index([issuer_id])
@@ -137,6 +120,23 @@ model Credential {
   @@index([ipfs_cid])
   @@index([tx_hash])
   @@index([status])
-  @@index([metadata(ops: JsonbPathOps)], type: Gin) // GIN index for JSON queries (skills/keywords search)
-  @@index([certificate_title]) // For text search on certificate titles
+}
+
+model SkillKnowledgeBase {
+  id              Int      @id @default(autoincrement())
+  qp_code         String?
+  nos_code        String?
+  job_role        String?
+  nsqf_level      Int?
+  sector          String?
+  title           String?
+  description     String?
+  skill_text      String?
+  keywords        String[]
+  source_type     String   // "QP" | "NOS" | "Skill"
+  created_at      DateTime @default(now())
+
+  @@index([qp_code])
+  @@index([nos_code])
+  @@index([nsqf_level])
 }
