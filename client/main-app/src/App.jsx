@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import VerifyOTP from './pages/VerifyOTP';
 import ProfileBuilder from './pages/learner/ProfileBuilder';
+import Terms from './pages/Terms';
 import Login from './pages/learner/Login';
 import Signup from './pages/learner/Signup';
 import { useLocation } from 'react-router-dom';
@@ -60,6 +61,7 @@ function Layout() {
               <Route path="/profile-builder" element={<ProfileBuilder />} />
               <Route path="/verify" element={<Verification />} />
               <Route path="/verify/:id" element={<Verification />} />
+              <Route path="/terms" element={<Terms />} />
 
 
 

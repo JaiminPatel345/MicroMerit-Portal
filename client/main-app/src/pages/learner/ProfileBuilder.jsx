@@ -461,7 +461,7 @@ const ProfileBuilder = () => {
                     </span>
                     <span className="text-red-500"> *</span>
                     <p className="text-gray-600 mt-1">
-                      This is mandatory for using MicroMerit as per legal requirements
+                      This is mandatory for using MicroMerit as per legal requirements. <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-chill-600 hover:text-blue-chill-800 underline">Terms</a>
                     </p>
                   </label>
                 </div>
