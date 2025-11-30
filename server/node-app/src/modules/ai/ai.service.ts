@@ -112,7 +112,8 @@ export class AIService {
         filename: string,
         learnerEmail: string,
         certificateTitle: string,
-        issuerName: string
+        issuerName: string,
+        nsqfContext: any[] = [] // Default to empty array
     ): Promise<any> {
         try {
             const formData = new FormData();
@@ -121,6 +122,11 @@ export class AIService {
             formData.append('learner_email', learnerEmail);
             formData.append('certificate_title', certificateTitle);
             formData.append('issuer_name', issuerName);
+
+            // Pass NSQF context as JSON string
+            if (nsqfContext && nsqfContext.length > 0) {
+                formData.append('nsqf_context', JSON.stringify(nsqfContext));
+            }
 
             const response = await axios.post(
                 `${this.aiServiceUrl}/process-ocr`,
@@ -133,10 +139,14 @@ export class AIService {
 
             return response.data;
         } catch (error: any) {
-            console.error('AI Service - OCR Error:', error.response?.data || error.message);
+            console.error('AI Service - OCR Error:', {
+                message: error.message,
+                status: error.response?.status,
+                data: error.response?.data
+            });
             throw {
                 status: error.response?.status || 500,
-                message: error.response?.data?.detail || 'Failed to process OCR'
+                message: error.response?.data?.detail || error.message || 'Failed to process OCR'
             };
         }
     }

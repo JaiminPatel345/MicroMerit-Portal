@@ -29,6 +29,16 @@ class CertificateMetadata(BaseModel):
     certificate_number: Optional[str] = None
 
 
+class NSQFAlignment(BaseModel):
+    """Alignment with NSQF standards"""
+    aligned: bool = Field(description="Whether the certificate aligns with NSQF standards")
+    qp_code: Optional[str] = Field(None, description="Qualification Pack code if aligned")
+    nos_code: Optional[str] = Field(None, description="National Occupational Standards code if aligned")
+    nsqf_level: Optional[int] = Field(None, description="NSQF level (1-10)")
+    confidence: float = Field(ge=0.0, le=1.0, description="Confidence in alignment")
+    reasoning: Optional[str] = Field(None, description="Reasoning for alignment or non-alignment")
+
+
 class OCRResponse(BaseModel):
     """Complete OCR processing response"""
     extracted_text: str = Field(description="Full text extracted from certificate")
@@ -39,6 +49,11 @@ class OCRResponse(BaseModel):
     
     nsqf: NSQFLevel = Field(
         description="NSQF level assessment"
+    )
+    
+    nsqf_alignment: Optional[NSQFAlignment] = Field(
+        None,
+        description="Alignment with specific NSQF QP/NOS"
     )
     
     keywords: List[str] = Field(

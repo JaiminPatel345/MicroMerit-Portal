@@ -21,7 +21,7 @@
   "author": "",
   "license": "ISC",
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed_nsqf.ts"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
@@ -67,6 +67,7 @@
     "qrcode": "^1.5.4",
     "twilio": "^5.10.5",
     "uuid": "^13.0.0",
+    "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },
   "resolutions": {

@@ -203,6 +203,15 @@ export class CredentialIssuanceRepository {
             totalCount,
         };
     }
+
+    /**
+     * Find credential by ID
+     */
+    async findCredentialById(credentialId: string) {
+        return await prisma.credential.findUnique({
+            where: { credential_id: credentialId },
+        });
+    }
 }
 
 export const credentialIssuanceRepository = new CredentialIssuanceRepository();

@@ -22,7 +22,8 @@ async def process_ocr(
     file: UploadFile = File(...),
     learner_email: str = Form(...),
     certificate_title: str = Form(...),
-    issuer_name: str = Form(...)
+    issuer_name: str = Form(...),
+    nsqf_context: str = Form(None)  # JSON string
 ):
     """
     Process OCR for a certificate file (called internally by backend during credential issuance)
@@ -45,11 +46,22 @@ async def process_ocr(
         
         logger.info(f"Extracted {len(extracted_text)} characters from {file.filename}")
         
+        # Parse NSQF context if provided
+        parsed_context = []
+        if nsqf_context:
+            try:
+                import json
+                parsed_context = json.loads(nsqf_context)
+                logger.info(f"Received NSQF context with {len(parsed_context)} items")
+            except Exception as e:
+                logger.warning(f"Failed to parse NSQF context: {e}")
+        
         # Step 2: Extract skills, NSQF, keywords using AI
         ai_extraction = skill_extraction_service.extract_skills_and_metadata(
             extracted_text=extracted_text,
             certificate_title=certificate_title,
-            issuer_name=issuer_name
+            issuer_name=issuer_name,
+            nsqf_context=parsed_context
         )
         
         logger.info(f"Extracted {len(ai_extraction.get('skills', []))} skills and {len(ai_extraction.get('keywords', []))} keywords")
@@ -59,6 +71,7 @@ async def process_ocr(
             "extracted_text": extracted_text,
             "skills": ai_extraction.get('skills', []),
             "nsqf": ai_extraction.get('nsqf', {"level": 1, "confidence": 0.0, "reasoning": ""}),
+            "nsqf_alignment": ai_extraction.get('nsqf_alignment', None),
             "keywords": ai_extraction.get('keywords', []),
             "certificate_metadata": ai_extraction.get('certificate_metadata', {}),
             "description": ai_extraction.get('description', '')

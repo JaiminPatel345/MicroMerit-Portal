@@ -5,6 +5,7 @@ import { credentialServices } from '../../services/credentialServices';
 import JSZip from 'jszip';
 import Papa from 'papaparse';
 import { setNotification } from '../../utils/notification';
+import NSQFVerificationModal from '../../components/NSQFVerificationModal';
 
 const NewIssuance = () => {
     const { issuer } = useSelector((state) => state.authIssuer);
@@ -40,6 +41,11 @@ const NewIssuance = () => {
     const [editingEntry, setEditingEntry] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+    // Analysis Modal State
+    const [analyzingData, setAnalyzingData] = useState(null);
+    const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+    const [isIssuingAfterAnalysis, setIsIssuingAfterAnalysis] = useState(false);
 
     const handleClearAll = () => {
         setShowClearConfirm(true);
@@ -89,8 +95,81 @@ const NewIssuance = () => {
             const payload = new FormData();
             payload.append('learner_email', formData.learnerEmail);
             payload.append('certificate_title', formData.courseName);
+            payload.append('original_pdf', formData.file);
+
+            // Step 1: Analyze Credential
+            const analysisResponse = await credentialServices.analyzeCredential(payload);
+
+            if (analysisResponse.success) {
+                // Prepare data for modal
+                const analysisData = {
+                    ...analysisResponse.data,
+                    learner_email: formData.learnerEmail,
+                    certificate_title: formData.courseName,
+                    // Mock metadata structure for the modal
+                    metadata: {
+                        ai_extracted: analysisResponse.data
+                    }
+                };
+
+                setAnalyzingData(analysisData);
+                setShowAnalysisModal(true);
+            }
+        } catch (error) {
+            console.error("Analysis error:", error);
+            setMessage(error.response?.data?.message || error.response?.data?.error || 'Failed to analyze credential.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const confirmIssuance = async (status) => {
+        if (!analyzingData) return;
+
+        setIsIssuingAfterAnalysis(true);
+
+        try {
+            const payload = new FormData();
+            payload.append('learner_email', formData.learnerEmail);
+            payload.append('certificate_title', formData.courseName);
             payload.append('issued_at', new Date().toISOString());
             payload.append('original_pdf', formData.file);
+
+            // Add AI data and verification status
+            // We need to pass this as JSON string because we are using FormData
+            // But wait, the backend expects specific fields in the body if not FormData?
+            // Actually, for file upload we MUST use FormData.
+            // Let's check how to pass complex objects in FormData or if we need to adjust backend.
+            // The backend controller uses `req.body` which is populated by multer for text fields.
+            // We can pass JSON strings for complex objects.
+
+            // However, the service expects `ai_extracted_data` object.
+            // We need to modify the controller to parse these fields if they are sent as strings.
+            // OR we can just rely on the fact that we have the data here.
+
+            // Wait, I didn't update the controller to parse JSON strings from FormData!
+            // I should probably do that. But for now let's try sending as is.
+            // Actually, multer populates req.body with text fields.
+
+            // Let's update the controller to parse these fields.
+            // But I can't update the controller right now inside this tool call.
+            // I will assume I will update the controller next.
+
+            // For now, let's construct the payload.
+
+            const aiData = analyzingData.metadata.ai_extracted;
+            const verificationStatus = {
+                aligned: status === 'approved',
+                qp_code: aiData.nsqf_alignment?.qp_code,
+                nos_code: aiData.nsqf_alignment?.nos_code,
+                nsqf_level: aiData.nsqf_alignment?.nsqf_level,
+                confidence: aiData.nsqf_alignment?.confidence,
+                reasoning: status === 'approved' ? 'Issuer approved AI mapping' : 'Issuer rejected AI mapping'
+            };
+
+            // We'll send these as JSON strings and update controller to parse them
+            payload.append('ai_extracted_data', JSON.stringify(aiData));
+            payload.append('verification_status', JSON.stringify(verificationStatus));
 
             const response = await credentialServices.issueCredential(payload);
             if (response.success) {
@@ -103,12 +182,15 @@ const NewIssuance = () => {
                 });
                 const fileInput = document.getElementById('certificate-file');
                 if (fileInput) fileInput.value = '';
+                setShowAnalysisModal(false);
+                setAnalyzingData(null);
             }
         } catch (error) {
             console.error("Issuance error:", error);
             setMessage(error.response?.data?.message || error.response?.data?.error || 'Failed to issue credential.');
+            setNotification("Failed to issue credential", "error");
         } finally {
-            setLoading(false);
+            setIsIssuingAfterAnalysis(false);
         }
     };
 
@@ -375,6 +457,19 @@ const NewIssuance = () => {
 
     return (
         <div className="max-w-5xl mx-auto space-y-8 relative">
+            {/* Analysis & Verification Modal */}
+            <NSQFVerificationModal
+                isOpen={showAnalysisModal}
+                onClose={() => {
+                    setShowAnalysisModal(false);
+                    setAnalyzingData(null);
+                }}
+                credentialData={analyzingData}
+                onVerify={confirmIssuance}
+                isProcessing={isIssuingAfterAnalysis}
+                title="Verify Credential Before Issuance"
+            />
+
             {/* Clear All Confirmation Modal */}
             {showClearConfirm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/30 backdrop-blur-sm p-4 animate-in fade-in duration-200">

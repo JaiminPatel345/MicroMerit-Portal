@@ -1,27 +1,62 @@
 import React, { useState, useEffect } from 'react';
 import { credentialServices } from '../../services/credentialServices';
-import { Award, CheckCircle, Clock } from './icons';
+import { Award, CheckCircle, Clock, XCircle } from './icons';
+import { setNotification } from '../../utils/notification';
+import NSQFVerificationModal from '../../components/NSQFVerificationModal';
 
 const Credentials = () => {
     const [credentials, setCredentials] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [verifyingCredential, setVerifyingCredential] = useState(null);
+    const [processingVerification, setProcessingVerification] = useState(false);
+
+    const fetchCredentials = async () => {
+        setLoading(true);
+        try {
+            const response = await credentialServices.getIssuerCredentials();
+            if (response.success) {
+                setCredentials(response.data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch credentials", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchCredentials = async () => {
-            setLoading(true);
-            try {
-                const response = await credentialServices.getIssuerCredentials();
-                if (response.success) {
-                    setCredentials(response.data);
-                }
-            } catch (error) {
-                console.error("Failed to fetch credentials", error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchCredentials();
     }, []);
+
+    const handleVerifyNSQF = async (status) => {
+        if (!verifyingCredential) return;
+
+        setProcessingVerification(true);
+        try {
+            const aiData = verifyingCredential.metadata?.ai_extracted || {};
+            const nsqfAlignment = aiData.nsqf_alignment || {};
+
+            const verificationData = {
+                aligned: status === 'approved',
+                qp_code: nsqfAlignment.qp_code,
+                nos_code: nsqfAlignment.nos_code,
+                nsqf_level: nsqfAlignment.nsqf_level,
+                confidence: nsqfAlignment.confidence,
+                reasoning: status === 'approved' ? 'Issuer approved AI mapping' : 'Issuer rejected AI mapping'
+            };
+
+            await credentialServices.verifyNSQFAlignment(verifyingCredential.credential_id, verificationData);
+
+            setNotification(`NSQF Alignment ${status === 'approved' ? 'Verified' : 'Rejected'}`, 'success');
+            setVerifyingCredential(null);
+            fetchCredentials(); // Refresh list
+        } catch (error) {
+            console.error("Verification failed", error);
+            setNotification("Failed to update verification status", "error");
+        } finally {
+            setProcessingVerification(false);
+        }
+    };
 
     const StatusBadge = ({ status }) => {
         let classes = "";
@@ -42,7 +77,16 @@ const Credentials = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 relative">
+            {/* Verification Modal */}
+            <NSQFVerificationModal
+                isOpen={!!verifyingCredential}
+                onClose={() => setVerifyingCredential(null)}
+                credentialData={verifyingCredential}
+                onVerify={handleVerifyNSQF}
+                isProcessing={processingVerification}
+            />
+
             <div className="flex justify-between items-center pb-4 border-b border-gray-200">
                 <div>
                     <h3 className="text-2xl font-bold text-gray-900">Issued Credentials</h3>
@@ -54,6 +98,15 @@ const Credentials = () => {
                         placeholder="Search credentials..."
                         className="p-2 border border-gray-300 rounded-lg w-64 focus:ring-2 focus:ring-blue-chill-500 focus:border-blue-chill-500 outline-none transition duration-150"
                     />
+                    <button
+                        onClick={fetchCredentials}
+                        className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition"
+                        title="Refresh List"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </button>
                 </div>
             </div>
 
@@ -67,13 +120,14 @@ const Credentials = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Certificate Title</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issued Date</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NSQF</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {loading ? (
                                 <tr>
-                                    <td colSpan="6" className="px-6 py-12 text-center">
+                                    <td colSpan="7" className="px-6 py-12 text-center">
                                         <div className="flex justify-center items-center">
                                             <svg className="animate-spin h-8 w-8 text-blue-chill-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -84,7 +138,7 @@ const Credentials = () => {
                                 </tr>
                             ) : credentials.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                                    <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
                                         <Award className="mx-auto h-12 w-12 text-gray-300 mb-3" />
                                         <p className="text-lg font-medium text-gray-900">No credentials found</p>
                                         <p className="text-sm text-gray-500">Start by issuing your first credential.</p>
@@ -105,6 +159,22 @@ const Credentials = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <StatusBadge status={c.status} />
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            {c.metadata?.ai_extracted?.nsqf_alignment?.verified_by_issuer ? (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                                    Verified
+                                                </span>
+                                            ) : c.metadata?.ai_extracted?.nsqf_alignment ? (
+                                                <button
+                                                    onClick={() => setVerifyingCredential(c)}
+                                                    className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 transition cursor-pointer"
+                                                >
+                                                    Verify Now
+                                                </button>
+                                            ) : (
+                                                <span className="text-xs text-gray-400">N/A</span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <a

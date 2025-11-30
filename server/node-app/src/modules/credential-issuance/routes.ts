@@ -47,6 +47,17 @@ router.post(
 );
 
 /**
+ * POST /credentials/analyze
+ * Analyze credential for pre-issuance verification
+ */
+router.post(
+    '/analyze',
+    authenticateIssuer,
+    uploadPdf,
+    asyncHandler(credentialIssuanceController.analyzeCredential.bind(credentialIssuanceController))
+);
+
+/**
  * GET /credentials/issuer/my-credentials
  * Get credentials issued by the authenticated issuer
  */
@@ -57,5 +68,15 @@ router.get(
 );
 
 
+
+/**
+ * PUT /credentials/:id/nsqf-verification
+ * Verify NSQF alignment for a credential
+ */
+router.put(
+    '/:id/nsqf-verification',
+    authenticateIssuer,
+    asyncHandler(credentialIssuanceController.verifyNSQFAlignment.bind(credentialIssuanceController))
+);
 
 export default router;
