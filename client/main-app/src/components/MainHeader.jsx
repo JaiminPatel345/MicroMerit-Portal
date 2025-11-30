@@ -77,8 +77,8 @@ const Header = () => {
     }
   }, []);
 
-  const logoutUser=(e)=>{
-     dispatch(learnerLogout())
+  const logoutUser = (e) => {
+    dispatch(learnerLogout())
   }
 
   const changeLanguage = (langCode) => {
@@ -107,52 +107,58 @@ const Header = () => {
             <Link to="/" className="text-gray-700 hover:text-blue-chill-600">Home</Link>
 
             {/* Services */}
-            <div className="relative">
+            <div
+              className="relative"
+              onMouseEnter={() => setServicesOpen(true)}
+              onMouseLeave={() => setServicesOpen(false)}
+            >
               <button
-                onMouseEnter={() => setServicesOpen(true)}
-                onMouseLeave={() => setServicesOpen(false)}
-                className="flex items-center text-gray-700 hover:text-blue-chill-600"
+                className="flex items-center text-gray-700 hover:text-blue-chill-600 py-2"
               >
                 Services <ChevronDown className="ml-1 w-4 h-4" />
               </button>
 
               {servicesOpen && (
                 <div
-                  onMouseEnter={() => setServicesOpen(true)}
-                  onMouseLeave={() => setServicesOpen(false)}
-                  className="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-2"
+                  className="absolute top-full left-0 pt-2 w-56 z-50"
                 >
-                  <Link to="/wallet" className="block px-4 py-2 hover:bg-blue-chill-50">Certificate Wallet</Link>
-                  <Link to="/pathway" className="block px-4 py-2 hover:bg-blue-chill-50">Skill Pathway</Link>
-                  <Link to="/verification" className="block px-4 py-2 hover:bg-blue-chill-50">Credential Verification</Link>
-                  <Link to="/provider" className="block px-4 py-2 hover:bg-blue-chill-50">Provider Portal</Link>
-                  <Link to="/ai-engine" className="block px-4 py-2 hover:bg-blue-chill-50">AI Recommendation Engine</Link>
+                  <div className="bg-white rounded-lg shadow-lg py-2 border border-gray-100">
+                    <Link to="/wallet" className="block px-4 py-2 hover:bg-blue-chill-50">Certificate Wallet</Link>
+                    <Link to="/roadmap" className="block px-4 py-2 hover:bg-blue-chill-50">Skill Pathway</Link>
+                    <Link to="/verify" className="block px-4 py-2 hover:bg-blue-chill-50">Credential Verification</Link>
+                    <Link to="/issuer/login" className="block px-4 py-2 hover:bg-blue-chill-50">Provider Portal</Link>
+                    <Link to="/roadmap" className="block px-4 py-2 hover:bg-blue-chill-50">AI Recommendation Engine</Link>
+                  </div>
                 </div>
               )}
             </div>
 
-            <Link to="/about" className="text-gray-700 hover:text-blue-chill-600">About Us</Link>
+            <Link to="/verify" className="text-gray-700 hover:text-blue-chill-600">Verify Credential</Link>
+
+
 
             {/* Resources */}
-            <div className="relative">
+            <div
+              className="relative"
+              onMouseEnter={() => setResourcesOpen(true)}
+              onMouseLeave={() => setResourcesOpen(false)}
+            >
               <button
-                onMouseEnter={() => setResourcesOpen(true)}
-                onMouseLeave={() => setResourcesOpen(false)}
-                className="flex items-center text-gray-700 hover:text-blue-chill-600"
+                className="flex items-center text-gray-700 hover:text-blue-chill-600 py-2"
               >
                 Resources <ChevronDown className="ml-1 w-4 h-4" />
               </button>
 
               {resourcesOpen && (
                 <div
-                  onMouseEnter={() => setResourcesOpen(true)}
-                  onMouseLeave={() => setResourcesOpen(false)}
-                  className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2"
+                  className="absolute top-full left-0 pt-2 w-48 z-50"
                 >
-                  <Link to="/docs" className="block px-4 py-2 hover:bg-blue-chill-50">Documentation</Link>
-                  <Link to="/api" className="block px-4 py-2 hover:bg-blue-chill-50">API Reference</Link>
-                  <Link to="/case-studies" className="block px-4 py-2 hover:bg-blue-chill-50">Case Studies</Link>
-                  <Link to="/faqs" className="block px-4 py-2 hover:bg-blue-chill-50">FAQs</Link>
+                  <div className="bg-white rounded-lg shadow-lg py-2 border border-gray-100">
+                    <Link to="/docs" className="block px-4 py-2 hover:bg-blue-chill-50">Documentation</Link>
+                    <Link to="/api" className="block px-4 py-2 hover:bg-blue-chill-50">API Reference</Link>
+                    <Link to="/case-studies" className="block px-4 py-2 hover:bg-blue-chill-50">Case Studies</Link>
+                    <Link to="/faqs" className="block px-4 py-2 hover:bg-blue-chill-50">FAQs</Link>
+                  </div>
                 </div>
               )}
             </div>
@@ -190,13 +196,13 @@ const Header = () => {
             </div>
 
 
-              <>
-                <Link to="/login" className="text-blue-chill-600 font-medium">Login</Link>
-                <div className="h-6 w-px bg-gray-400"></div>
-                <Link to="/issuer/signup" className="bg-blue-chill-600 text-white px-6 py-2 rounded-lg">
-                  Start Now As Issuer
-                </Link>
-              </>
+            <>
+              <Link to="/login" className="text-blue-chill-600 font-medium">Login</Link>
+              <div className="h-6 w-px bg-gray-400"></div>
+              <Link to="/issuer/signup" className="bg-blue-chill-600 text-white px-6 py-2 rounded-lg">
+                Start Now As Issuer
+              </Link>
+            </>
           </div>
 
           {/* MOBILE TOGGLE */}
@@ -228,14 +234,16 @@ const Header = () => {
             {mobileServicesOpen && (
               <div className="pl-4 space-y-2">
                 <Link to="/wallet" className="block text-gray-600">Certificate Wallet</Link>
-                <Link to="/pathway" className="block text-gray-600">Skill Pathway</Link>
-                <Link to="/verification" className="block text-gray-600">Credential Verification</Link>
-                <Link to="/provider" className="block text-gray-600">Provider Portal</Link>
-                <Link to="/ai-engine" className="block text-gray-600">AI Engine</Link>
+                <Link to="/roadmap" className="block text-gray-600">Skill Pathway</Link>
+                <Link to="/verify" className="block text-gray-600">Credential Verification</Link>
+                <Link to="/issuer/login" className="block text-gray-600">Provider Portal</Link>
+                <Link to="/roadmap" className="block text-gray-600">AI Engine</Link>
               </div>
             )}
 
-            <Link to="/about" className="block text-gray-700">About Us</Link>
+            <Link to="/verify" className="block text-gray-700">Verify Credential</Link>
+
+
 
             {/* Resources */}
             <button
@@ -286,12 +294,12 @@ const Header = () => {
 
             {/* AUTH (mobile) */}
 
-              <div className="pt-4 space-y-3">
-                <Link to="/login" className="block text-center border px-6 py-2 rounded-lg">Login</Link>
-                <Link to="/issuer/signup" className="block text-center bg-blue-chill-600 text-white px-6 py-2 rounded-lg">
-                  Start Now As Issuer
-                </Link>
-              </div>
+            <div className="pt-4 space-y-3">
+              <Link to="/login" className="block text-center border px-6 py-2 rounded-lg">Login</Link>
+              <Link to="/issuer/signup" className="block text-center bg-blue-chill-600 text-white px-6 py-2 rounded-lg">
+                Start Now As Issuer
+              </Link>
+            </div>
 
           </div>
         </div>

@@ -4,6 +4,7 @@ import VerifyOTP from './pages/VerifyOTP';
 import ProfileBuilder from './pages/learner/ProfileBuilder';
 import Terms from './pages/Terms';
 import Login from './pages/learner/Login';
+import Contact from './pages/Contact';
 import Signup from './pages/learner/Signup';
 import { useLocation } from 'react-router-dom';
 import IssuerSignUp from './pages/issuer/Signup';
@@ -62,6 +63,7 @@ function Layout() {
               <Route path="/verify" element={<Verification />} />
               <Route path="/verify/:id" element={<Verification />} />
               <Route path="/terms" element={<Terms />} />
+              <Route path="/contact" element={<Contact />} />
 
 
 
