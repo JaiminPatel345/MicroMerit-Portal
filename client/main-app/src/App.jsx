@@ -109,11 +109,7 @@ function Layout() {
                 </AuthRoutes>
               } />
 
-              <Route path="/p/:slug" element={
-                <AuthRoutes role="learner">
-                  <Profile />
-                </AuthRoutes>
-              } />
+              <Route path="/p/:slug" element={<Profile />} />
 
               <Route path='/issuer' element={
                 <AuthRoutes role="issuer">

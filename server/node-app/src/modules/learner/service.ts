@@ -611,6 +611,42 @@ export class LearnerService {
   ) {
     return learnerRepository.getLearnerCredentials(learnerId, page, limit, search, status);
   }
+  /**
+   * Get public profile
+   */
+  async getPublicProfile(idOrSlug: string): Promise<any> {
+    const learnerId = parseInt(idOrSlug, 10);
+    if (isNaN(learnerId)) {
+      throw new Error('Invalid learner ID');
+    }
+
+    const learner = await learnerRepository.findById(learnerId);
+    if (!learner) {
+      throw new Error('Learner not found');
+    }
+
+    // Get public credentials (issued only, limit 4)
+    const credentialsResult = await learnerRepository.getLearnerCredentials(learnerId, 1, 4, undefined, 'issued');
+
+    // Get stats for skills
+    const stats = await learnerRepository.getDashboardStats(learnerId);
+
+    return {
+      learner: {
+        id: learner.id,
+        name: learner.name,
+        email: learner.email,
+        profileUrl: learner.profileUrl,
+        joinedAt: learner.created_at,
+      },
+      certificates: credentialsResult.data,
+      stats: {
+        totalCertificates: stats.totalCredentials,
+        topSkills: stats.topSkills,
+        trustScore: 92 // Mocked for now
+      }
+    };
+  }
 }
 
 export const learnerService = new LearnerService();

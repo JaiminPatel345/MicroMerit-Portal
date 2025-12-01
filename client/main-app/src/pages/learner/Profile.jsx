@@ -1,9 +1,9 @@
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { learnerApi } from "../../services/authServices";
 import { motion } from "framer-motion";
-import { Pencil, Mail, MapPin, Copy, ShieldCheck } from "lucide-react";
+import { Pencil, Mail, MapPin, Copy, ShieldCheck, Check } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { learnerUpateProfile } from "../../store/authLearnerSlice";
 import { setNotification } from "../../utils/notification";
@@ -15,26 +15,41 @@ export default function PublicProfile() {
   const dispatch = useDispatch();
   const [profile, setProfile] = useState(learner);
   const [certificates, setCertificates] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [previewImage, setPreviewImage] = useState(profile?.profileUrl || '');
   const [errors, setErrors] = useState({});
+  const [copied, setCopied] = useState(false);
 
   const isOwner = isAuthenticated && learner?.id?.toString() === slug?.toString();
 
   const fetchProfile = async () => {
     try {
       if (isOwner) {
-        // const certs = await learnerApi.getCertificates();
-        // setCertificates(certs.data.data || []);
+        const [certsRes, dashboardRes] = await Promise.all([
+          learnerApi.getCertificates({ limit: 4, status: 'issued' }),
+          learnerApi.getDashboard()
+        ]);
+        setCertificates(certsRes.data.data.data || []);
+        setStats(dashboardRes.data.data);
       } else {
-        // once public API exists, replace with: learnerApi.getPublicProfile(slug)
-        const res = await learnerApi.getProfile();
-        setProfile(res.data.data);
-        setCertificates([]);
+        if (!slug || isNaN(parseInt(slug))) {
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
+        const res = await learnerApi.getPublicProfile(slug);
+        const data = res.data.data;
+        setProfile(data.learner);
+        setCertificates(data.certificates || []);
+        setStats(data.stats);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching profile:", err);
+      // If public profile fails, profile remains null (or whatever it was initialized with)
+      // If initialized with 'learner' (which might be null if not logged in), it stays null.
+      if (!isOwner) setProfile(null);
     }
     setLoading(false);
   };
@@ -69,7 +84,9 @@ export default function PublicProfile() {
             {profile.name || "Unnamed User"}
           </h1>
 
-          <p className="text-blue-chill-500 text-sm">@{profile.email.split("@")[0]}</p>
+          <p className="text-blue-chill-500 text-sm">
+            {profile.email ? `@${profile.email.split("@")[0]}` : ""}
+          </p>
 
           {isOwner && (
             <button
@@ -88,25 +105,53 @@ export default function PublicProfile() {
               INDIA
             </div>
 
+
             <div className="flex items-center gap-2">
               <Mail size={14} className="text-blue-chill-600" />
               {profile.email}
             </div>
 
             <button
-              className="flex items-center gap-2 text-blue-chill-500 hover:underline text-sm"
-              onClick={() => navigator.clipboard.writeText(window.location.href)}
+              className="flex items-center gap-2 text-blue-chill-500 hover:underline text-sm transition-all"
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
             >
-              <Copy size={14} /> Copy Profile Link
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+              {copied ? "Copied!" : "Copy Profile Link"}
             </button>
           </div>
 
-          <div className="mt-4">
-            <h3 className="font-semibold text-blue-chill-700 mb-2 flex gap-2">
-              <ShieldCheck size={16} /> Achievements
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <h3 className="font-semibold text-blue-chill-700 mb-3 flex gap-2 items-center">
+              <ShieldCheck size={16} /> Stats
             </h3>
-            <p className="text-gray-400 text-sm">Coming soon...</p>
+            <div className="grid grid-cols-2 gap-4 text-center">
+              <div className="bg-blue-chill-50 p-3 rounded-lg">
+                <div className="text-xl font-bold text-blue-chill-700">{stats?.totalCredentials || stats?.totalCertificates || 0}</div>
+                <div className="text-xs text-blue-chill-600">Certificates</div>
+              </div>
+              <div className="bg-blue-chill-50 p-3 rounded-lg">
+                <div className="text-xl font-bold text-blue-chill-700">{stats?.trustScore || 0}%</div>
+                <div className="text-xs text-blue-chill-600">Trust Score</div>
+              </div>
+            </div>
           </div>
+
+          {stats?.topSkills?.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              <h3 className="font-semibold text-blue-chill-700 mb-3">Top Skills</h3>
+              <div className="flex flex-wrap gap-2">
+                {stats.topSkills.map((skill, i) => (
+                  <span key={i} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-md">
+                    {skill.skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -120,20 +165,46 @@ export default function PublicProfile() {
         {certificates.length === 0 ? (
           <p className="text-gray-500">{isOwner ? "You haven't added any certificates yet." : "No certificates available."}</p>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {certificates.map((cert, i) => (
-              <motion.div
-                key={cert.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="border rounded-xl p-4 shadow-sm hover:shadow-lg transition cursor-pointer"
-              >
-                <h3 className="font-semibold text-blue-chill-700">{cert.title}</h3>
-                <p className="text-sm text-gray-500">{cert.issuer}</p>
-              </motion.div>
-            ))}
-          </div>
+          <>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-6">
+              {certificates.map((cert, i) => (
+                <Link to={`/credential/${cert.id}`} key={cert.id}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="border rounded-xl p-5 shadow-sm hover:shadow-lg transition cursor-pointer bg-white h-full flex flex-col"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-chill-50 flex items-center justify-center text-blue-chill-600 font-bold text-lg">
+                        {cert.issuer?.name?.[0] || "C"}
+                      </div>
+                      <span className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded-full border border-green-100">
+                        Verified
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-gray-800 mb-1 line-clamp-2">{cert.certificate_title}</h3>
+                    <p className="text-sm text-gray-500 mb-4">{cert.issuer?.name}</p>
+                    <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center text-xs text-gray-400">
+                      <span>{new Date(cert.issued_at).toLocaleDateString()}</span>
+                      <span>ID: {cert.credential_id?.substring(0, 6)}...</span>
+                    </div>
+                  </motion.div>
+                </Link>
+              ))}
+            </div>
+
+            {isOwner && (
+              <div className="mt-8 text-center">
+                <Link
+                  to="/wallet"
+                  className="inline-flex items-center justify-center px-6 py-2.5 border border-blue-chill-200 text-blue-chill-600 font-medium rounded-lg hover:bg-blue-chill-50 transition-colors"
+                >
+                  View All Certificates in Wallet
+                </Link>
+              </div>
+            )}
+          </>
         )}
       </div>
 

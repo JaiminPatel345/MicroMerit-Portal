@@ -31,6 +31,12 @@ authRouter.post(
 // Resource management routes - mounted at /learner
 const resourceRouter = Router();
 
+// Public profile route
+resourceRouter.get(
+  '/public/:id',
+  asyncHandler(learnerController.getPublicProfile.bind(learnerController))
+);
+
 // Profile management
 resourceRouter.get(
   '/profile',
@@ -92,6 +98,8 @@ resourceRouter.get(
   requireLearner,
   asyncHandler(learnerController.getCredentialQR.bind(learnerController))
 );
+
+
 
 export { authRouter as learnerAuthRoutes, resourceRouter as learnerResourceRoutes };
 export default authRouter; // Default export for backward compatibility

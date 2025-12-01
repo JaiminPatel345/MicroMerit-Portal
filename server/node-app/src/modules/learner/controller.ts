@@ -246,6 +246,25 @@ export class LearnerController {
       sendError(res, error.message, 'Failed to retrieve credentials', 500);
     }
   }
+  /**
+   * Get public profile
+   * GET /learner/public/:id
+   */
+  async getPublicProfile(req: Request, res: Response): Promise<void> {
+    try {
+      const id = req.params.id;
+      if (!id) {
+        sendError(res, 'ID is required', 'ID is required', 400);
+        return;
+      }
+      const profile = await learnerService.getPublicProfile(id);
+      sendSuccess(res, profile, 'Public profile retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get public profile failed', { error: error.message });
+      const statusCode = error.message === 'Learner not found' ? 404 : 400;
+      sendError(res, error.message, 'Failed to retrieve public profile', statusCode);
+    }
+  }
 }
 
 export const learnerController = new LearnerController();
