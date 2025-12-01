@@ -5,6 +5,8 @@ import { learner } from '@prisma/client';
 import { LearnerRegistrationInput, LearnerLoginInput, UpdateLearnerProfileInput } from './schema';
 import { logger } from '../../utils/logger';
 import { handleProfilePhotoFileUpload } from '../../utils/imageUpload';
+import { aiService } from '../ai/ai.service';
+import { prisma } from '../../utils/prisma';
 
 export interface LearnerResponse {
   id: number;
@@ -576,11 +578,10 @@ export class LearnerService {
 
     return {
       ...stats,
-      // Mocking some AI/extra stats for now as they are not in DB yet
-      nsqfLevel: 'Level 5',
       profileCompletion: completion,
-      trustScore: 92,
-      // aiRecommendations removed, frontend should use topSkills or fetch recommendations separately
+      // Pass through real stats from repository
+      nsqfAlignedCount: stats.nsqfAlignedCount,
+      totalSkillsVerified: stats.totalSkillsVerified
     };
   }
   /**
@@ -646,6 +647,95 @@ export class LearnerService {
         trustScore: 92 // Mocked for now
       }
     };
+  }
+  /**
+   * Get learner roadmap
+   */
+  async getRoadmap(learnerId: number) {
+    let roadmap = await prisma.learnerRoadmap.findUnique({
+      where: { learner_id: learnerId }
+    });
+
+    if (!roadmap) {
+      // Trigger generation if not exists
+      await this.updateLearnerAIProfile(learnerId);
+      roadmap = await prisma.learnerRoadmap.findUnique({
+        where: { learner_id: learnerId }
+      });
+    }
+
+    return roadmap?.data || null;
+  }
+
+  /**
+   * Get learner skill profile
+   */
+  async getSkillProfile(learnerId: number) {
+    let profile = await prisma.learnerSkillProfile.findUnique({
+      where: { learner_id: learnerId }
+    });
+
+    if (!profile) {
+      // Trigger generation if not exists
+      await this.updateLearnerAIProfile(learnerId);
+      profile = await prisma.learnerSkillProfile.findUnique({
+        where: { learner_id: learnerId }
+      });
+    }
+
+    return profile?.data || null;
+  }
+
+  /**
+   * Update learner AI profile (Roadmap & Skills)
+   * Called after credential issuance
+   */
+  async updateLearnerAIProfile(learnerId: number) {
+    try {
+      // 1. Fetch all issued credentials
+      const credentials = await prisma.credential.findMany({
+        where: { learner_id: learnerId, status: 'issued' },
+        select: {
+          certificate_title: true,
+          metadata: true,
+          issued_at: true,
+          issuer: { select: { name: true } }
+        }
+      });
+
+      if (credentials.length === 0) return;
+
+      // 2. Fetch learner profile
+      const learner = await prisma.learner.findUnique({
+        where: { id: learnerId },
+        select: { id: true, name: true, email: true, phone: true } // Basic info
+      });
+
+      // 3. Generate Roadmap
+      const roadmapData = await aiService.generateRoadmap(credentials, learner);
+      if (roadmapData) {
+        await prisma.learnerRoadmap.upsert({
+          where: { learner_id: learnerId },
+          update: { data: roadmapData },
+          create: { learner_id: learnerId, data: roadmapData }
+        });
+      }
+
+      // 4. Generate Skill Profile
+      const skillProfileData = await aiService.generateSkillProfile(credentials);
+      if (skillProfileData) {
+        await prisma.learnerSkillProfile.upsert({
+          where: { learner_id: learnerId },
+          update: { data: skillProfileData },
+          create: { learner_id: learnerId, data: skillProfileData }
+        });
+      }
+
+      logger.info('Learner AI profile updated', { learnerId });
+
+    } catch (error: any) {
+      logger.error('Failed to update learner AI profile', { learnerId, error: error.message });
+    }
   }
 }
 

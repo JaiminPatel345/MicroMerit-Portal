@@ -131,6 +131,47 @@ async def employer_chat(request: EmployerChatRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/generate-roadmap")
+async def generate_roadmap(request: dict):
+    """
+    Generate a career roadmap
+    """
+    try:
+        certificates = request.get("certificates", [])
+        learner_profile = request.get("learner_profile", {})
+        roadmap = recommendation_service.generate_roadmap(certificates, learner_profile)
+        return roadmap
+    except Exception as e:
+        logger.error(f"Roadmap generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/generate-skill-profile")
+async def generate_skill_profile(request: dict):
+    """
+    Generate a skill profile
+    """
+    try:
+        certificates = request.get("certificates", [])
+        profile = recommendation_service.generate_skill_profile(certificates)
+        return profile
+    except Exception as e:
+        logger.error(f"Skill profile generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/enrich-credential")
+async def enrich_credential(request: dict):
+    """
+    Enrich credential metadata
+    """
+    try:
+        certificate_title = request.get("certificate_title", "")
+        nos_data = request.get("nos_data", {})
+        metadata = recommendation_service.enrich_credential_metadata(certificate_title, nos_data)
+        return metadata
+    except Exception as e:
+        logger.error(f"Credential enrichment error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/health")
 async def health_check():
     """Health check endpoint"""

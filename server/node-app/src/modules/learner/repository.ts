@@ -215,11 +215,25 @@ export class LearnerRepository {
       })
     ]);
 
-    // Calculate top skills
+    // Calculate top skills and other stats
     const skillCounts: Record<string, number> = {};
+    let nsqfAlignedCount = 0;
+    let totalSkillsVerified = 0;
+
     allCredentials.forEach((cred: any) => {
-      const skills = cred.metadata?.ai_extracted?.skills || [];
+      const metadata = cred.metadata as any;
+      const aiData = metadata?.ai_extracted || {};
+      const nosData = metadata?.nos_data || aiData?.nos_data;
+      const nsqfAlignment = aiData?.nsqf_alignment || {};
+
+      // Check for NSQF alignment
+      if (nosData?.qp_code || nsqfAlignment?.nsqf_level || aiData?.nsqf?.level) {
+        nsqfAlignedCount++;
+      }
+
+      const skills = aiData?.skills || [];
       if (Array.isArray(skills)) {
+        totalSkillsVerified += skills.length;
         skills.forEach((skill: any) => {
           // Handle both string and object formats (SkillExtraction schema)
           const skillName = typeof skill === 'string' ? skill : skill?.name;
@@ -239,7 +253,9 @@ export class LearnerRepository {
     return {
       totalCredentials,
       recentCredentials,
-      topSkills
+      topSkills,
+      nsqfAlignedCount,
+      totalSkillsVerified
     };
   }
   async getCredentialById(credentialId: string) {

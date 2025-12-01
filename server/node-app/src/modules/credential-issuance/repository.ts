@@ -148,10 +148,10 @@ export class CredentialIssuanceRepository {
     }
 
     /**
-     * Update credential metadata with AI-extracted data
-     * Called asynchronously after OCR processing completes
+     * Update credential metadata
+     * Merges the provided updates into the existing metadata at the root level
      */
-    async updateCredentialMetadata(credential_id: string, ai_extracted_data: any) {
+    async updateCredentialMetadata(credential_id: string, metadataUpdates: any) {
         const credential = await prisma.credential.findUnique({
             where: { credential_id },
         });
@@ -160,11 +160,11 @@ export class CredentialIssuanceRepository {
             throw new Error(`Credential not found: ${credential_id}`);
         }
 
-        // Merge AI-extracted data into existing metadata
+        // Merge updates into existing metadata
         const existingMetadata = (credential.metadata as any) || {};
         const updatedMetadata = {
             ...existingMetadata,
-            ai_extracted: ai_extracted_data,
+            ...metadataUpdates,
         };
 
         return await prisma.credential.update({

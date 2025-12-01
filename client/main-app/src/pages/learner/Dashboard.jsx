@@ -18,9 +18,9 @@ const Dashboard = () => {
     const learner = useSelector(state => state.authLearner.learner);
     const [stats, setStats] = useState({
         totalCredentials: 0,
-        profileCompletion: 85, // Mocked for now
-        nsqfLevel: 4, // Mocked
-        trustScore: 92 // Mocked
+        nsqfAlignedCount: 0,
+        totalSkillsVerified: 0,
+        topSkill: 'None'
     });
     const [recentCertificates, setRecentCertificates] = useState([]);
     const [topSkills, setTopSkills] = useState([]);
@@ -36,9 +36,9 @@ const Dashboard = () => {
                 setTopSkills(data.topSkills || []);
                 setStats({
                     totalCredentials: data.totalCredentials || 0,
-                    profileCompletion: data.profileCompletion || 0,
-                    nsqfLevel: data.nsqfLevel || 'N/A',
-                    trustScore: data.trustScore || 0
+                    nsqfAlignedCount: data.nsqfAlignedCount || 0,
+                    totalSkillsVerified: data.totalSkillsVerified || 0,
+                    topSkill: data.topSkills?.[0]?.skill || 'None'
                 });
             } catch (error) {
                 console.error("Failed to fetch dashboard data", error);
@@ -89,24 +89,24 @@ const Dashboard = () => {
                         color="bg-blue-50"
                     />
                     <StatCard
-                        icon={<TrendingUp className="text-purple-600" size={24} />}
-                        label="NSQF Level"
-                        value={`Level ${stats.nsqfLevel}`}
-                        subtext="Advanced Proficiency"
+                        icon={<Shield className="text-purple-600" size={24} />}
+                        label="NSQF Aligned"
+                        value={stats.nsqfAlignedCount}
+                        subtext="Certificates"
                         color="bg-purple-50"
                     />
                     <StatCard
-                        icon={<User className="text-orange-600" size={24} />}
-                        label="Profile Completion"
-                        value={`${stats.profileCompletion}%`}
+                        icon={<Zap className="text-orange-600" size={24} />}
+                        label="Skills Verified"
+                        value={stats.totalSkillsVerified}
                         color="bg-orange-50"
                     />
                     <StatCard
-                        icon={<Zap className="text-yellow-600" size={24} />}
-                        label="Trust Score"
-                        value={stats.trustScore}
-                        subtext="Excellent"
-                        color="bg-yellow-50"
+                        icon={<TrendingUp className="text-green-600" size={24} />}
+                        label="Top Skill"
+                        value={stats.topSkill}
+                        subtext="Most Verified"
+                        color="bg-green-50"
                     />
                 </div>
 

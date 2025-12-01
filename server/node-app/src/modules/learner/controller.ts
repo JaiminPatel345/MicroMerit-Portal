@@ -265,6 +265,43 @@ export class LearnerController {
       sendError(res, error.message, 'Failed to retrieve public profile', statusCode);
     }
   }
+  /**
+   * Get learner roadmap
+   * GET /learner/roadmap
+   */
+  async getRoadmap(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        sendError(res, 'User not authenticated', 'Authentication required', 401);
+        return;
+      }
+
+      const roadmap = await learnerService.getRoadmap(req.user.id);
+      sendSuccess(res, roadmap, 'Roadmap retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get roadmap failed', { error: error.message });
+      sendError(res, error.message, 'Failed to retrieve roadmap', 500);
+    }
+  }
+
+  /**
+   * Get learner skill profile
+   * GET /learner/skill-profile
+   */
+  async getSkillProfile(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        sendError(res, 'User not authenticated', 'Authentication required', 401);
+        return;
+      }
+
+      const profile = await learnerService.getSkillProfile(req.user.id);
+      sendSuccess(res, profile, 'Skill profile retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get skill profile failed', { error: error.message });
+      sendError(res, error.message, 'Failed to retrieve skill profile', 500);
+    }
+  }
 }
 
 export const learnerController = new LearnerController();

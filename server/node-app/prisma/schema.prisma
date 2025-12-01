@@ -62,6 +62,8 @@ model learner {
   gender                 String?
   name                   String?
   credentials            Credential[]
+  roadmap                LearnerRoadmap?
+  skillProfile           LearnerSkillProfile?
 }
 
 model admin {
@@ -142,4 +144,22 @@ model SkillKnowledgeBase {
   @@index([qp_code])
   @@index([nos_code])
   @@index([nsqf_level])
+}
+
+model LearnerRoadmap {
+  id         Int      @id @default(autoincrement())
+  learner_id Int      @unique
+  data       Json
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  learner    learner  @relation(fields: [learner_id], references: [id])
+}
+
+model LearnerSkillProfile {
+  id         Int      @id @default(autoincrement())
+  learner_id Int      @unique
+  data       Json
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  learner    learner  @relation(fields: [learner_id], references: [id])
 }

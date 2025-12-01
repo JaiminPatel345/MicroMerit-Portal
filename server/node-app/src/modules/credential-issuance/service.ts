@@ -192,17 +192,32 @@ export class CredentialIssuanceService {
             pre_verified: !!ai_extracted_data
         });
 
-        // Step 10: Process OCR asynchronously ONLY if not pre-verified
+        // Step 10: Process AI tasks asynchronously
         if (!ai_extracted_data) {
+            // Case 1: No pre-verified data. Run full OCR + Enrichment + Profile Update
             this.processOCRAsync(
                 credential_id,
                 original_pdf,
                 original_pdf_filename,
                 learner_email,
                 certificate_title,
-                issuer.name
+                issuer.name,
+                learner_id
             ).catch(error => {
                 logger.error('Async OCR processing failed', {
+                    credential_id,
+                    error: error.message
+                });
+            });
+        } else {
+            // Case 2: Pre-verified data exists. Run Enrichment (if needed) + Profile Update
+            this.postIssuanceAIAsync(
+                credential_id,
+                certificate_title,
+                ai_extracted_data,
+                learner_id
+            ).catch(error => {
+                logger.error('Post-issuance AI processing failed', {
                     credential_id,
                     error: error.message
                 });
@@ -270,41 +285,65 @@ export class CredentialIssuanceService {
         original_pdf_filename: string,
         learner_email: string,
         certificate_title: string,
-        issuer_name: string
+        issuer_name: string,
+        learner_id?: number | null
     ): Promise<void> {
         try {
-            logger.info('Starting async OCR processing', { credential_id, certificate_title });
+            logger.info('Starting async OCR processing', { credential_id, certificate_title, learner_id });
 
             const { aiService } = await import('../ai/ai.service');
+            const { learnerService } = await import('../learner/service');
 
             // Fetch relevant NSQF context
             const nsqfContext = await skillKnowledgeBaseRepository.search(certificate_title);
             logger.info('Fetched NSQF context', { count: nsqfContext.length, query: certificate_title });
 
+            // 1. Process OCR
+            logger.info('Calling AI Service processOCR', { credential_id });
             const ocrResult = await aiService.processOCR(
                 original_pdf,
                 original_pdf_filename,
                 learner_email,
                 certificate_title,
                 issuer_name,
-                nsqfContext // Pass context to AI service
+                nsqfContext
             );
+            logger.info('AI Service processOCR completed', { credential_id });
 
-            const ai_extracted_data = {
+            // 2. Enrich Metadata (Job Recommendations & NOS)
+            let enrichedMetadata = {};
+            try {
+                logger.info('Calling AI Service enrichCredentialMetadata', { credential_id });
+                // Use NSQF context or OCR result for enrichment
+                const nosDataForEnrichment = nsqfContext.length > 0 ? nsqfContext[0] : {};
+                enrichedMetadata = await aiService.enrichCredentialMetadata(certificate_title, nosDataForEnrichment);
+                logger.info('AI Service enrichCredentialMetadata completed', { credential_id, hasData: !!enrichedMetadata });
+            } catch (enrichError) {
+                logger.error('Credential enrichment failed', { credential_id, error: enrichError });
+            }
+
+            const ai_extracted = {
                 skills: ocrResult.skills || [],
                 nsqf: ocrResult.nsqf || { level: 1, confidence: 0.0, reasoning: '' },
                 keywords: ocrResult.keywords || [],
                 certificate_metadata: ocrResult.certificate_metadata || {},
                 description: ocrResult.description || '',
                 extracted_text_preview: ocrResult.extracted_text?.substring(0, 500) || '',
-                processed_at: new Date().toISOString()
+                processed_at: new Date().toISOString(),
             };
 
             // Update the credential with AI-extracted data
+            // We merge ai_extracted object AND the enriched metadata (job_recommendations, nos_data) at root level
             await credentialIssuanceRepository.updateCredentialMetadata(
                 credential_id,
-                ai_extracted_data
+                {
+                    ai_extracted,
+                    ...enrichedMetadata
+                }
             );
+
+            // For logging purposes
+            const ai_extracted_data = { ...ai_extracted, ...enrichedMetadata };
 
             logger.info('Async OCR processing complete and DB updated', {
                 credential_id,
@@ -312,6 +351,16 @@ export class CredentialIssuanceService {
                 keywords_count: ai_extracted_data.keywords.length,
                 nsqf_level: ai_extracted_data.nsqf.level
             });
+
+            // 3. Update Learner AI Profile (Roadmap & Skills)
+            if (learner_id) {
+                logger.info('Calling learnerService.updateLearnerAIProfile', { learner_id });
+                await learnerService.updateLearnerAIProfile(learner_id);
+                logger.info('Triggered learner AI profile update', { learner_id });
+            } else {
+                logger.warn('Skipping learner AI profile update: learner_id is missing', { credential_id });
+            }
+
         } catch (error: any) {
             logger.error('Async OCR processing failed', {
                 credential_id,
@@ -319,6 +368,59 @@ export class CredentialIssuanceService {
                 stack: error.stack
             });
             // Don't throw - this is fire-and-forget
+        }
+    }
+
+    /**
+     * Handle post-issuance AI tasks for pre-verified credentials
+     * Enriches metadata and updates learner profile
+     */
+    private async postIssuanceAIAsync(
+        credential_id: string,
+        certificate_title: string,
+        current_metadata: any,
+        learner_id?: number | null
+    ): Promise<void> {
+        try {
+            logger.info('Starting post-issuance AI processing', { credential_id, learner_id });
+            const { aiService } = await import('../ai/ai.service');
+            const { learnerService } = await import('../learner/service');
+
+            // 1. Enrich if needed (if job recommendations or NOS data are missing)
+            if (!current_metadata.job_recommendations || !current_metadata.nos_data) {
+                logger.info('Enriching pre-verified credential', { credential_id });
+
+                // Fetch NSQF context for enrichment
+                const nsqfContext = await skillKnowledgeBaseRepository.search(certificate_title);
+                const nosDataForEnrichment = nsqfContext.length > 0 ? nsqfContext[0] : {};
+
+                logger.info('Calling AI Service enrichCredentialMetadata (post-issuance)', { credential_id });
+                const enrichedMetadata = await aiService.enrichCredentialMetadata(certificate_title, nosDataForEnrichment);
+                logger.info('AI Service enrichCredentialMetadata completed (post-issuance)', { credential_id });
+
+                await credentialIssuanceRepository.updateCredentialMetadata(
+                    credential_id,
+                    enrichedMetadata
+                );
+                logger.info('Enriched pre-verified credential metadata', { credential_id });
+            } else {
+                logger.info('Skipping enrichment: metadata already present', { credential_id });
+            }
+
+            // 2. Update Learner Profile
+            if (learner_id) {
+                logger.info('Calling learnerService.updateLearnerAIProfile (post-issuance)', { learner_id });
+                await learnerService.updateLearnerAIProfile(learner_id);
+                logger.info('Triggered learner AI profile update (post-issuance)', { learner_id });
+            } else {
+                logger.warn('Skipping learner AI profile update: learner_id is missing (post-issuance)', { credential_id });
+            }
+        } catch (error: any) {
+            logger.error('Post-issuance AI processing failed', {
+                credential_id,
+                error: error.message,
+                stack: error.stack
+            });
         }
     }
 
@@ -381,7 +483,7 @@ export class CredentialIssuanceService {
             }
         };
 
-        return await credentialIssuanceRepository.updateCredentialMetadata(credentialId, updatedMetadata.ai_extracted);
+        return await credentialIssuanceRepository.updateCredentialMetadata(credentialId, { ai_extracted: updatedMetadata.ai_extracted });
     }
 }
 

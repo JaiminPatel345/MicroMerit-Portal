@@ -248,4 +248,224 @@ Focus on Indian job market and NSQF framework.
         }
 
 
+    def generate_roadmap(self, certificates: List[Dict[str, Any]], learner_profile: Dict[str, Any] = None) -> dict:
+        """
+        Generate a comprehensive career roadmap based on certificates and profile.
+        Includes future plans, conditional paths, and job opportunities.
+        """
+        try:
+            skills = self._extract_skills(certificates)
+            cert_titles = [cert.get('certificate_title', '') for cert in certificates]
+            
+            prompt = f"""
+            Analyze the learner's profile and certificates to generate a detailed career roadmap.
+            
+            Certificates: {", ".join(cert_titles)}
+            Skills: {", ".join(skills)}
+            Learner Profile: {json.dumps(learner_profile) if learner_profile else "Not provided"}
+            
+            Generate a JSON response with the following structure:
+            {{
+              "current_status": "Summary of current standing",
+              "future_plans": [
+                {{
+                  "goal": "Short-term/Long-term goal",
+                  "description": "Description of the goal",
+                  "timeline": "e.g., 6 months",
+                  "skills_to_acquire": {{
+                    "basic": ["Skill 1", "Skill 2"],
+                    "intermediate": ["Skill 3", "Skill 4"],
+                    "advanced": ["Skill 5", "Skill 6"]
+                  }}
+                }}
+              ],
+              "conditional_paths": [
+                {{
+                  "path_name": "Path A (e.g., Specialization X)",
+                  "condition": "If you choose to learn X",
+                  "outcome": "You become a X Specialist",
+                  "next_steps": ["Step 1", "Step 2"]
+                }},
+                {{
+                  "path_name": "Path B (e.g., Specialization Y)",
+                  "condition": "If you choose to learn Y",
+                  "outcome": "You become a Y Specialist",
+                  "next_steps": ["Step 1", "Step 2"]
+                }}
+              ],
+              "job_opportunities": [
+                {{
+                  "role": "Job Role",
+                  "match_percentage": 85,
+                  "missing_skills": ["Skill A", "Skill B"],
+                  "salary_range": "e.g., 5-8 LPA"
+                }}
+              ]
+            }}
+            
+            Focus on the Indian job market and be specific.
+            """
+            
+            return self._call_llm(prompt)
+            
+        except Exception as e:
+            logger.error(f"Roadmap generation error: {e}")
+            return {}
+
+    def generate_skill_profile(self, certificates: List[Dict[str, Any]]) -> dict:
+        """
+        Generate a comprehensive skill profile.
+        Includes current skills, NSQF distribution, and ready-to-apply jobs.
+        """
+        try:
+            skills = self._extract_skills(certificates)
+            cert_titles = [cert.get('certificate_title', '') for cert in certificates]
+            
+            # Extract standards data (QP, NOS, NSQF)
+            standards_data = []
+            for cert in certificates:
+                meta = cert.get('metadata', {})
+                # Ensure meta is a dict
+                if isinstance(meta, str):
+                    import json
+                    try:
+                        meta = json.loads(meta)
+                    except:
+                        meta = {}
+                
+                nos_data = meta.get('nos_data', {})
+                qp_code = nos_data.get('qp_code')
+                
+                ai_data = meta.get('ai_extracted', {})
+                nsqf_level = ai_data.get('nsqf_alignment', {}).get('nsqf_level') or ai_data.get('nsqf', {}).get('level')
+                
+                if qp_code or nsqf_level:
+                    info = f"{cert.get('certificate_title')}: "
+                    parts = []
+                    if qp_code: parts.append(f"QP Code: {qp_code}")
+                    if nsqf_level: parts.append(f"NSQF Level: {nsqf_level}")
+                    info += ", ".join(parts)
+                    standards_data.append(info)
+            
+            standards_context = "; ".join(standards_data)
+
+            prompt = f"""
+            Analyze the certificates and their official standards data to generate a comprehensive skill profile.
+            
+            Certificates: {", ".join(cert_titles)}
+            Standards Data: {standards_context}
+            Skills: {", ".join(skills)}
+            
+            Generate a JSON response with the following structure:
+            {{
+              "current_skills": [
+                {{
+                  "skill": "Skill Name",
+                  "proficiency": 85,
+                  "category": "Technical/Soft/Domain",
+                  "verified_by": "Issuer Name"
+                }}
+              ],
+              "ready_to_apply_jobs": [
+                {{
+                  "role": "Job Role",
+                  "match_percentage": 90,
+                  "salary_range": "e.g., 4-6 LPA",
+                  "matching_skills": ["Skill A", "Skill B"]
+                }}
+              ],
+              "field_analysis": {{
+                "current_field": "Inferred Field (e.g. Automotive Manufacturing)",
+                "achievable_roles": [
+                    {{
+                        "role": "Senior Technician",
+                        "gap_description": "You are at Level 4. To reach Level 5, you need...",
+                        "missing_skills": ["Advanced Diagnostics", "Team Management"],
+                        "estimated_time": "3-6 Months"
+                    }}
+                ]
+              }},
+              "comprehensive_view": "A summary paragraph of the learner's skill set."
+            }}
+            
+            IMPORTANT: 
+            1. Use the Standards Data (QP Codes, NSQF Levels) to precisely identify the learner's current field and level.
+            2. Suggest roles that are the official next step in that specific field (e.g. if Level 4, suggest Level 5).
+            3. Focus on the Indian job market.
+            """
+            
+            return self._call_llm(prompt)
+            
+        except Exception as e:
+            logger.error(f"Skill profile generation error: {e}")
+            return {}
+
+    def enrich_credential_metadata(self, certificate_title: str, nos_data: Dict[str, Any] = None) -> dict:
+        """
+        Generate job-related metadata for a specific credential.
+        """
+        try:
+            prompt = f"""
+            Generate job-related metadata for the certificate: "{certificate_title}".
+            NOS Data (if any): {json.dumps(nos_data) if nos_data else "None"}
+            
+            Generate a JSON response with:
+            {{
+              "related_job_roles": ["Role 1", "Role 2"],
+              "industry_demand": "High/Medium/Low",
+              "avg_salary_range": "e.g., 3-5 LPA",
+              "top_skills_gained": ["Skill 1", "Skill 2"],
+              "job_recommendation": "A specific job recommendation based on this certificate."
+            }}
+            
+            Focus on the Indian job market.
+            """
+            
+            return self._call_llm(prompt)
+            
+        except Exception as e:
+            logger.error(f"Credential enrichment error: {e}")
+            return {}
+
+    def _extract_skills(self, certificates: List[Dict[str, Any]]) -> List[str]:
+        all_skills = []
+        for cert in certificates:
+            if 'metadata' in cert and isinstance(cert['metadata'], dict):
+                metadata = cert['metadata']
+                if 'skills' in metadata and isinstance(metadata['skills'], list):
+                    all_skills.extend(metadata['skills'])
+                if 'ai_extracted' in metadata and isinstance(metadata['ai_extracted'], dict):
+                    ai_skills = metadata['ai_extracted'].get('skills', [])
+                    if isinstance(ai_skills, list):
+                        all_skills.extend(ai_skills)
+        
+        # Deduplicate and clean
+        cleaned_skills = []
+        for skill in all_skills:
+            if isinstance(skill, dict):
+                cleaned_skills.append(skill.get('name', ''))
+            elif isinstance(skill, str):
+                cleaned_skills.append(skill)
+        
+        return list(set([s for s in cleaned_skills if s]))
+
+    def _call_llm(self, prompt: str) -> dict:
+        messages = [
+            {"role": "system", "content": "You are an AI career advisor. You MUST respond ONLY with valid JSON."},
+            {"role": "user", "content": prompt}
+        ]
+        response = groq_service.chat_completion(messages, temperature=0.3, use_json_mode=True)
+        if response:
+            try:
+                # Clean up response
+                cleaned = response.strip()
+                if cleaned.startswith('```json'): cleaned = cleaned[7:]
+                if cleaned.startswith('```'): cleaned = cleaned[3:]
+                if cleaned.endswith('```'): cleaned = cleaned[:-3]
+                return json.loads(cleaned.strip())
+            except json.JSONDecodeError:
+                logger.error("JSON decode error in _call_llm")
+                return {}
+        return {}
+
 recommendation_service = RecommendationService()

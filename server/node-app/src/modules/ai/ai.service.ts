@@ -168,6 +168,92 @@ export class AIService {
             };
         }
     }
+    /**
+     * Generate a career roadmap for a learner
+     */
+    async generateRoadmap(certificates: any[], learnerProfile: any): Promise<any> {
+        try {
+            const response = await axios.post(
+                `${this.aiServiceUrl}/generate-roadmap`,
+                {
+                    certificates,
+                    learner_profile: learnerProfile
+                },
+                {
+                    headers: { 'Content-Type': 'application/json' },
+                    timeout: 45000 // Longer timeout for generation
+                }
+            );
+            return response.data;
+        } catch (error: any) {
+            console.error('AI Service - Generate Roadmap Error:', error.message);
+            return null;
+        }
+    }
+
+    /**
+     * Generate a skill profile for a learner
+     */
+    async generateSkillProfile(certificates: any[]): Promise<any> {
+        try {
+            const response = await axios.post(
+                `${this.aiServiceUrl}/generate-skill-profile`,
+                {
+                    certificates
+                },
+                {
+                    headers: { 'Content-Type': 'application/json' },
+                    timeout: 45000
+                }
+            );
+            return response.data;
+        } catch (error: any) {
+            console.error('AI Service - Generate Skill Profile Error:', error.message);
+            return null;
+        }
+    }
+
+    /**
+     * Enrich credential metadata with job-related info
+     */
+    /**
+     * Enrich credential metadata with job-related info
+     */
+    async enrichCredentialMetadata(certificateTitle: string, nosData: any): Promise<any> {
+        try {
+            const response = await axios.post(
+                `${this.aiServiceUrl}/enrich-credential`,
+                {
+                    certificate_title: certificateTitle,
+                    nos_data: nosData
+                },
+                {
+                    headers: { 'Content-Type': 'application/json' },
+                    timeout: 30000
+                }
+            );
+
+            const data = response.data;
+
+            // Transform to match frontend expectations
+            return {
+                job_recommendations: (data.related_job_roles || []).map((role: string) => ({
+                    role: role,
+                    match_percentage: 85 + Math.floor(Math.random() * 10), // Mock match % for now as AI doesn't return it
+                    reasoning: data.job_recommendation || `Recommended based on your ${certificateTitle} certificate.`
+                })),
+                nos_data: {
+                    qp_code: nosData?.qp_code || 'N/A',
+                    nos_code: nosData?.nos_code || 'N/A',
+                    description: nosData?.description || data.job_recommendation || 'Aligned with National Occupational Standards.'
+                },
+                ...data // Keep original data too
+            };
+        } catch (error: any) {
+            console.error('AI Service - Enrich Credential Error:', error.message);
+            return {};
+        }
+    }
 }
 
 export const aiService = new AIService();

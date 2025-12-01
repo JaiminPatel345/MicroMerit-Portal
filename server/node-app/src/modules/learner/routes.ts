@@ -98,7 +98,20 @@ resourceRouter.get(
   requireLearner,
   asyncHandler(learnerController.getCredentialQR.bind(learnerController))
 );
+// Roadmap and Skill Profile
+resourceRouter.get(
+  '/roadmap',
+  authenticateToken,
+  requireLearner,
+  asyncHandler(learnerController.getRoadmap.bind(learnerController))
+);
 
+resourceRouter.get(
+  '/skill-profile',
+  authenticateToken,
+  requireLearner,
+  asyncHandler(learnerController.getSkillProfile.bind(learnerController))
+);
 
 
 export { authRouter as learnerAuthRoutes, resourceRouter as learnerResourceRoutes };

@@ -250,7 +250,7 @@ const CredentialDetails = () => {
                             )}
                         </div>
 
-                        {/* AI Insights */}
+                        {/* AI Insights & Job Recommendations */}
                         <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-lg text-white relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-6 opacity-10">
                                 <Cpu size={120} />
@@ -260,7 +260,7 @@ const CredentialDetails = () => {
                                 <Cpu size={20} className="text-blue-400" /> AI Career Insights
                             </h3>
 
-                            <div className="space-y-4 relative z-10">
+                            <div className="space-y-6 relative z-10">
                                 <p className="text-gray-300 text-sm">
                                     {credential.metadata?.ai_extracted?.description ? (
                                         <>
@@ -272,6 +272,38 @@ const CredentialDetails = () => {
                                         </>
                                     )}
                                 </p>
+
+                                {/* Job Recommendations */}
+                                {(credential.metadata?.job_recommendations || credential.metadata?.ai_extracted?.job_recommendations)?.length > 0 && (
+                                    <div>
+                                        <h4 className="text-sm font-bold text-blue-300 mb-3 uppercase tracking-wider">Recommended Roles</h4>
+                                        <div className="space-y-3">
+                                            {(credential.metadata?.job_recommendations || credential.metadata?.ai_extracted?.job_recommendations).map((job, idx) => (
+                                                <div key={idx} className="bg-white/10 p-3 rounded-lg border border-white/10">
+                                                    <div className="flex justify-between items-start">
+                                                        <h5 className="font-bold text-sm text-white">{job.role}</h5>
+                                                        <span className="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">
+                                                            {job.match_percentage}%
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-400 mt-1">{job.reasoning}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* NOS Data */}
+                                {(credential.metadata?.nos_data || credential.metadata?.ai_extracted?.nos_data) && (
+                                    <div>
+                                        <h4 className="text-sm font-bold text-purple-300 mb-2 uppercase tracking-wider">NOS Alignment</h4>
+                                        <div className="bg-white/5 p-3 rounded-lg border border-white/5 text-sm text-gray-300">
+                                            <p><strong>QP Code:</strong> {(credential.metadata?.nos_data || credential.metadata?.ai_extracted?.nos_data).qp_code}</p>
+                                            <p><strong>NOS Code:</strong> {(credential.metadata?.nos_data || credential.metadata?.ai_extracted?.nos_data).nos_code}</p>
+                                            <p className="mt-1 text-xs text-gray-400">{(credential.metadata?.nos_data || credential.metadata?.ai_extracted?.nos_data).description}</p>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <Link
                                     to="/roadmap"
