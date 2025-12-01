@@ -38,6 +38,7 @@ export const learnerApi = {
   getCertificates: (params) => api.get('/learner/credentials', { params }),
   getDashboard: () => api.get('/learner/dashboard'),
   getCredential: (id) => api.get(`/learner/credentials/${id}`),
+  getPublicProfile: (id) => api.get(`/learner/public/${id}`),
 };
 
 
