@@ -632,7 +632,7 @@ const NewIssuance = () => {
                                     accept=".pdf,image/*"
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                 />
-                                <div className="space-y-1 text-center">
+                                <div className="space-y-1 text-center pointer-events-none">
                                     <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
                                         <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-20" strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" />
                                         <path d="M18 10h4l2 3h4M10 24h28M10 32h28" strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" />
