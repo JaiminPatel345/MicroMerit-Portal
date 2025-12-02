@@ -11,7 +11,8 @@ import {
     Cpu,
     ArrowRight,
     FileText,
-    Hash
+    Hash,
+    Check
 } from 'lucide-react';
 import { learnerApi } from '../../services/authServices';
 
@@ -20,6 +21,7 @@ const CredentialDetails = () => {
     const [credential, setCredential] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [copySuccess, setCopySuccess] = useState(false);
 
     useEffect(() => {
         const fetchCredential = async () => {
@@ -39,6 +41,62 @@ const CredentialDetails = () => {
         };
         fetchCredential();
     }, [id]);
+
+    const handleDownloadPDF = async () => {
+        if (credential?.pdf_url) {
+            try {
+                // Fetch the PDF as a blob
+                const response = await fetch(credential.pdf_url);
+                const blob = await response.blob();
+
+                // Create a blob URL
+                const blobUrl = window.URL.createObjectURL(blob);
+
+                // Create an anchor element and trigger download
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = `${credential.certificate_title}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+
+                // Clean up
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(blobUrl);
+            } catch (error) {
+                console.error('Download failed:', error);
+                // Fallback: open in new tab if download fails
+                window.open(credential.pdf_url, '_blank');
+            }
+        }
+    };
+
+    const handleOpenInNewTab = () => {
+        if (credential?.pdf_url) {
+            window.open(credential.pdf_url, '_blank');
+        }
+    };
+
+    const handleSharePublicLink = async () => {
+        if (credential?.uid) {
+            const publicLink = `${window.location.origin}/verify?id=${credential.uid}`;
+            try {
+                await navigator.clipboard.writeText(publicLink);
+                setCopySuccess(true);
+                setTimeout(() => setCopySuccess(false), 2000);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = publicLink;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                setCopySuccess(true);
+                setTimeout(() => setCopySuccess(false), 2000);
+            }
+        }
+    };
 
     if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
     if (error) return <div className="min-h-screen flex items-center justify-center text-red-500">{error}</div>;
@@ -62,10 +120,14 @@ const CredentialDetails = () => {
                     {/* Left Column: Certificate Preview & Actions */}
                     <div className="lg:col-span-1 space-y-6">
                         <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100">
-                            {/* Placeholder for PDF/Image Preview */}
+                            {/* PDF Preview */}
                             <div className="aspect-[1/1.414] bg-gray-100 rounded-lg flex items-center justify-center relative overflow-hidden group">
                                 {credential.pdf_url ? (
-                                    <iframe src={credential.pdf_url} className="w-full h-full" title="Certificate Preview"></iframe>
+                                    <iframe
+                                        src={`${credential.pdf_url}#view=FitH&toolbar=0&navpanes=0&scrollbar=0`}
+                                        className="w-full h-full border-0"
+                                        title="Certificate Preview"
+                                    />
                                 ) : (
                                     <div className="text-center p-6">
                                         <FileText size={48} className="text-gray-300 mx-auto mb-2" />
@@ -74,10 +136,18 @@ const CredentialDetails = () => {
                                 )}
 
                                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                                    <button className="p-3 bg-white rounded-full text-gray-900 hover:scale-110 transition-transform">
+                                    <button
+                                        onClick={handleDownloadPDF}
+                                        className="p-3 bg-white rounded-full text-gray-900 hover:scale-110 transition-transform"
+                                        title="Download PDF"
+                                    >
                                         <Download size={20} />
                                     </button>
-                                    <button className="p-3 bg-white rounded-full text-gray-900 hover:scale-110 transition-transform">
+                                    <button
+                                        onClick={handleOpenInNewTab}
+                                        className="p-3 bg-white rounded-full text-gray-900 hover:scale-110 transition-transform"
+                                        title="Open in New Tab"
+                                    >
                                         <ExternalLink size={20} />
                                     </button>
                                 </div>
@@ -85,11 +155,25 @@ const CredentialDetails = () => {
                         </div>
 
                         <div className="space-y-3">
-                            <button className="w-full py-2.5 bg-blue-chill-600 text-white rounded-lg font-medium hover:bg-blue-chill-700 transition-colors flex items-center justify-center gap-2">
+                            <button
+                                onClick={handleDownloadPDF}
+                                className="w-full py-2.5 bg-blue-chill-600 text-white rounded-lg font-medium hover:bg-blue-chill-700 transition-colors flex items-center justify-center gap-2"
+                            >
                                 <Download size={18} /> Download PDF
                             </button>
-                            <button className="w-full py-2.5 bg-white border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                                <Share2 size={18} /> Share Public Link
+                            <button
+                                onClick={handleSharePublicLink}
+                                className="w-full py-2.5 bg-white border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                            >
+                                {copySuccess ? (
+                                    <>
+                                        <Check size={18} className="text-green-600" /> Link Copied!
+                                    </>
+                                ) : (
+                                    <>
+                                        <Share2 size={18} /> Share Public Link
+                                    </>
+                                )}
                             </button>
                         </div>
 
