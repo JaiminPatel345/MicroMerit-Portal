@@ -468,22 +468,54 @@ export class CredentialIssuanceService {
             throw new ValidationError('Unauthorized to verify this credential', 403, 'UNAUTHORIZED');
         }
 
-        // Update metadata with verification status
+        // Extract verification data
+        const { status, job_role, qp_code, nsqf_level, skills, reasoning } = verificationData;
         const currentMetadata = credential.metadata as any;
-        const updatedMetadata = {
-            ...currentMetadata,
-            ai_extracted: {
-                ...currentMetadata.ai_extracted,
-                nsqf_alignment: {
-                    ...currentMetadata.ai_extracted?.nsqf_alignment,
-                    ...verificationData,
-                    verified_at: new Date().toISOString(),
-                    verified_by_issuer: true
-                }
-            }
-        };
 
-        return await credentialIssuanceRepository.updateCredentialMetadata(credentialId, { ai_extracted: updatedMetadata.ai_extracted });
+        // Build updated metadata based on status
+        let updatedMetadata: any;
+
+        if (status === 'approved') {
+            // For approved status, merge the edited data
+            updatedMetadata = {
+                ...currentMetadata,
+                ai_extracted: {
+                    ...currentMetadata.ai_extracted,
+                    // Update skills if provided
+                    ...(skills && { skills }),
+                    nsqf_alignment: {
+                        ...currentMetadata.ai_extracted?.nsqf_alignment,
+                        job_role: job_role || currentMetadata.ai_extracted?.nsqf_alignment?.job_role,
+                        qp_code: qp_code || currentMetadata.ai_extracted?.nsqf_alignment?.qp_code,
+                        nsqf_level: nsqf_level || currentMetadata.ai_extracted?.nsqf_alignment?.nsqf_level,
+                        reasoning: reasoning || currentMetadata.ai_extracted?.nsqf_alignment?.reasoning,
+                        verified_at: new Date().toISOString(),
+                        verified_by_issuer: true,
+                        verification_status: 'approved'
+                    }
+                }
+            };
+        } else {
+            // For rejected status, mark as rejected but keep original AI data
+            updatedMetadata = {
+                ...currentMetadata,
+                ai_extracted: {
+                    ...currentMetadata.ai_extracted,
+                    nsqf_alignment: {
+                        ...currentMetadata.ai_extracted?.nsqf_alignment,
+                        verified_at: new Date().toISOString(),
+                        verified_by_issuer: true,
+                        verification_status: 'rejected',
+                        rejection_reasoning: reasoning || 'Issuer rejected AI mapping'
+                    }
+                }
+            };
+        }
+
+        return await credentialIssuanceRepository.updateCredentialMetadata(
+            credentialId,
+            { ai_extracted: updatedMetadata.ai_extracted }
+        );
     }
 }
 

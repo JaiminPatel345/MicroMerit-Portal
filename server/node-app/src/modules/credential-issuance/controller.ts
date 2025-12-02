@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { credentialIssuanceService } from './service';
-import { issueCredentialSchema } from './schema';
+import { issueCredentialSchema, aiExtractedDataSchema, verificationStatusSchema, nsqfVerificationSchema } from './schema';
 import { sendSuccess, sendError } from '../../utils/response';
 import { logger } from '../../utils/logger';
 
@@ -46,17 +46,36 @@ export class CredentialIssuanceController {
 
             if (typeof ai_extracted_data === 'string') {
                 try {
-                    ai_extracted_data = JSON.parse(ai_extracted_data);
+                    const parsed = JSON.parse(ai_extracted_data);
+                    ai_extracted_data = aiExtractedDataSchema.parse(parsed);
                 } catch (e) {
-                    logger.warn('Failed to parse ai_extracted_data JSON', { error: e });
+                    logger.warn('Failed to parse or validate ai_extracted_data', { error: e });
+                    // Fallback to empty object or handle error? 
+                    // For now, if validation fails, we might want to proceed with what we have or error out.
+                    // Given "full integration with validation", let's error out if it's invalid JSON but maybe be lenient on schema?
+                    // Actually, let's just log and keep the parsed object if schema fails, OR enforce schema.
+                    // Let's enforce schema but catch the error to provide a better message if needed.
+                    // If JSON.parse fails, it's definitely bad.
+                    // If Zod fails, it throws.
+                    if (e instanceof SyntaxError) {
+                        sendError(res, 'Invalid JSON in ai_extracted_data', 'JSON Parse Error', 400);
+                        return;
+                    }
+                    throw e; // Re-throw Zod errors to be caught by global handler
                 }
             }
 
             if (typeof verification_status === 'string') {
                 try {
-                    verification_status = JSON.parse(verification_status);
+                    const parsed = JSON.parse(verification_status);
+                    verification_status = verificationStatusSchema.parse(parsed);
                 } catch (e) {
-                    logger.warn('Failed to parse verification_status JSON', { error: e });
+                    logger.warn('Failed to parse or validate verification_status', { error: e });
+                    if (e instanceof SyntaxError) {
+                        sendError(res, 'Invalid JSON in verification_status', 'JSON Parse Error', 400);
+                        return;
+                    }
+                    throw e;
                 }
             }
 
@@ -184,7 +203,6 @@ export class CredentialIssuanceController {
         try {
             const issuer_id = req.user?.id;
             const credential_id = req.params.id;
-            const verificationData = req.body;
 
             if (!issuer_id) {
                 sendError(res, 'Unauthorized', 'Issuer ID missing from context', 401);
@@ -196,10 +214,13 @@ export class CredentialIssuanceController {
                 return;
             }
 
+            // Validate the verification data using our schema
+            const validatedData = nsqfVerificationSchema.parse(req.body);
+
             const result = await credentialIssuanceService.verifyNSQFAlignment(
                 credential_id,
                 issuer_id,
-                verificationData
+                validatedData
             );
 
             sendSuccess(res, result, 'NSQF alignment verified successfully');

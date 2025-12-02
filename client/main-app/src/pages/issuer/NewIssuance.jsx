@@ -123,7 +123,7 @@ const NewIssuance = () => {
         }
     };
 
-    const confirmIssuance = async (status) => {
+    const confirmIssuance = async (status, modifiedData) => {
         if (!analyzingData) return;
 
         setIsIssuingAfterAnalysis(true);
@@ -135,29 +135,24 @@ const NewIssuance = () => {
             payload.append('issued_at', new Date().toISOString());
             payload.append('original_pdf', formData.file);
 
-            // Add AI data and verification status
-            // We need to pass this as JSON string because we are using FormData
-            // But wait, the backend expects specific fields in the body if not FormData?
-            // Actually, for file upload we MUST use FormData.
-            // Let's check how to pass complex objects in FormData or if we need to adjust backend.
-            // The backend controller uses `req.body` which is populated by multer for text fields.
-            // We can pass JSON strings for complex objects.
+            // Merge modified data if available
+            let aiData = analyzingData.metadata.ai_extracted;
 
-            // However, the service expects `ai_extracted_data` object.
-            // We need to modify the controller to parse these fields if they are sent as strings.
-            // OR we can just rely on the fact that we have the data here.
+            if (modifiedData) {
+                aiData = {
+                    ...aiData,
+                    skills: modifiedData.skills,
+                    nsqf_alignment: {
+                        ...aiData.nsqf_alignment,
+                        job_role: modifiedData.job_role,
+                        qp_code: modifiedData.qp_code,
+                        nsqf_level: modifiedData.nsqf_level,
+                        reasoning: modifiedData.reasoning,
+                        confidence: modifiedData.confidence
+                    }
+                };
+            }
 
-            // Wait, I didn't update the controller to parse JSON strings from FormData!
-            // I should probably do that. But for now let's try sending as is.
-            // Actually, multer populates req.body with text fields.
-
-            // Let's update the controller to parse these fields.
-            // But I can't update the controller right now inside this tool call.
-            // I will assume I will update the controller next.
-
-            // For now, let's construct the payload.
-
-            const aiData = analyzingData.metadata.ai_extracted;
             const isApproved = status === 'approved';
 
             const verificationStatus = {
@@ -166,7 +161,7 @@ const NewIssuance = () => {
                 nos_code: isApproved ? aiData.nsqf_alignment?.nos_code : null,
                 nsqf_level: isApproved ? aiData.nsqf_alignment?.nsqf_level : null,
                 confidence: aiData.nsqf_alignment?.confidence,
-                reasoning: isApproved ? 'Issuer approved AI mapping' : 'Issuer rejected AI mapping'
+                reasoning: isApproved ? aiData.nsqf_alignment?.reasoning : 'Issuer rejected AI mapping'
             };
 
             // We'll send these as JSON strings and update controller to parse them

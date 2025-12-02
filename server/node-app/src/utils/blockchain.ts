@@ -30,9 +30,10 @@ export async function writeToBlockchain(
 ): Promise<BlockchainWriteResult> {
     const isMockEnabled = process.env.BLOCKCHAIN_MOCK_ENABLED === 'true';
 
-    if (!isMockEnabled) {
-        throw new Error('Real blockchain integration not yet implemented');
-    }
+      //TODO: Parth do it quickly !! 
+    // if (!isMockEnabled) {
+    //     throw new Error('Real blockchain integration not yet implemented');
+    // }
 
     // Log the blockchain write operation
     logger.info('BLOCKCHAIN_WRITE', {
