@@ -5,7 +5,7 @@ import { z } from 'zod';
  */
 export const learnerRegistrationSchema = z.object({
   email: z.string().email('Invalid email address').optional(),
-  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number').optional(),
+  phone: z.string().regex(/^(\+?\d{1,3})?[6-9]\d{9}$/, 'Invalid phone number. Must be exactly 10 digits starting with 6-9').optional(),
   password: z.string().min(8, 'Password must be at least 8 characters').max(100),
   profileFolder: z.string().optional(),
   profileUrl: z.string().optional(), // Accept base64 or URL
@@ -25,7 +25,7 @@ export type LearnerRegistrationInput = z.infer<typeof learnerRegistrationSchema>
  */
 export const learnerLoginSchema = z.object({
   email: z.string().email('Invalid email address').optional(),
-  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number').optional(),
+  phone: z.string().regex(/^(\+?\d{1,3})?[6-9]\d{9}$/, 'Invalid phone number. Must be exactly 10 digits starting with 6-9').optional(),
   password: z.string().min(1, 'Password is required'),
 }).refine(
   (data) => data.email || data.phone,
@@ -41,7 +41,7 @@ export type LearnerLoginInput = z.infer<typeof learnerLoginSchema>;
 export const updateLearnerProfileSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   email: z.string().email('Invalid email address').optional(),
-  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number').optional(),
+  phone: z.string().regex(/^(\+?\d{1,3})?[6-9]\d{9}$/, 'Invalid phone number. Must be exactly 10 digits starting with 6-9').optional(),
   dob: z.string().optional(), // ISO 8601 date string
   gender: z.enum(['Male', 'Female', 'Others', 'Not to disclose']).optional(),
 });
@@ -90,7 +90,7 @@ export type VerifyPrimaryEmailOTPInput = z.infer<typeof verifyPrimaryEmailOTPSch
  * Request to add primary phone schema (for email-registered users)
  */
 export const requestAddPrimaryPhoneSchema = z.object({
-  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number'),
+  phone: z.string().regex(/^(\+?\d{1,3})?[6-9]\d{9}$/, 'Invalid phone number. Must be exactly 10 digits starting with 6-9'),
 });
 
 export type RequestAddPrimaryPhoneInput = z.infer<typeof requestAddPrimaryPhoneSchema>;
@@ -110,19 +110,28 @@ export type VerifyPrimaryPhoneOTPInput = z.infer<typeof verifyPrimaryPhoneOTPSch
  */
 export const requestContactVerificationSchema = z.object({
   type: z.enum(['email', 'primary-email', 'primary-phone']),
-  email: z.string().email('Invalid email address').optional(),
-  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number').optional(),
+  email: z.string()
+    .email('Invalid email address')
+    .min(5, 'Email must be at least 5 characters')
+    .max(254, 'Email must not exceed 254 characters')
+    .optional(),
+  phone: z.string()
+    .regex(/^(\+?\d{1,3})?[6-9]\d{9}$/, 'Invalid phone number. Must be exactly 10 digits starting with 6-9')
+    .optional(),
 }).refine(
   (data) => {
     if (data.type === 'email' || data.type === 'primary-email') {
       return !!data.email;
     }
     if (data.type === 'primary-phone') {
-      return !!data.phone;
+      if (!data.phone) return false;
+      // Extract last 10 digits and verify
+      const last10Digits = data.phone.slice(-10);
+      return last10Digits.length === 10 && /^[6-9]/.test(last10Digits);
     }
     return false;
   },
-  { message: 'Email is required for email/primary-email type, phone is required for primary-phone type' }
+  { message: 'Valid email is required for email types, valid 10-digit phone number is required for phone type' }
 );
 
 export type RequestContactVerificationInput = z.infer<typeof requestContactVerificationSchema>;

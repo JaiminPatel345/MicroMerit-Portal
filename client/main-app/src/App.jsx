@@ -19,6 +19,7 @@ import Notifications from './pages/learner/Notifications';
 import Settings from './pages/learner/Settings';
 import GoogleCallback from './pages/learner/GoogleCallback';
 import Profile from './pages/learner/Profile';
+import EditProfile from './pages/learner/EditProfile';
 import Notification from './components/Notification';
 import { Provider } from 'react-redux';
 import { store, persistor } from './store/store';
@@ -106,6 +107,12 @@ function Layout() {
               <Route path="/settings" element={
                 <AuthRoutes role="learner">
                   <Settings />
+                </AuthRoutes>
+              } />
+
+              <Route path="/edit-profile" element={
+                <AuthRoutes role="learner">
+                  <EditProfile />
                 </AuthRoutes>
               } />
 

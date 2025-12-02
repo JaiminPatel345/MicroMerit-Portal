@@ -458,7 +458,7 @@ export class LearnerService {
     });
 
     // Send OTP to phone
-    await sendOTP('sms', phone, otp);
+    await sendOTP('phone', phone, otp);
 
     logger.info('Primary phone addition OTP sent', { learnerId, phone, sessionId: session.id });
 

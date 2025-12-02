@@ -1,25 +1,19 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { learnerApi } from "../../services/authServices";
 import { motion } from "framer-motion";
 import { Pencil, Mail, MapPin, Copy, ShieldCheck, Check } from "lucide-react";
-import { useDispatch } from "react-redux";
-import { learnerUpateProfile } from "../../store/authLearnerSlice";
-import { setNotification } from "../../utils/notification";
 
 export default function PublicProfile() {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const learner = useSelector(state => state.authLearner.learner);
   const isAuthenticated = useSelector(state => state.authLearner.isAuthenticated);
-  const dispatch = useDispatch();
   const [profile, setProfile] = useState(learner);
   const [certificates, setCertificates] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [previewImage, setPreviewImage] = useState(profile?.profileUrl || '');
-  const [errors, setErrors] = useState({});
   const [copied, setCopied] = useState(false);
 
   const isOwner = isAuthenticated && learner?.id?.toString() === slug?.toString();
@@ -58,11 +52,6 @@ export default function PublicProfile() {
     fetchProfile();
   }, [slug, isOwner]);
 
-  // Sync preview when profile updates
-  useEffect(() => {
-    setPreviewImage(profile?.profileUrl || "");
-  }, [profile]);
-
   if (loading) return <p className="text-center py-10">Loading profile...</p>;
   if (!profile) return <p className="text-center py-10">Profile not found</p>;
 
@@ -90,7 +79,7 @@ export default function PublicProfile() {
 
           {isOwner && (
             <button
-              onClick={() => setShowEditModal(true)}
+              onClick={() => navigate('/edit-profile')}
               className="border border-blue-chill-400 px-4 py-2 rounded-lg mt-3 text-blue-chill-600 hover:bg-blue-chill-100 flex items-center gap-2"
             >
               <Pencil size={16} /> Edit Profile
@@ -207,96 +196,6 @@ export default function PublicProfile() {
           </>
         )}
       </div>
-
-      {/* Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white w-[450px] rounded-xl p-6 shadow-xl">
-            <h2 className="text-xl font-semibold text-blue-chill-700 mb-4">Edit Profile</h2>
-
-            {errors.submit && <p className="text-sm text-red-500 mb-2">{errors.submit}</p>}
-
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setErrors({});
-
-                const form = e.target;
-                const formData = new FormData();
-
-                const fields = ["name", "email", "phone", "gender", "dob"];
-
-                fields.forEach(field => {
-                  const value = form.elements[field]?.value?.trim();
-                  if (value) formData.append(field, value);
-                });
-
-                const fileInput = form.elements["profileUrl"];
-                if (fileInput?.files?.[0]) {
-                  formData.append("profilePhoto", fileInput.files[0]); // backend-friendly key
-                }
-
-                try {
-                  const res = await learnerApi.updateProfile(formData);
-                  console.log(res);
-                  if (res.data?.success) {
-                    dispatch(learnerUpateProfile(res.data.data));
-                    setNotification("Profile updated successfully", "success");
-                  }
-                  setProfile(prev => ({ ...prev, ...res.data.data }));
-                  setShowEditModal(false);
-                } catch (err) {
-                  setErrors({ submit: err?.response?.data?.message || "Update failed" });
-                }
-              }}
-              className="space-y-4"
-            >
-              <div className="flex justify-center mb-4">
-                <div className="relative w-28 h-28">
-                  <img src={previewImage || "https://via.placeholder.com/150"} className="w-full h-full object-cover rounded-full border" />
-                  <label htmlFor="profile-upload" className="absolute bottom-2 right-2 bg-white p-2 rounded-full shadow cursor-pointer">
-                    <Pencil size={16} />
-                  </label>
-                  <input
-                    id="profile-upload"
-                    name="profileUrl"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files[0]) setPreviewImage(URL.createObjectURL(e.target.files[0]));
-                    }}
-                  />
-                </div>
-              </div>
-
-              <input defaultValue={profile?.name} name="name" placeholder="Full Name" className="w-full border rounded-lg p-2" />
-
-              <input defaultValue={profile?.email} name="email" type="email" placeholder="Email" className="w-full border rounded-lg p-2" />
-
-              <input defaultValue={profile?.phone || ""} name="phone" placeholder="Phone Number" className="w-full border rounded-lg p-2" />
-
-              <select defaultValue={profile?.gender || ""} name="gender" className="w-full border rounded-lg p-2">
-                <option value="">Select Gender</option>
-                <option>Male</option>
-                <option>Female</option>
-                <option>Other</option>
-              </select>
-
-              <input name="dob" type="date" defaultValue={profile?.dob?.split("T")[0] || ""} className="w-full border rounded-lg p-2" />
-
-              <div className="flex gap-3 justify-end mt-4">
-                <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 border rounded-lg">
-                  Cancel
-                </button>
-                <button type="submit" className="px-4 py-2 bg-blue-chill-600 text-white rounded-lg hover:bg-blue-chill-700">
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
     </div>
   );
