@@ -34,6 +34,7 @@ import IssuerAnalytics from './pages/issuer/IssuerAnalytics';
 import APIManagement from './pages/issuer/APIManagment';
 import IssuerSupport from './pages/issuer/IssuerSupport';
 import IssuerProfile from './pages/issuer/IssuerProfile';
+import IssuerSettings from './pages/issuer/Settings';
 import AuthRoutes from './components/AuthRoutes';
 
 const HideHeaderRoutes = ["/login", "/signup", "/verify-otp", "/profile-builder", "/issuer/login", "/issuer/signup", "/google-callback"];
@@ -131,6 +132,7 @@ function Layout() {
                 <Route path="apis" element={<APIManagement />} />
                 <Route path="support" element={<IssuerSupport />} />
                 <Route path="profile" element={<IssuerProfile />} />
+                <Route path="settings" element={<IssuerSettings />} />
 
               </Route>
 
