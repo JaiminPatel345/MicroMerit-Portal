@@ -309,8 +309,10 @@ export class IssuerService {
     if (logoFile) {
       try {
         const folder = `logos/issuer-${issuerId}`;
+        // Force a unique filename to avoid caching issues if the filename is same but content changed
+        // Although generateImageFilename uses timestamp, so it should be unique.
         logoUrl = await uploadImageBufferToS3(logoFile.buffer, logoFile.mimetype, folder);
-        logger.info('Logo updated', { issuerId, hasLogo: !!logoUrl });
+        logger.info('Logo updated', { issuerId, logoUrl });
       } catch (error: any) {
         logger.error('Logo upload failed during update', { issuerId, error: error.message });
         throw new Error(`Logo upload failed: ${error.message}`);

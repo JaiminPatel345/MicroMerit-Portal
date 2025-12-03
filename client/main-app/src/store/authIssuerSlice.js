@@ -26,6 +26,9 @@ const authIssuerSlice = createSlice({
       state.refreshToken = null;
       state.isAuthenticated = false;
     },
+    issuerUpdateProfile: (state, action) => {
+      state.issuer = action.payload;
+    },
   },
 });
 
@@ -33,6 +36,7 @@ export const {
   issuerLoginSuccess,
   refreshIssuerTokenSuccess,
   issuerLogout,
+  issuerUpdateProfile,
 } = authIssuerSlice.actions;
 
 export default authIssuerSlice.reducer;

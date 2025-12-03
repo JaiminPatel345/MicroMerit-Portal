@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CheckCircle, Clock, XCircle, Lock } from './icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { issuerServices } from '../../services/issuerServices';
+import { issuerUpdateProfile } from '../../store/authIssuerSlice';
 
 
 const IssuerProfile = () => {
@@ -33,7 +34,7 @@ const IssuerProfile = () => {
         loading: false,
         error: ''
     });
-    // const dispatch = useDispatch(); // Uncomment if needed for redux updates
+    const dispatch = useDispatch();
 
     const statusMap = {
         approved: { icon: CheckCircle, color: 'text-green-600', text: 'Approved (Full access)' },
@@ -99,6 +100,7 @@ const IssuerProfile = () => {
 
             const result = await issuerServices.updateProfile(data);
             if (result.success) {
+                dispatch(issuerUpdateProfile(result.data));
                 setMessage('Profile updated successfully!');
                 setIsEditing(false);
             }
