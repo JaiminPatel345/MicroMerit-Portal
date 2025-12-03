@@ -42,6 +42,16 @@ export const issuerServices = {
         return response.data;
     },
 
+    requestPhoneUpdate: async (phone) => {
+        const response = await api.post('/issuer/phone/request', { phone });
+        return response.data;
+    },
+
+    verifyPhoneUpdate: async (sessionId, otp) => {
+        const response = await api.post('/issuer/phone/verify', { sessionId, otp });
+        return response.data;
+    },
+
     // API Keys
     createApiKey: async (data) => {
         const response = await api.post('/issuer/api-keys', data);

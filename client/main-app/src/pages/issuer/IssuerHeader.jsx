@@ -18,6 +18,7 @@ const Settings = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" w
 const HelpCircle = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></svg>;
 const UserCircle = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>;
 const ChevronDown = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>;
+const LogOut = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>;
 // --- DEPENDENCY STUBS END ---
 
 const navigation = [
@@ -106,10 +107,10 @@ const IssuerLayout = () => {
             onClick={() => setProfileOpen(!profileOpen)}
             className="flex items-center space-x-2 text-gray-700 hover:text-blue-chill-600 p-1.5 rounded-lg transition duration-150"
           >
-            {issuer?.profileUrl ? (
+            {issuer?.logo_url ? (
               // Use a simple error handler for the placeholder image
               <img
-                src={issuer.profileUrl}
+                src={issuer.logo_url}
                 className="w-8 h-8 rounded-full object-cover border-2 border-blue-chill-500"
                 alt="profile"
                 onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/100x100/374151/FFFFFF?text=I" }}
@@ -179,9 +180,34 @@ const IssuerLayout = () => {
         {/* Secondary Navigation / Footer */}
         <nav className="flex flex-col gap-1.5 pt-6 border-t border-blue-chill-700">
           {!isCollapsed && <div className="text-xs font-semibold uppercase text-blue-chill-300 mb-2">Account</div>}
+
+          {/* Issuer Email */}
+          {!isCollapsed && issuer?.email && (
+            <div className="px-3 py-2 text-xs text-blue-chill-200 truncate mb-1 bg-blue-chill-800/50 rounded mx-1" title={issuer.email}>
+              {issuer.email}
+            </div>
+          )}
+
+          {/* Profile Link */}
+          <NavItem item={{ name: 'Profile', href: '/issuer/profile', icon: UserCircle }} />
+
           {secondaryNavigation.map((item) => (
             <NavItem key={item.name} item={item} />
           ))}
+
+          {/* Logout Button */}
+          <button
+            onClick={logoutUser}
+            className={`
+              flex items-center space-x-3 p-3 rounded-lg font-medium transition duration-200 
+              text-red-300 hover:bg-red-900/30 hover:text-red-200
+              ${isCollapsed ? 'justify-center' : ''}
+            `}
+            title="Logout"
+          >
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            {!isCollapsed && <span className="truncate">Logout</span>}
+          </button>
         </nav>
 
         {/* Collapse Toggle Button */}

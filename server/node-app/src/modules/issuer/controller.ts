@@ -136,6 +136,56 @@ export class IssuerController {
       sendError(res, error.message, 'Failed to retrieve stats', 400);
     }
   }
+
+  /**
+   * Request phone update (Step 1)
+   * POST /issuer/phone/request
+   */
+  async requestPhoneUpdate(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        sendError(res, 'User not authenticated', 'Authentication required', 401);
+        return;
+      }
+
+      const { phone } = req.body;
+      if (!phone) {
+        sendError(res, 'Phone number is required', 'Validation failed', 400);
+        return;
+      }
+
+      const result = await issuerService.requestUpdatePhone(req.user.id, phone);
+      sendSuccess(res, result, 'OTP sent successfully');
+    } catch (error: any) {
+      logger.error('Request phone update failed', { error: error.message });
+      sendError(res, error.message, 'Failed to send OTP', 400);
+    }
+  }
+
+  /**
+   * Verify phone update (Step 2)
+   * POST /issuer/phone/verify
+   */
+  async verifyPhoneUpdate(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        sendError(res, 'User not authenticated', 'Authentication required', 401);
+        return;
+      }
+
+      const { sessionId, otp } = req.body;
+      if (!sessionId || !otp) {
+        sendError(res, 'Session ID and OTP are required', 'Validation failed', 400);
+        return;
+      }
+
+      const result = await issuerService.verifyUpdatePhoneOTP(req.user.id, sessionId, otp);
+      sendSuccess(res, result, 'Phone number updated successfully');
+    } catch (error: any) {
+      logger.error('Verify phone update failed', { error: error.message });
+      sendError(res, error.message, 'Failed to verify OTP', 400);
+    }
+  }
 }
 
 export const issuerController = new IssuerController();

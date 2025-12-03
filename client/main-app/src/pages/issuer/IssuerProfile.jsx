@@ -22,6 +22,17 @@ const IssuerProfile = () => {
     });
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
+
+    // Phone Verification State
+    const [phoneVerification, setPhoneVerification] = useState({
+        isEditing: false,
+        value: '',
+        sessionId: null,
+        otp: '',
+        step: 'input', // 'input', 'otp'
+        loading: false,
+        error: ''
+    });
     // const dispatch = useDispatch(); // Uncomment if needed for redux updates
 
     const statusMap = {
@@ -77,7 +88,7 @@ const IssuerProfile = () => {
             Object.keys(formData).forEach(key => {
                 if (key === 'logo') {
                     if (formData.logo) data.append('logo', formData.logo);
-                } else if (key !== 'email') {
+                } else if (key !== 'email' && key !== 'phone') { // Exclude phone from regular update
                     // Only append if value is present and not an empty string
                     // This prevents Zod validation errors for optional fields like url()
                     if (formData[key] && formData[key].trim() !== '') {
@@ -98,6 +109,85 @@ const IssuerProfile = () => {
             setLoading(false);
         }
         setTimeout(() => setMessage(''), 3000);
+    };
+
+    // Phone Verification Handlers
+    const handleRequestOTP = async () => {
+        setPhoneVerification(prev => ({ ...prev, loading: true, error: '' }));
+        try {
+            const phone = phoneVerification.value.trim();
+            // Basic validation
+            if (!/^\d{10}$/.test(phone)) {
+                setPhoneVerification(prev => ({ ...prev, loading: false, error: 'Please enter a valid 10-digit phone number' }));
+                return;
+            }
+
+            const res = await issuerServices.requestPhoneUpdate(phone);
+            if (res.success) {
+                setPhoneVerification(prev => ({
+                    ...prev,
+                    sessionId: res.data.sessionId,
+                    step: 'otp',
+                    loading: false
+                }));
+            }
+        } catch (error) {
+            setPhoneVerification(prev => ({
+                ...prev,
+                loading: false,
+                error: error.response?.data?.message || 'Failed to send OTP'
+            }));
+        }
+    };
+
+    const handleVerifyOTP = async () => {
+        setPhoneVerification(prev => ({ ...prev, loading: true, error: '' }));
+        try {
+            const res = await issuerServices.verifyPhoneUpdate(phoneVerification.sessionId, phoneVerification.otp);
+            if (res.success) {
+                setFormData(prev => ({ ...prev, phone: res.data.phone }));
+                setPhoneVerification({
+                    isEditing: false,
+                    value: '',
+                    sessionId: null,
+                    otp: '',
+                    step: 'input',
+                    loading: false,
+                    error: ''
+                });
+                setMessage('Phone number updated successfully!');
+            }
+        } catch (error) {
+            setPhoneVerification(prev => ({
+                ...prev,
+                loading: false,
+                error: error.response?.data?.message || 'Invalid OTP'
+            }));
+        }
+    };
+
+    const startPhoneEdit = () => {
+        setPhoneVerification({
+            isEditing: true,
+            value: formData.phone || '',
+            sessionId: null,
+            otp: '',
+            step: 'input',
+            loading: false,
+            error: ''
+        });
+    };
+
+    const cancelPhoneEdit = () => {
+        setPhoneVerification({
+            isEditing: false,
+            value: '',
+            sessionId: null,
+            otp: '',
+            step: 'input',
+            loading: false,
+            error: ''
+        });
     };
 
     return (
@@ -157,7 +247,7 @@ const IssuerProfile = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Official Domain</label>
-                                <input type="url" name="official_domain" value={formData.official_domain} onChange={handleChange} placeholder="https://example.com" className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-chill-500" />
+                                <input type="text" name="official_domain" value={formData.official_domain} onChange={handleChange} placeholder="example.com" className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-chill-500" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Website URL</label>
@@ -178,7 +268,85 @@ const IssuerProfile = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                                <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-chill-500" />
+                                {!phoneVerification.isEditing ? (
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="tel"
+                                            value={formData.phone}
+                                            disabled
+                                            className="w-full p-2.5 border border-gray-200 bg-gray-50 rounded-lg text-gray-500"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={startPhoneEdit}
+                                            className="px-3 py-2.5 bg-blue-chill-50 text-blue-chill-700 rounded-lg hover:bg-blue-chill-100 font-medium text-sm transition"
+                                        >
+                                            Change
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="border border-blue-200 rounded-lg p-4 bg-blue-50/50">
+                                        {phoneVerification.step === 'input' ? (
+                                            <div className="space-y-3">
+                                                <input
+                                                    type="tel"
+                                                    value={phoneVerification.value}
+                                                    onChange={(e) => setPhoneVerification(prev => ({ ...prev, value: e.target.value }))}
+                                                    placeholder="Enter new phone number"
+                                                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-chill-500 bg-white"
+                                                />
+                                                {phoneVerification.error && <p className="text-xs text-red-600">{phoneVerification.error}</p>}
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleRequestOTP}
+                                                        disabled={phoneVerification.loading || !phoneVerification.value}
+                                                        className="px-4 py-2 bg-blue-chill-600 text-white rounded-lg text-sm hover:bg-blue-chill-700 disabled:opacity-50"
+                                                    >
+                                                        {phoneVerification.loading ? 'Sending...' : 'Send OTP'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={cancelPhoneEdit}
+                                                        className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg text-sm hover:bg-gray-50"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                <p className="text-sm text-blue-800">OTP sent to {phoneVerification.value}</p>
+                                                <input
+                                                    type="text"
+                                                    value={phoneVerification.otp}
+                                                    onChange={(e) => setPhoneVerification(prev => ({ ...prev, otp: e.target.value }))}
+                                                    placeholder="Enter 6-digit OTP"
+                                                    maxLength={6}
+                                                    className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-chill-500 text-center tracking-widest bg-white"
+                                                />
+                                                {phoneVerification.error && <p className="text-xs text-red-600">{phoneVerification.error}</p>}
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleVerifyOTP}
+                                                        disabled={phoneVerification.loading || phoneVerification.otp.length !== 6}
+                                                        className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-50"
+                                                    >
+                                                        {phoneVerification.loading ? 'Verifying...' : 'Verify & Update'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setPhoneVerification(prev => ({ ...prev, step: 'input', otp: '', error: '' }))}
+                                                        className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg text-sm hover:bg-gray-50"
+                                                    >
+                                                        Back
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Email (Read-only)</label>
@@ -223,8 +391,8 @@ const IssuerProfile = () => {
                         {/* Left Column: Logo & Main Info */}
                         <div className="md:col-span-1 flex flex-col items-center text-center space-y-4 border-b md:border-b-0 md:border-r border-gray-100 pb-6 md:pb-0 md:pr-6">
                             <div className="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
-                                {issuer?.profileUrl ? (
-                                    <img src={issuer.profileUrl} alt="Logo" className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/150?text=Logo"; }} />
+                                {issuer?.logo_url ? (
+                                    <img src={issuer.logo_url} alt="Logo" className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/150?text=Logo"; }} />
                                 ) : (
                                     <span className="text-4xl text-gray-300 font-bold">{formData.name?.charAt(0) || 'I'}</span>
                                 )}

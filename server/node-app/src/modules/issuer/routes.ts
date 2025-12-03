@@ -92,5 +92,20 @@ resourceRouter.delete(
   asyncHandler(apiKeyController.revoke.bind(apiKeyController))
 );
 
+// Phone update routes
+resourceRouter.post(
+  '/phone/request',
+  authenticateToken,
+  requireIssuer,
+  asyncHandler(issuerController.requestPhoneUpdate.bind(issuerController))
+);
+
+resourceRouter.post(
+  '/phone/verify',
+  authenticateToken,
+  requireIssuer,
+  asyncHandler(issuerController.verifyPhoneUpdate.bind(issuerController))
+);
+
 export { authRouter as issuerAuthRoutes, resourceRouter as issuerResourceRoutes };
 export default authRouter; // Default export for backward compatibility

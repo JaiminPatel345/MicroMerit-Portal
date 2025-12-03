@@ -159,6 +159,50 @@ export class IssuerRepository {
       activeRecipients,
     };
   }
+
+  /**
+   * Phone verification session methods
+   */
+  async createPhoneVerificationSession(data: {
+    issuerId: number;
+    phone: string;
+    otpHash: string;
+    expiresAt: Date;
+  }) {
+    return prisma.verification_session.create({
+      data: {
+        session_type: 'issuer_phone_change',
+        issuer_id: data.issuerId,
+        phone: data.phone,
+        contact_type: 'phone',
+        otp_hash: data.otpHash,
+        expires_at: data.expiresAt,
+      },
+    });
+  }
+
+  async findPhoneVerificationSessionById(sessionId: string) {
+    return prisma.verification_session.findUnique({
+      where: { id: sessionId },
+    });
+  }
+
+  async markPhoneVerificationSessionAsVerified(sessionId: string) {
+    return prisma.verification_session.update({
+      where: { id: sessionId },
+      data: {
+        is_verified: true,
+        verified_at: new Date(),
+      },
+    });
+  }
+
+  async updatePhone(issuerId: number, phone: string): Promise<issuer> {
+    return prisma.issuer.update({
+      where: { id: issuerId },
+      data: { phone },
+    });
+  }
 }
 
 export const issuerRepository = new IssuerRepository();
