@@ -6,6 +6,7 @@ import Terms from './pages/Terms';
 import Login from './pages/learner/Login';
 import Contact from './pages/Contact';
 import Signup from './pages/learner/Signup';
+import FAQ from './pages/FAQ';
 import { useLocation } from 'react-router-dom';
 import IssuerSignUp from './pages/issuer/Signup';
 import IssuerLogin from './pages/issuer/Login';
@@ -66,6 +67,7 @@ function Layout() {
               <Route path="/verify/:id" element={<Verification />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="/faqs" element={<FAQ />} />
 
 
 

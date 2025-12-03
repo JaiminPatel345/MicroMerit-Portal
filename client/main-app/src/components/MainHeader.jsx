@@ -156,7 +156,6 @@ const Header = () => {
                   <div className="bg-white rounded-lg shadow-lg py-2 border border-gray-100">
                     <Link to="/docs" className="block px-4 py-2 hover:bg-blue-chill-50">Documentation</Link>
                     <Link to="/api" className="block px-4 py-2 hover:bg-blue-chill-50">API Reference</Link>
-                    <Link to="/case-studies" className="block px-4 py-2 hover:bg-blue-chill-50">Case Studies</Link>
                     <Link to="/faqs" className="block px-4 py-2 hover:bg-blue-chill-50">FAQs</Link>
                   </div>
                 </div>
@@ -259,7 +258,6 @@ const Header = () => {
               <div className="pl-4 space-y-2">
                 <Link to="/docs" className="block text-gray-600">Documentation</Link>
                 <Link to="/api" className="block text-gray-600">API Reference</Link>
-                <Link to="/case-studies" className="block text-gray-600">Case Studies</Link>
                 <Link to="/faqs" className="block text-gray-600">FAQs</Link>
               </div>
             )}
