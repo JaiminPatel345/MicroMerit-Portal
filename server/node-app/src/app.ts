@@ -13,6 +13,7 @@ import pdfRoutes from './modules/pdf/routes';
 import credentialIssuanceRoutes from './modules/credential-issuance/routes';
 import credentialVerificationRoutes from './modules/credential-verification/routes';
 import aiRoutes from './modules/ai/ai.routes';
+import searchRoutes from './modules/search/routes';
 
 
 const app: Application = express();
@@ -76,6 +77,7 @@ app.use('/credentials', credentialIssuanceRoutes); // New credential issuance sy
 app.use('/credentials', credentialVerificationRoutes); // New credential verification system
 app.use('/pdf', pdfRoutes);
 app.use('/ai', aiRoutes); // AI-powered recommendations and OCR
+app.use('/search', searchRoutes); // Global search
 
 // Root route
 app.get('/', (req, res) => {
