@@ -55,16 +55,11 @@ const Home = () => {
   }, [isIssuerAuth, isLearnerAuth, navigate]);
 
   useEffect(() => {
-    // Initial fetch
+    // Initial fetch (one-time)
     fetchLatestCredentials();
 
-    // Set up interval to refresh every 5 seconds
-    const interval = setInterval(() => {
-      fetchLatestCredentials();
-    }, 5000);
-
-    // Cleanup interval on component unmount
-    return () => clearInterval(interval);
+    // Polling removed: previously refreshed every 5 seconds.
+    // This prevents frequent network requests for Live Credentials.
   }, []);
   // FIXED: Simplified the transition to use a standard "easeOut" for professionalism
   // and to resolve the WAAPI compatibility error.
