@@ -615,7 +615,7 @@ export class LearnerService {
   /**
    * Get public profile
    */
-  async getPublicProfile(idOrSlug: string): Promise<any> {
+  async getPublicProfile(idOrSlug: string, filters?: { issuerId?: number; certificateTitle?: string; page?: number; limit?: number }): Promise<any> {
     const learnerId = parseInt(idOrSlug, 10);
     if (isNaN(learnerId)) {
       throw new Error('Invalid learner ID');
@@ -626,11 +626,28 @@ export class LearnerService {
       throw new Error('Learner not found');
     }
 
-    // Get public credentials (issued only, limit 4)
-    const credentialsResult = await learnerRepository.getLearnerCredentials(learnerId, 1, 4, undefined, 'issued');
+    // Get public credentials (issued only)
+    const page = filters?.page || 1;
+    const limit = filters?.limit || 10;
+    const credentialsResult = await learnerRepository.getLearnerCredentials(
+      learnerId,
+      page,
+      limit,
+      undefined,
+      'issued',
+      filters?.issuerId,
+      filters?.certificateTitle
+    );
 
     // Get stats for skills
     const stats = await learnerRepository.getDashboardStats(learnerId);
+
+    // Get distinct issuers for filter dropdown
+    const distinctIssuers = await prisma.credential.findMany({
+      where: { learner_id: learnerId, status: 'issued' },
+      select: { issuer: { select: { id: true, name: true } } },
+      distinct: ['issuer_id']
+    }).then(res => res.map(r => r.issuer));
 
     return {
       learner: {
@@ -641,6 +658,10 @@ export class LearnerService {
         joinedAt: learner.created_at,
       },
       certificates: credentialsResult.data,
+      pagination: credentialsResult.pagination,
+      filters: {
+        issuers: distinctIssuers
+      },
       stats: {
         totalCertificates: stats.totalCredentials,
         topSkills: stats.topSkills,

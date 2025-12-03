@@ -16,13 +16,16 @@ export default function PublicProfile() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
+  const [filters, setFilters] = useState({ issuerId: '', certificateTitle: '' });
+  const [availableIssuers, setAvailableIssuers] = useState([]);
+
   const isOwner = isAuthenticated && learner?.id?.toString() === slug?.toString();
 
   const fetchProfile = async () => {
     try {
       if (isOwner) {
         const [certsRes, dashboardRes] = await Promise.all([
-          learnerApi.getCertificates({ limit: 4, status: 'issued' }),
+          learnerApi.getCertificates({ limit: 10, status: 'issued', ...filters }),
           learnerApi.getDashboard()
         ]);
         setCertificates(certsRes.data.data.data || []);
@@ -33,16 +36,15 @@ export default function PublicProfile() {
           setLoading(false);
           return;
         }
-        const res = await learnerApi.getPublicProfile(slug);
+        const res = await learnerApi.getPublicProfile(slug, filters);
         const data = res.data.data;
         setProfile(data.learner);
         setCertificates(data.certificates || []);
         setStats(data.stats);
+        setAvailableIssuers(data.filters?.issuers || []);
       }
     } catch (err) {
       console.error("Error fetching profile:", err);
-      // If public profile fails, profile remains null (or whatever it was initialized with)
-      // If initialized with 'learner' (which might be null if not logged in), it stays null.
       if (!isOwner) setProfile(null);
     }
     setLoading(false);
@@ -50,16 +52,16 @@ export default function PublicProfile() {
 
   useEffect(() => {
     fetchProfile();
-  }, [slug, isOwner]);
+  }, [slug, isOwner, filters]);
 
   if (loading) return <p className="text-center py-10">Loading profile...</p>;
   if (!profile) return <p className="text-center py-10">Profile not found</p>;
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10 flex gap-10">
+    <div className="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row gap-10">
 
       {/* LEFT SIDEBAR */}
-      <div className="w-full md:w-80 rounded-xl">
+      <div className="w-full md:w-80 rounded-xl flex-shrink-0">
         <div className="relative flex flex-col items-center text-center">
           <div className="w-48 h-48 rounded-full overflow-hidden shadow-lg">
             <img
@@ -145,10 +147,34 @@ export default function PublicProfile() {
       </div>
 
       {/* RIGHT */}
-      <div className="flex-1">
-        <div className="flex justify-between items-center mb-5">
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 gap-4">
           <h2 className="text-xl font-semibold text-blue-chill-800">Certificates</h2>
-          {isOwner && <button className="text-sm text-blue-chill-600 hover:underline">Manage Certificates →</button>}
+
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <input
+              type="text"
+              placeholder="Search by title..."
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-chill-500"
+              value={filters.certificateTitle}
+              onChange={(e) => setFilters(prev => ({ ...prev, certificateTitle: e.target.value }))}
+            />
+
+            {!isOwner && availableIssuers.length > 0 && (
+              <select
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-chill-500 bg-white"
+                value={filters.issuerId}
+                onChange={(e) => setFilters(prev => ({ ...prev, issuerId: e.target.value }))}
+              >
+                <option value="">All Issuers</option>
+                {availableIssuers.map(issuer => (
+                  <option key={issuer.id} value={issuer.id}>{issuer.name}</option>
+                ))}
+              </select>
+            )}
+
+            {isOwner && <button className="text-sm text-blue-chill-600 hover:underline whitespace-nowrap">Manage Certificates →</button>}
+          </div>
         </div>
 
         {certificates.length === 0 ? (

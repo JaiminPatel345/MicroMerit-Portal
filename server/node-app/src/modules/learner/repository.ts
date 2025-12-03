@@ -278,7 +278,9 @@ export class LearnerRepository {
     page: number = 1,
     limit: number = 10,
     search?: string,
-    status?: string
+    status?: string,
+    issuerId?: number,
+    certificateTitle?: string
   ) {
     const skip = (page - 1) * limit;
     const where: any = {
@@ -287,6 +289,14 @@ export class LearnerRepository {
 
     if (status && status !== 'all') {
       where.status = status;
+    }
+
+    if (issuerId) {
+      where.issuer_id = issuerId;
+    }
+
+    if (certificateTitle) {
+      where.certificate_title = { contains: certificateTitle, mode: 'insensitive' };
     }
 
     if (search) {
@@ -306,6 +316,7 @@ export class LearnerRepository {
         include: {
           issuer: {
             select: {
+              id: true,
               name: true,
               logo_url: true,
             },

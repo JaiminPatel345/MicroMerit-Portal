@@ -257,7 +257,15 @@ export class LearnerController {
         sendError(res, 'ID is required', 'ID is required', 400);
         return;
       }
-      const profile = await learnerService.getPublicProfile(id);
+
+      const filters = {
+        issuerId: req.query.issuerId ? parseInt(req.query.issuerId as string) : undefined,
+        certificateTitle: req.query.certificateTitle as string,
+        page: req.query.page ? parseInt(req.query.page as string) : 1,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : 10
+      };
+
+      const profile = await learnerService.getPublicProfile(id, filters);
       sendSuccess(res, profile, 'Public profile retrieved successfully');
     } catch (error: any) {
       logger.error('Get public profile failed', { error: error.message });
