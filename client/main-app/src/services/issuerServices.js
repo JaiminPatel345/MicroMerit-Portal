@@ -72,4 +72,10 @@ export const issuerServices = {
         const response = await api.delete(`/issuer/api-keys/${id}`);
         return response.data;
     },
+
+    // Public
+    getPublicProfile: async (id) => {
+        const response = await api.get(`/issuer/public/${id}`);
+        return response.data;
+    },
 };

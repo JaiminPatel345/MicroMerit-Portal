@@ -228,6 +228,26 @@ export class CredentialIssuanceController {
             next(error);
         }
     }
+
+    /**
+     * Get public credential details
+     * GET /credentials/public/:id
+     */
+    async getPublicCredential(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+            const credential_id = req.params.id;
+
+            if (!credential_id) {
+                sendError(res, 'Bad Request', 'Credential ID is required', 400);
+                return;
+            }
+
+            const credential = await credentialIssuanceService.getPublicCredential(credential_id);
+            sendSuccess(res, credential, 'Credential retrieved successfully');
+        } catch (error: any) {
+            next(error);
+        }
+    }
 }
 
 export const credentialIssuanceController = new CredentialIssuanceController();

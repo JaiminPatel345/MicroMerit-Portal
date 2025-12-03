@@ -517,6 +517,19 @@ export class CredentialIssuanceService {
             { ai_extracted: updatedMetadata.ai_extracted }
         );
     }
+
+    /**
+     * Get public credential details
+     */
+    async getPublicCredential(credentialId: string) {
+        const credential = await credentialIssuanceRepository.findPublicCredentialById(credentialId);
+
+        if (!credential) {
+            throw new NotFoundError('Credential not found', 404, 'CREDENTIAL_NOT_FOUND');
+        }
+
+        return credential;
+    }
 }
 
 export const credentialIssuanceService = new CredentialIssuanceService();

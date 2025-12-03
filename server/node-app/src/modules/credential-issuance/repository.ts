@@ -212,6 +212,48 @@ export class CredentialIssuanceRepository {
             where: { credential_id: credentialId },
         });
     }
+
+    /**
+     * Find public credential by ID with relations
+     */
+    async findPublicCredentialById(credentialId: string) {
+        return await prisma.credential.findUnique({
+            where: { credential_id: credentialId },
+            include: {
+                issuer: {
+                    select: {
+                        id: true,
+                        name: true,
+                        type: true,
+                        website_url: true,
+                        logo_url: true
+                    }
+                },
+                learner: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                }
+            }
+        });
+    }
+    /**
+     * Get distinct certificate titles issued by an issuer
+     */
+    async getDistinctCertificateTitles(issuerId: number) {
+        const result = await prisma.credential.findMany({
+            where: {
+                issuer_id: issuerId,
+                status: 'issued'
+            },
+            select: {
+                certificate_title: true
+            },
+            distinct: ['certificate_title']
+        });
+        return result.map(r => r.certificate_title);
+    }
 }
 
 export const credentialIssuanceRepository = new CredentialIssuanceRepository();

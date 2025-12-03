@@ -435,6 +435,36 @@ export class IssuerService {
       message: 'Phone number updated successfully',
     };
   }
+
+  /**
+   * Get public issuer profile
+   */
+  async getPublicProfile(issuerId: number): Promise<Partial<IssuerResponse>> {
+    const issuer = await issuerRepository.findById(issuerId);
+    if (!issuer) {
+      throw new Error('Issuer not found');
+    }
+
+    // Get distinct certificate titles
+    const certificateTypes = await import('../credential-issuance/repository').then(m => m.credentialIssuanceRepository.getDistinctCertificateTitles(issuerId));
+
+    // Return only public fields
+    return {
+      id: issuer.id,
+      name: issuer.name,
+      official_domain: issuer.official_domain,
+      website_url: issuer.website_url,
+      type: issuer.type,
+      logo_url: issuer.logo_url,
+      status: issuer.status,
+      created_at: issuer.created_at,
+      // Optional: include contact info if public
+      email: issuer.email,
+      phone: issuer.phone,
+      address: issuer.address,
+      certificate_types: certificateTypes
+    } as any;
+  }
 }
 
 export const issuerService = new IssuerService();

@@ -42,6 +42,7 @@ export const learnerApi = {
   getRoadmap: () => api.get('/learner/roadmap'),
   getSkillProfile: () => api.get('/learner/skill-profile'),
   getPublicProfile: (id) => api.get(`/learner/public/${id}`),
+  getPublicCredential: (id) => api.get(`/credentials/public/${id}`),
 };
 
 

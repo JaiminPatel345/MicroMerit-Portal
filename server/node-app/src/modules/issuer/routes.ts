@@ -107,5 +107,10 @@ resourceRouter.post(
   asyncHandler(issuerController.verifyPhoneUpdate.bind(issuerController))
 );
 
+resourceRouter.get(
+  '/public/:id',
+  asyncHandler(issuerController.getPublicProfile.bind(issuerController))
+);
+
 export { authRouter as issuerAuthRoutes, resourceRouter as issuerResourceRoutes };
 export default authRouter; // Default export for backward compatibility

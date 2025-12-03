@@ -79,4 +79,15 @@ router.put(
     asyncHandler(credentialIssuanceController.verifyNSQFAlignment.bind(credentialIssuanceController))
 );
 
+
+
+/**
+ * GET /credentials/public/:id
+ * Get public credential details
+ */
+router.get(
+    '/public/:id',
+    asyncHandler(credentialIssuanceController.getPublicCredential.bind(credentialIssuanceController))
+);
+
 export default router;

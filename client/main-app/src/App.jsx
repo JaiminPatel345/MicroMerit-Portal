@@ -37,6 +37,8 @@ import IssuerSupport from './pages/issuer/IssuerSupport';
 import IssuerProfile from './pages/issuer/IssuerProfile';
 import IssuerSettings from './pages/issuer/Settings';
 import AuthRoutes from './components/AuthRoutes';
+import PublicIssuerProfile from './pages/public/PublicIssuerProfile';
+import PublicCredential from './pages/public/PublicCredential';
 
 const HideHeaderRoutes = ["/login", "/signup", "/verify-otp", "/profile-builder", "/issuer/login", "/issuer/signup", "/google-callback"];
 
@@ -120,6 +122,8 @@ function Layout() {
               } />
 
               <Route path="/p/:slug" element={<Profile />} />
+              <Route path="/i/:id" element={<PublicIssuerProfile />} />
+              <Route path="/c/:id" element={<PublicCredential />} />
 
               <Route path='/issuer' element={
                 <AuthRoutes role="issuer">

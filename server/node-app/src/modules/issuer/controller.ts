@@ -186,6 +186,30 @@ export class IssuerController {
       sendError(res, error.message, 'Failed to verify OTP', 400);
     }
   }
+
+  /**
+   * Get public issuer profile
+   * GET /issuer/public/:id
+   */
+  async getPublicProfile(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.params.id) {
+        sendError(res, 'Issuer ID is required', 'Validation failed', 400);
+        return;
+      }
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        sendError(res, 'Invalid issuer ID', 'Validation failed', 400);
+        return;
+      }
+
+      const issuer = await issuerService.getPublicProfile(id);
+      sendSuccess(res, issuer, 'Public profile retrieved successfully');
+    } catch (error: any) {
+      logger.error('Get public profile failed', { error: error.message });
+      sendError(res, error.message, 'Failed to retrieve profile', 404);
+    }
+  }
 }
 
 export const issuerController = new IssuerController();
