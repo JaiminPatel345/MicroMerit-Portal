@@ -23,10 +23,10 @@ const Footer = () => {
                     {/* Brand Column */}
                     <div className="space-y-6">
                         <Link to="/" className="flex items-center space-x-2 group">
-                            <div className="bg-blue-chill-600 p-2 rounded-lg group-hover:bg-blue-chill-500 transition-colors">
-                                <Shield className="w-6 h-6 text-white" />
-                            </div>
-                            <span className="text-2xl font-bold text-white tracking-tight">MicroMerit</span>
+                            {/*<div className="bg-blue-chill-600 p-2 rounded-lg group-hover:bg-blue-chill-500 transition-colors">*/}
+                            {/*    <Shield className="w-6 h-6 text-white" />*/}
+                            {/*</div>*/}
+                            <img src={"/logo.png"} alt={"MicroMerit"}/>
                         </Link>
                         <p className="text-sm leading-relaxed text-gray-400">
                             India's first decentralized credential wallet. Empowering learners, issuers, and employers with secure, verifiable, and AI-powered skill data.
