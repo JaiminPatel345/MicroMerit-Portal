@@ -35,6 +35,11 @@ export class RegistrationService {
       if (exists) {
         throw new ConflictError('Email already registered', 409, 'EMAIL_ALREADY_REGISTERED');
       }
+
+      const isSecondary = await this.repository.isEmailUsedAsSecondary(email);
+      if (isSecondary) {
+        throw new ConflictError('Email is already registered as a secondary email', 409, 'EMAIL_ALREADY_REGISTERED_AS_SECONDARY');
+      }
     }
 
     if (phone) {
@@ -156,7 +161,7 @@ export class RegistrationService {
         logger.info('Profile photo uploaded', { sessionId, hasPhoto: !!profilePhotoUrl });
       } catch (error: any) {
         logger.error('Profile photo upload failed', { error: error.message });
-        
+
         // Check if it's a timeout error
         if (error.name === 'RequestTimeout' || error.message?.includes('timeout')) {
           throw new ValidationError(
@@ -165,7 +170,7 @@ export class RegistrationService {
             'UPLOAD_TIMEOUT'
           );
         }
-        
+
         // Check if it's a network/connection error
         if (error.name === 'NetworkingError' || error.message?.includes('connect')) {
           throw new ValidationError(
@@ -174,7 +179,7 @@ export class RegistrationService {
             'UPLOAD_NETWORK_ERROR'
           );
         }
-        
+
         // Generic upload error
         throw new ValidationError(
           'Failed to upload profile photo. Please try again or skip this step',
@@ -196,12 +201,32 @@ export class RegistrationService {
       gender: input.gender,
     });
 
-    logger.info('Learner registration completed', { 
-      learnerId: learner.id, 
+    logger.info('Learner registration completed', {
+      learnerId: learner.id,
       email: learner.email,
       phone: learner.phone,
       hasProfilePhoto: !!profilePhotoUrl
     });
+
+    // Claim any pre-issued (unclaimed) credentials for this email
+    if (learner.email) {
+      try {
+        const result = await this.repository.claimCredentials(learner.id, learner.email);
+        if (result.count > 0) {
+          logger.info('Claimed existing credentials for new learner', {
+            learnerId: learner.id,
+            email: learner.email,
+            count: result.count
+          });
+        }
+      } catch (error: any) {
+        // Log error but don't fail registration
+        logger.error('Failed to claim credentials during registration', {
+          learnerId: learner.id,
+          error: error.message
+        });
+      }
+    }
 
     // Generate tokens
     const accessToken = generateAccessToken(

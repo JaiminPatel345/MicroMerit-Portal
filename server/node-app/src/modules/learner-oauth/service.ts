@@ -55,6 +55,23 @@ export class OAuthService {
         logger.info(`Existing learner logged in via Google OAuth: ${email}`);
       }
 
+      // Claim any pre-issued (unclaimed) credentials for this email
+      try {
+        const result = await this.repository.claimCredentials(learner.id, email);
+        if (result.count > 0) {
+          logger.info('Claimed existing credentials for learner (Google OAuth)', {
+            learnerId: learner.id,
+            email,
+            count: result.count
+          });
+        }
+      } catch (error: any) {
+        logger.error('Failed to claim credentials during Google OAuth', {
+          learnerId: learner.id,
+          error: error.message
+        });
+      }
+
       // Generate tokens
       const accessTokenJWT = generateAccessToken(
         { id: learner.id, role: 'learner' },
@@ -75,7 +92,7 @@ export class OAuthService {
         },
         accessToken: accessTokenJWT,
         refreshToken: refreshTokenJWT,
-        isNewUser: !learner.created_at || 
+        isNewUser: !learner.created_at ||
           (new Date().getTime() - new Date(learner.created_at).getTime() < 5000),
       };
     } catch (error) {
@@ -173,6 +190,25 @@ export class OAuthService {
         logger.info(`Existing learner linked with DigiLocker: ${digilockerId}`);
       }
 
+      // Claim any pre-issued (unclaimed) credentials for this email
+      if (email) {
+        try {
+          const result = await this.repository.claimCredentials(learner.id, email);
+          if (result.count > 0) {
+            logger.info('Claimed existing credentials for learner (DigiLocker OAuth)', {
+              learnerId: learner.id,
+              email,
+              count: result.count
+            });
+          }
+        } catch (error: any) {
+          logger.error('Failed to claim credentials during DigiLocker OAuth', {
+            learnerId: learner.id,
+            error: error.message
+          });
+        }
+      }
+
       // TODO: Save credentials to database
       // Note: As per requirements, we DO NOT call AI service here
       // Credentials are saved in the credential table but not processed by AI
@@ -200,7 +236,7 @@ export class OAuthService {
         accessToken: accessTokenJWT,
         refreshToken: refreshTokenJWT,
         certificatesCount: credentials.length,
-        isNewUser: !learner.created_at || 
+        isNewUser: !learner.created_at ||
           (new Date().getTime() - new Date(learner.created_at).getTime() < 5000),
       };
     } catch (error) {

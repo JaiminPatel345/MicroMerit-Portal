@@ -28,7 +28,7 @@ export class RegistrationRepository {
    */
   async findSessionById(sessionId: string) {
     return prisma.verification_session.findUnique({
-      where: { 
+      where: {
         id: sessionId,
       },
     });
@@ -43,6 +43,25 @@ export class RegistrationRepository {
       data: {
         is_verified: true,
         verified_at: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Mark session as verified
+   */
+  async claimCredentials(learnerId: number, email: string) {
+    return prisma.credential.updateMany({
+      where: {
+        learner_email: {
+          equals: email,
+          mode: 'insensitive',
+        },
+        status: 'unclaimed',
+      },
+      data: {
+        learner_id: learnerId,
+        status: 'issued',
       },
     });
   }
@@ -122,5 +141,15 @@ export class RegistrationRepository {
         gender: data.gender,
       },
     });
+  }
+  async isEmailUsedAsSecondary(email: string): Promise<boolean> {
+    const learner = await prisma.learner.findFirst({
+      where: {
+        other_emails: {
+          has: email
+        }
+      }
+    });
+    return !!learner;
   }
 }
