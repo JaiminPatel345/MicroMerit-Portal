@@ -1,4 +1,4 @@
-import {motion} from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
     Award,
     Brain,
@@ -18,17 +18,17 @@ import {
     Zap,
 } from 'lucide-react';
 // Assuming Link is correctly imported from react-router-dom in your environment
-import {Link, useNavigate} from 'react-router-dom';
-import {useEffect, useState} from 'react';
-import {useSelector} from 'react-redux';
-import {credentialServices} from '../services/credentialServices';
+import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { credentialServices } from '../services/credentialServices';
 import CountUp from '../components/CountUp';
 import Footer from '../components/Footer';
 
 const Home = () => {
     const navigate = useNavigate();
-    const {isAuthenticated: isIssuerAuth} = useSelector((state) => state.authIssuer);
-    const {isAuthenticated: isLearnerAuth} = useSelector((state) => state.authLearner);
+    const { isAuthenticated: isIssuerAuth } = useSelector((state) => state.authIssuer);
+    const { isAuthenticated: isLearnerAuth } = useSelector((state) => state.authLearner);
 
     const [latestCredentials, setLatestCredentials] = useState([]);
     const [totalCredentials, setTotalCredentials] = useState(0);
@@ -78,9 +78,9 @@ const Home = () => {
     // FIXED: Simplified the transition to use a standard "easeOut" for professionalism
     // and to resolve the WAAPI compatibility error.
     const fadeInUp = {
-        initial: {opacity: 0, y: 20},
-        animate: {opacity: 1, y: 0},
-        transition: {duration: 0.5, ease: 'easeOut'},
+        initial: { opacity: 0, y: 20 },
+        animate: { opacity: 1, y: 0 },
+        transition: { duration: 0.5, ease: 'easeOut' },
     };
 
     const stagger = {
@@ -93,32 +93,32 @@ const Home = () => {
 
     const features = [
         {
-            icon: <Wallet className="w-6 h-6 text-blue-chill-200"/>,
+            icon: <Wallet className="w-6 h-6 text-blue-chill-200" />,
             title: 'Unified Wallet',
             description: 'Collect certificates from Skill India, DigiLocker, and Universities in one secure place.',
         },
         {
-            icon: <Database className="w-6 h-6 text-blue-chill-600"/>,
+            icon: <Database className="w-6 h-6 text-blue-chill-600" />,
             title: 'Data Integrity',
             description: 'Your data is stored securely and immutably, ensuring long-term authenticity.',
         },
         {
-            icon: <Network className="w-6 h-6 text-blue-chill-600"/>,
+            icon: <Network className="w-6 h-6 text-blue-chill-600" />,
             title: 'Multi-Provider Sync',
             description: 'Seamlessly import certificates from training partners, skill councils, and ed-tech.',
         },
         {
-            icon: <Shield className="w-6 h-6 text-blue-chill-200"/>,
+            icon: <Shield className="w-6 h-6 text-blue-chill-200" />,
             title: 'Blockchain Verified',
             description: 'Tamper-proof credentials secured by blockchain hashing and cryptographic signatures.',
         },
         {
-            icon: <TrendingUp className="w-6 h-6 text-blue-chill-200"/>,
+            icon: <TrendingUp className="w-6 h-6 text-blue-chill-200" />,
             title: 'AI Pathways',
             description: 'Get AI-powered skill recommendations and predict your NSQF level instantly.',
         },
         {
-            icon: <Briefcase className="w-6 h-6 text-blue-chill-600"/>,
+            icon: <Briefcase className="w-6 h-6 text-blue-chill-600" />,
             title: 'Job-Ready Profiles',
             description: 'Generate verifiable portfolios that employers can trust and verify instantly.',
         },
@@ -127,23 +127,23 @@ const Home = () => {
 
     const steps = [
         {
-            icon: <Upload className="w-6 h-6"/>,
+            icon: <Upload className="w-6 h-6" />,
             title: 'Issuer upload or Auto-Sync Certificates',
         },
         {
-            icon: <Brain className="w-6 h-6"/>,
+            icon: <Brain className="w-6 h-6" />,
             title: 'AI extracts skills & levels',
         },
         {
-            icon: <Lock className="w-6 h-6"/>,
+            icon: <Lock className="w-6 h-6" />,
             title: 'Blockchain secures authenticity',
         },
         {
-            icon: <Database className="w-6 h-6"/>,
+            icon: <Database className="w-6 h-6" />,
             title: 'Store in your MicroMerit Wallet',
         },
         {
-            icon: <Share2 className="w-6 h-6"/>,
+            icon: <Share2 className="w-6 h-6" />,
             title: 'Share with employers with one click',
         },
     ];
@@ -151,7 +151,7 @@ const Home = () => {
     const userTypes = [
         {
             title: 'For Learners',
-            icon: <Award className="w-16 h-16 text-white"/>,
+            icon: <Award className="w-16 h-16 text-white" />,
             benefits: [
                 'Store all certificates',
                 'AI skill discovery',
@@ -161,7 +161,7 @@ const Home = () => {
         },
         {
             title: 'For Providers',
-            icon: <Building2 className="w-16 h-16 text-white"/>,
+            icon: <Building2 className="w-16 h-16 text-white" />,
             benefits: [
                 'Bulk issue secure credentials',
                 'API-based seamless issuance',
@@ -171,7 +171,7 @@ const Home = () => {
         },
         {
             title: 'For Employers',
-            icon: <Users className="w-16 h-16 text-white"/>,
+            icon: <Users className="w-16 h-16 text-white" />,
             benefits: [
                 'Verify credentials instantly',
                 'Download verified portfolios',
@@ -213,14 +213,14 @@ const Home = () => {
 
                         {/* Left Content */}
                         <motion.div {...fadeInUp}
-                                    className="order-2 lg:order-1">
-              <span
-                  className="inline-flex items-center rounded-full bg-white/80 backdrop-blur-sm px-4 py-1.5 text-sm font-semibold text-blue-chill-700 mb-6 border border-blue-chill-200 shadow-sm">
-                <Zap className="w-4 h-4 mr-2 text-blue-chill-600 fill-current"/> Blockchain, IPFS & AI Powered
-              </span>
+                            className="order-2 lg:order-1">
+                            <span
+                                className="inline-flex items-center rounded-full bg-white/80 backdrop-blur-sm px-4 py-1.5 text-sm font-semibold text-blue-chill-700 mb-6 border border-blue-chill-200 shadow-sm">
+                                <Zap className="w-4 h-4 mr-2 text-blue-chill-600 fill-current" /> Blockchain, IPFS & AI Powered
+                            </span>
                             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-6 leading-tight tracking-tight">
-                                Your Skills, <br/> <span
-                                className="text-transparent bg-clip-text bg-gradient-to-r from-blue-chill-600 to-teal-500">Unified & Verified.</span>
+                                Your Skills, <br /> <span
+                                    className="text-transparent bg-clip-text bg-gradient-to-r from-blue-chill-600 to-teal-500">Unified & Verified.</span>
                             </h1>
                             <p className="text-lg text-gray-600 mb-8 leading-relaxed max-w-lg">
                                 MicroMerit is India's first decentralized
@@ -231,14 +231,14 @@ const Home = () => {
                             </p>
 
                             <motion.div variants={stagger} initial="initial"
-                                        animate="animate"
-                                        className="flex flex-col sm:flex-row flex-wrap gap-4 mb-8">
+                                animate="animate"
+                                className="flex flex-col sm:flex-row flex-wrap gap-4 mb-8">
                                 <Link to="/signup"
-                                      className="bg-blue-chill-600 text-white px-6 py-3 rounded-full hover:bg-blue-chill-700 transition font-bold text-base shadow-lg shadow-blue-chill-200 hover:shadow-xl text-center">
+                                    className="bg-blue-chill-600 text-white px-6 py-3 rounded-full hover:bg-blue-chill-700 transition font-bold text-base shadow-lg shadow-blue-chill-200 hover:shadow-xl text-center">
                                     Create Free Wallet
                                 </Link>
                                 <Link to="/login"
-                                      className="bg-white text-gray-700 border border-gray-200 px-6 py-3 rounded-full hover:border-blue-chill-600 hover:text-blue-chill-600 transition font-semibold text-base text-center hover:bg-blue-chill-50 shadow-sm hover:shadow-md">
+                                    className="bg-white text-gray-700 border border-gray-200 px-6 py-3 rounded-full hover:border-blue-chill-600 hover:text-blue-chill-600 transition font-semibold text-base text-center hover:bg-blue-chill-50 shadow-sm hover:shadow-md">
                                     Log In
                                 </Link>
                             </motion.div>
@@ -247,9 +247,9 @@ const Home = () => {
                                 className="flex items-center space-x-2 text-sm text-gray-500 font-medium">
                                 <span>Are you an institution?</span>
                                 <Link to="/issuer/login"
-                                      className="text-blue-chill-600 hover:underline flex items-center font-semibold">
+                                    className="text-blue-chill-600 hover:underline flex items-center font-semibold">
                                     Issue Credentials <ChevronRight
-                                    className="w-4 h-4 ml-0.5"/>
+                                        className="w-4 h-4 ml-0.5" />
                                 </Link>
                             </div>
 
@@ -279,9 +279,9 @@ const Home = () => {
 
                         {/* Right Illustration/Wallet */}
                         <motion.div
-                            initial={{opacity: 0, x: 50}}
-                            animate={{opacity: 1, x: 0}}
-                            transition={{duration: 1.0, ease: 'easeOut'}}
+                            initial={{ opacity: 0, x: 50 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 1.0, ease: 'easeOut' }}
                             className="relative w-full max-w-lg mx-auto order-1 lg:order-2 mb-8 lg:mb-0"
                         >
                             <div
@@ -290,7 +290,7 @@ const Home = () => {
                                     className="flex items-center justify-between mb-6">
                                     <h3 className="text-xl font-bold text-gray-900 flex items-center">
                                         <Wallet
-                                            className="w-5 h-5 mr-2 text-blue-chill-600"/>Latest
+                                            className="w-5 h-5 mr-2 text-blue-chill-600" />Latest
                                         Credentials</h3>
                                 </div>
                                 <div className="space-y-3">
@@ -298,7 +298,7 @@ const Home = () => {
                                         // Loading skeleton
                                         [1, 2, 3].map((i) => (
                                             <div key={i}
-                                                 className="bg-gray-100 animate-pulse rounded-xl p-3 h-16"></div>
+                                                className="bg-gray-100 animate-pulse rounded-xl p-3 h-16"></div>
                                         ))
                                     ) : latestCredentials.length > 0 ? (
                                         latestCredentials.map((cert, i) => {
@@ -328,7 +328,7 @@ const Home = () => {
 
                                             return (
                                                 <div key={i}
-                                                     className="group bg-white border border-gray-100 rounded-xl p-4 hover:border-blue-chill-300 transition-all duration-300 shadow-sm hover:shadow-md">
+                                                    className="group bg-white border border-gray-100 rounded-xl p-4 hover:border-blue-chill-300 transition-all duration-300 shadow-sm hover:shadow-md">
                                                     <div
                                                         className="flex items-center justify-between">
                                                         <div
@@ -344,7 +344,7 @@ const Home = () => {
                                                         <div
                                                             className="bg-blue-chill-50 p-2.5 rounded-full group-hover:bg-blue-chill-100 transition-colors">
                                                             <Award
-                                                                className="w-5 h-5 text-blue-chill-600"/>
+                                                                className="w-5 h-5 text-blue-chill-600" />
                                                         </div>
                                                     </div>
                                                 </div>
@@ -364,11 +364,11 @@ const Home = () => {
 
                             {/* Floating Stats Card */}
                             <motion.div
-                                initial={{opacity: 0, scale: 0.8, y: 20}}
-                                animate={{opacity: 1, scale: 1, y: [0, -10, 0]}}
+                                initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: [0, -10, 0] }}
                                 transition={{
-                                    opacity: {duration: 0.5, delay: 0.8},
-                                    scale: {duration: 0.5, delay: 0.8},
+                                    opacity: { duration: 0.5, delay: 0.8 },
+                                    scale: { duration: 0.5, delay: 0.8 },
                                     y: {
                                         repeat: Infinity,
                                         duration: 4,
@@ -379,27 +379,27 @@ const Home = () => {
                             >
                                 <div
                                     className="bg-yellow-50 p-2.5 rounded-full">
-                                    <Award className="w-6 h-6 text-yellow-600"/>
+                                    <Award className="w-6 h-6 text-yellow-600" />
                                 </div>
                                 <div className="flex flex-col">
-                  <span
-                      className="text-2xl font-extrabold text-gray-900 leading-none flex items-center">
-                    <CountUp
-                        from={0}
-                        //TODO: Show real count after data seed
-                        to={123}
-                        // to={totalCredentials > 0 ? totalCredentials : 123}
-                        separator=","
-                        direction="up"
-                        duration={1.5}
-                        className="count-up-text"
-                    />
-                    +
-                  </span>
+                                    <span
+                                        className="text-2xl font-extrabold text-gray-900 leading-none flex items-center">
+                                        <CountUp
+                                            from={0}
+                                            //TODO: Show real count after data seed
+                                            to={123}
+                                            // to={totalCredentials > 0 ? totalCredentials : 123}
+                                            separator=","
+                                            direction="up"
+                                            duration={1.5}
+                                            className="count-up-text"
+                                        />
+                                        +
+                                    </span>
                                     <span
                                         className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1">
-                    Credentials Issued & Verified
-                  </span>
+                                        Credentials Issued & Verified
+                                    </span>
                                 </div>
                             </motion.div>
                         </motion.div>
@@ -411,9 +411,9 @@ const Home = () => {
             <section className="min-h-screen flex items-center py-24 bg-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <motion.div
-                        initial={{opacity: 0, y: 20}}
-                        whileInView={{opacity: 1, y: 0}}
-                        viewport={{once: true}}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
                         className="text-center mb-16"
                     >
                         <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6">Core
@@ -428,26 +428,26 @@ const Home = () => {
                         {features.map((feature, index) => (
                             <motion.div
                                 key={index}
-                                initial={{opacity: 0, y: 20}}
-                                whileInView={{opacity: 1, y: 0}}
-                                viewport={{once: true}}
-                                transition={{delay: index * 0.1}}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: index * 0.1 }}
                                 className={`
                   group relative overflow-hidden rounded-3xl p-8 border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500
                   ${index === 0 || index === 3 || index === 4
-                                    ? 'md:col-span-2 bg-gradient-to-br from-blue-chill-50 to-white'
-                                    : 'bg-white'}
+                                        ? 'md:col-span-2 bg-gradient-to-br from-blue-chill-50 to-white'
+                                        : 'bg-white'}
                   ${index === 1 || index === 2 || index === 5
-                                    ? 'bg-gradient-to-br from-gray-50 to-white'
-                                    : ''}
+                                        ? 'bg-gradient-to-br from-gray-50 to-white'
+                                        : ''}
                   `}
                             >
                                 <div className="relative z-10">
                                     <div className={`
                     w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-sm transition-transform duration-500 group-hover:scale-110
                     ${index === 0 || index === 3 || index === 4
-                                        ? 'bg-blue-chill-600 text-white'
-                                        : 'bg-white text-blue-chill-600 border border-gray-100'}
+                                            ? 'bg-blue-chill-600 text-white'
+                                            : 'bg-white text-blue-chill-600 border border-gray-100'}
                     `}>
                                         {feature.icon}
                                     </div>
@@ -479,9 +479,9 @@ const Home = () => {
                 <div
                     className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                     <motion.div
-                        initial={{opacity: 0, y: 20}}
-                        whileInView={{opacity: 1, y: 0}}
-                        viewport={{once: true}}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
                         className="text-center mb-20"
                     >
                         <span
@@ -505,10 +505,10 @@ const Home = () => {
                             {steps.map((step, index) => (
                                 <motion.div
                                     key={index}
-                                    initial={{opacity: 0, y: 30}}
-                                    whileInView={{opacity: 1, y: 0}}
-                                    viewport={{once: true}}
-                                    transition={{delay: index * 0.15}}
+                                    initial={{ opacity: 0, y: 30 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: index * 0.15 }}
                                     className="group relative"
                                 >
                                     <div
@@ -547,9 +547,9 @@ const Home = () => {
 
                         {/* Left Content */}
                         <motion.div
-                            initial={{opacity: 0, x: -20}}
-                            whileInView={{opacity: 1, x: 0}}
-                            viewport={{once: true}}
+                            initial={{ opacity: 0, x: -20 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
                         >
                             <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold mb-6">NSQF
                                 Skill Mapping powered by AI</h2>
@@ -561,18 +561,18 @@ const Home = () => {
                                 level.
                             </p>
                             <Link to="/pathway"
-                                  className="inline-flex items-center bg-white text-blue-chill-600 px-6 py-3 rounded-full hover:bg-blue-chill-50 transition font-bold shadow-2xl">
+                                className="inline-flex items-center bg-white text-blue-chill-600 px-6 py-3 rounded-full hover:bg-blue-chill-50 transition font-bold shadow-2xl">
                                 Start My Skill Pathway <ChevronRight
-                                className="ml-2 w-5 h-5"/>
+                                    className="ml-2 w-5 h-5" />
                             </Link>
                         </motion.div>
 
                         {/* Right Visualization Card */}
                         <motion.div
-                            initial={{opacity: 0, x: 20}}
-                            whileInView={{opacity: 1, x: 0}}
-                            transition={{duration: 0.8}}
-                            viewport={{once: true}}
+                            initial={{ opacity: 0, x: 20 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.8 }}
+                            viewport={{ once: true }}
                             className="bg-white rounded-2xl p-6 md:p-8 text-gray-900 shadow-2xl mt-8 lg:mt-0"
                         >
                             <div className="mb-6 border-b pb-4 border-gray-100">
@@ -595,7 +595,7 @@ const Home = () => {
                                         className="w-full bg-gray-300 rounded-full h-4">
                                         <div
                                             className="bg-gradient-to-r from-blue-chill-500 to-blue-chill-600 h-4 rounded-full shadow-md"
-                                            style={{width: '85%'}}></div>
+                                            style={{ width: '85%' }}></div>
                                     </div>
                                 </div>
 
@@ -640,7 +640,7 @@ const Home = () => {
                                     <div
                                         className="bg-blue-chill-50 p-3 rounded-xl mr-5 group-hover:bg-blue-chill-100 transition-colors">
                                         <Upload
-                                            className="w-6 h-6 text-blue-chill-600"/>
+                                            className="w-6 h-6 text-blue-chill-600" />
                                     </div>
                                     <div>
                                         <h3 className="text-lg font-bold text-gray-900 mb-1">Bulk
@@ -663,7 +663,7 @@ const Home = () => {
                                     <div
                                         className="bg-blue-chill-50 p-3 rounded-xl mr-5 group-hover:bg-blue-chill-100 transition-colors">
                                         <Network
-                                            className="w-6 h-6 text-blue-chill-600"/>
+                                            className="w-6 h-6 text-blue-chill-600" />
                                     </div>
                                     <div>
                                         <h3 className="text-lg font-bold text-gray-900 mb-1">Developer
@@ -680,13 +680,13 @@ const Home = () => {
                         </div>
                         {/* Left Content */}
                         <div>
-              <span
-                  className="inline-block py-1 px-3 rounded-full bg-blue-chill-50 text-blue-chill-600 text-xs font-bold tracking-wider uppercase mb-4 border border-blue-chill-100">
-                For Organizations & Institutions
-              </span>
+                            <span
+                                className="inline-block py-1 px-3 rounded-full bg-blue-chill-50 text-blue-chill-600 text-xs font-bold tracking-wider uppercase mb-4 border border-blue-chill-100">
+                                For Organizations & Institutions
+                            </span>
                             <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-gray-900 mb-4 leading-tight">
                                 Empower Your Learners with <span
-                                className="text-blue-chill-600">Verifiable Credentials</span>
+                                    className="text-blue-chill-600">Verifiable Credentials</span>
                             </h2>
                             <p className="text-base md:text-lg text-gray-600 mb-6 max-w-xl leading-relaxed">
                                 Join the MicroMerit ecosystem to issue
@@ -697,12 +697,12 @@ const Home = () => {
 
                             <div className="flex flex-col sm:flex-row gap-4">
                                 <Link to="/issuer/signup"
-                                      className="flex items-center justify-center px-6 py-3 bg-blue-chill-600 text-white rounded-xl font-bold text-base hover:bg-blue-chill-700 transition shadow-lg hover:shadow-blue-chill-200 transform hover:-translate-y-1">
+                                    className="flex items-center justify-center px-6 py-3 bg-blue-chill-600 text-white rounded-xl font-bold text-base hover:bg-blue-chill-700 transition shadow-lg hover:shadow-blue-chill-200 transform hover:-translate-y-1">
                                     Join as Issuer <ChevronRight
-                                    className="w-5 h-5 ml-2"/>
+                                        className="w-5 h-5 ml-2" />
                                 </Link>
                                 <Link to="/issuer/login"
-                                      className="flex items-center justify-center px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-bold text-base hover:border-blue-chill-600 hover:text-blue-chill-600 transition">
+                                    className="flex items-center justify-center px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-bold text-base hover:border-blue-chill-600 hover:text-blue-chill-600 transition">
                                     Sign In
                                 </Link>
                             </div>
@@ -734,7 +734,7 @@ const Home = () => {
                             className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8">
                             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
                                 <div key={i}
-                                     className="flex flex-col items-center justify-center p-4 h-24 rounded-lg bg-white shadow-sm animate-pulse"></div>
+                                    className="flex flex-col items-center justify-center p-4 h-24 rounded-lg bg-white shadow-sm animate-pulse"></div>
                             ))}
                         </div>
                     ) : topIssuers.length > 0 ? (
@@ -759,67 +759,58 @@ const Home = () => {
                                 }
 
                                 return (
-                                    <motion.div
-                                        key={issuer.id}
-                                        initial={{opacity: 0, y: 30}}
-                                        whileInView={{opacity: 1, y: 0}}
-                                        viewport={{once: true, amount: 0.1}}
-                                        transition={{
-                                            delay: index * 0.05,
-                                            duration: 0.5,
-                                        }}
-                                        className={`relative flex flex-col items-center text-center p-3 transition-all duration-500 hover:z-20 ${scale} hover:shadow-xl hover:bg-white rounded-xl`}
-                                    >
-                                        {/* Rank Badge - More prominent */}
-                                        <div
-                                            className={`absolute -top-4 ${index <
-                                            3
-                                                ? 'w-8 h-8'
-                                                : 'w-6 h-6'} rounded-full flex items-center justify-center text-xs font-black shadow-md ${rankBg}`}>
-                                            {index + 1}
-                                        </div>
-
-                                        {/* Logo Container */}
-                                        <div
-                                            className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white p-2 flex items-center justify-center overflow-hidden border-4 ${rankBorder} transition-all duration-300 shadow-lg mt-4`}>
-                                            {issuer.logo_url ? (
-                                                <img
-                                                    src={issuer.logo_url}
-                                                    alt={`${issuer.name} logo`}
-                                                    className="w-full h-full object-contain rounded-full"
-                                                    style={{
-                                                        filter: index >= 3
-                                                            ? 'grayscale(100%) opacity(70%)'
-                                                            : 'none',
-                                                    }} // Subtle effect for lower ranks
-                                                />
-                                            ) : (
-                                                <Building2
-                                                    className={`w-8 h-8 ${index ===
-                                                    0
-                                                        ? 'text-yellow-500'
-                                                        : 'text-gray-400'}`}/>
-                                            )}
-                                        </div>
-
-                                        {/* Issuer Details on Hover (Collapsed on default) */}
-                                        <div
-                                            className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-white bg-opacity-95 backdrop-blur-sm rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer">
-                                            <h3 className="font-extrabold text-gray-900 text-base mb-1 text-center line-clamp-2">{issuer.name}</h3>
-                                            <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-3">{issuer.type}</p>
-
+                                    <Link to={`/i/${issuer.id}`} key={issuer.id} className="block">
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 30 }}
+                                            whileInView={{ opacity: 1, y: 0 }}
+                                            viewport={{ once: true, amount: 0.1 }}
+                                            transition={{
+                                                delay: index * 0.05,
+                                                duration: 0.5,
+                                            }}
+                                            className={`relative flex flex-col items-center text-center p-3 transition-all duration-500 hover:z-20 ${scale} hover:shadow-xl hover:bg-white rounded-xl cursor-pointer group`}
+                                        >
+                                            {/* Rank Badge - More prominent */}
                                             <div
-                                                className="flex items-center justify-center text-blue-chill-600 font-bold text-sm bg-blue-chill-50 px-3 py-1 rounded-full">
-                                                <Award
-                                                    className="w-4 h-4 mr-1"/>
-                                                {issuer.credentials_issued.toLocaleString()} Credentials
+                                                className={`absolute -top-4 ${index <
+                                                    3
+                                                    ? 'w-8 h-8'
+                                                    : 'w-6 h-6'} rounded-full flex items-center justify-center text-xs font-black shadow-md ${rankBg} z-10`}>
+                                                {index + 1}
                                             </div>
-                                        </div>
 
-                                        {/* Default Label (Visible when not hovering) */}
-                                        <h3 className="font-semibold text-gray-800 text-sm mt-3 line-clamp-1 w-full">{issuer.name}</h3>
+                                            {/* Logo Container */}
+                                            <div
+                                                className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white p-2 flex items-center justify-center overflow-hidden border-4 ${rankBorder} transition-all duration-300 shadow-lg mt-4 group-hover:scale-105`}>
+                                                {issuer.logo_url ? (
+                                                    <img
+                                                        src={issuer.logo_url}
+                                                        alt={`${issuer.name} logo`}
+                                                        className="w-full h-full object-contain rounded-full"
+                                                        style={{
+                                                            filter: index >= 3
+                                                                ? 'grayscale(100%) opacity(70%)'
+                                                                : 'none',
+                                                        }} // Subtle effect for lower ranks
+                                                    />
+                                                ) : (
+                                                    <Building2
+                                                        className={`w-8 h-8 ${index ===
+                                                            0
+                                                            ? 'text-yellow-500'
+                                                            : 'text-gray-400'}`}
+                                                    />
+                                                )}
+                                            </div>
 
-                                    </motion.div>
+                                            <h3 className="mt-4 font-bold text-gray-900 text-sm sm:text-base line-clamp-1 group-hover:text-blue-chill-600 transition-colors">
+                                                {issuer.name}
+                                            </h3>
+                                            <p className="text-xs text-gray-500 mt-1 font-medium">
+                                                {issuer.credentials_issued} Issued
+                                            </p>
+                                        </motion.div>
+                                    </Link>
                                 );
                             })}
                         </div>
@@ -827,44 +818,45 @@ const Home = () => {
                         <div
                             className="col-span-full flex flex-col items-center justify-center py-12 text-center">
                             <div className="bg-gray-200 p-4 rounded-full mb-3">
-                                <Building2 className="w-8 h-8 text-gray-600"/>
+                                <Building2 className="w-8 h-8 text-gray-600" />
                             </div>
                             <h3 className="text-lg font-semibold text-gray-900">No
                                 Issuers Found</h3>
                             <p className="text-gray-500 mt-1">Be the first to
                                 join the network.</p>
                             <Link to="/issuer/signup"
-                                  className="mt-4 text-sm text-blue-chill-600 font-semibold hover:text-blue-chill-700 flex items-center">
+                                className="mt-4 text-sm text-blue-chill-600 font-semibold hover:text-blue-chill-700 flex items-center">
                                 Become an Issuer <ChevronRight
-                                className="w-3 h-3 ml-1"/>
+                                    className="w-3 h-3 ml-1" />
                             </Link>
                         </div>
-                    )}
-                </div>
-            </section>
+                    )
+                    }
+                </div >
+            </section >
 
             {/* ---------------------------------- Verify Credential CTA ---------------------------------- */}
-            <section
-                className="py-20 md:py-24 bg-gradient-to-r from-blue-chill-600 to-blue-chill-800 text-white relative overflow-hidden">
+            < section
+                className="py-20 md:py-24 bg-gradient-to-r from-blue-chill-600 to-blue-chill-800 text-white relative overflow-hidden" >
                 {/* Background Patterns */}
-                <div className="absolute top-0 left-0 w-full h-full opacity-10">
+                < div className="absolute top-0 left-0 w-full h-full opacity-10" >
                     <div
                         className="absolute right-0 top-0 w-96 h-96 bg-white rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
                     <div
                         className="absolute left-0 bottom-0 w-64 h-64 bg-teal-400 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
-                </div>
+                </div >
 
                 <div
                     className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
                     <motion.div
-                        initial={{opacity: 0, y: 20}}
-                        whileInView={{opacity: 1, y: 0}}
-                        viewport={{once: true}}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
                     >
                         <div
                             className="inline-flex items-center justify-center p-3 bg-white/10 rounded-full mb-6 backdrop-blur-sm border border-white/20">
                             <CheckCircle
-                                className="w-6 h-6 text-teal-300 mr-2"/>
+                                className="w-6 h-6 text-teal-300 mr-2" />
                             <span className="font-semibold text-blue-chill-50">Instant Verification</span>
                         </div>
 
@@ -880,22 +872,22 @@ const Home = () => {
                         <div
                             className="flex flex-col sm:flex-row items-center justify-center gap-4">
                             <Link to="/verify"
-                                  className="inline-flex items-center justify-center bg-white text-blue-chill-700 px-8 md:px-10 py-4 rounded-xl hover:bg-blue-chill-50 transition font-bold text-lg shadow-xl shadow-blue-chill-900/20 transform hover:-translate-y-1 w-full sm:w-auto">
+                                className="inline-flex items-center justify-center bg-white text-blue-chill-700 px-8 md:px-10 py-4 rounded-xl hover:bg-blue-chill-50 transition font-bold text-lg shadow-xl shadow-blue-chill-900/20 transform hover:-translate-y-1 w-full sm:w-auto">
                                 Verify Now <ChevronRight
-                                className="w-5 h-5 ml-2"/>
+                                    className="w-5 h-5 ml-2" />
                             </Link>
                             <Link to="/signup"
-                                  className="inline-flex items-center justify-center bg-transparent border-2 border-white/30 text-white px-8 md:px-10 py-4 rounded-xl hover:bg-white/10 transition font-bold text-lg w-full sm:w-auto">
+                                className="inline-flex items-center justify-center bg-transparent border-2 border-white/30 text-white px-8 md:px-10 py-4 rounded-xl hover:bg-white/10 transition font-bold text-lg w-full sm:w-auto">
                                 Create Account
                             </Link>
                         </div>
                     </motion.div>
                 </div>
-            </section>
+            </section >
 
             {/* ---------------------------------- Footer ---------------------------------- */}
-            <Footer/>
-        </div>
+            < Footer />
+        </div >
     );
 };
 

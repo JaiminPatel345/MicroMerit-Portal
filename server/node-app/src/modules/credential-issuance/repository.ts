@@ -259,43 +259,31 @@ export class CredentialIssuanceRepository {
      * Get top issuers based on number of credentials issued
      */
     async getTopIssuers(limit: number = 5) {
-        const grouped = await prisma.credential.groupBy({
-            by: ['issuer_id'],
-            _count: {
-                id: true
+        const issuers = await prisma.issuer.findMany({
+            where: {
+                status: 'approved'
+            },
+            include: {
+                _count: {
+                    select: { credentials: true }
+                }
             },
             orderBy: {
-                _count: {
-                    id: 'desc'
+                credentials: {
+                    _count: 'desc'
                 }
             },
             take: limit
         });
 
-        // Fetch issuer details
-        const issuerIds = grouped.map(g => g.issuer_id);
-        const issuers = await prisma.issuer.findMany({
-            where: {
-                id: {
-                    in: issuerIds
-                }
-            },
-            select: {
-                id: true,
-                name: true,
-                logo_url: true,
-                type: true
-            }
-        });
-
-        // Merge data
-        return grouped.map(g => {
-            const issuer = issuers.find(i => i.id === g.issuer_id);
-            return {
-                ...issuer,
-                credentials_issued: g._count.id
-            };
-        }).filter(item => item.id); // Filter out any missing issuers (shouldn't happen with referential integrity)
+        // Map to expected format
+        return issuers.map(issuer => ({
+            id: issuer.id,
+            name: issuer.name,
+            logo_url: issuer.logo_url,
+            type: issuer.type,
+            credentials_issued: issuer._count.credentials
+        }));
     }
 }
 
