@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { issuerLogout } from "../../store/authIssuerSlice";
 import { Outlet } from "react-router-dom";
 import { useLocation } from "react-router-dom";
-import logo from "../../assets/logo.png";
+import logo_1 from "../../assets/logo_1.png";
 
 
 // Stubbed Icons (using inline SVG for executability)
@@ -156,7 +156,7 @@ const IssuerLayout = () => {
 
         {/* Portal Branding (UPDATED) */}
         <div className={`flex items-center mb-10 pt-4 ${isCollapsed ? 'justify-center' : ''}`}>
-          <img src={logo} alt="MicroMerit Logo" className="w-10 h-10 rounded-lg flex-shrink-0" />
+          <img src={logo_1} alt="MicroMerit Logo" className="w-12 h-12 rounded-lg flex-shrink-0" />
           {!isCollapsed && (
             <div className="flex flex-col ml-3 overflow-hidden">
               <h1 className="text-2xl font-extrabold tracking-tight text-white leading-none truncate">

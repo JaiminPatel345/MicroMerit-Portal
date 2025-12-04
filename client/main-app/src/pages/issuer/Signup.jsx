@@ -8,6 +8,7 @@ import {
   validateURL,
 } from "../../utils/formValidation";
 import { useDispatch } from "react-redux";
+import logo_1 from "../../assets/logo_1.png";
 
 
 function IssuerSignUp() {
@@ -174,10 +175,10 @@ function IssuerSignUp() {
       }
     } catch (error) {
       console.error("Signup error:", error);
-      
+
       // Parse validation errors from backend
       let errorMessage = "Signup failed. Please try again.";
-      
+
       if (error.response?.data?.error) {
         try {
           // Try to parse Zod validation errors
@@ -196,7 +197,7 @@ function IssuerSignUp() {
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       }
-      
+
       setErrors({
         submit: errorMessage,
       });
@@ -298,6 +299,11 @@ function IssuerSignUp() {
       <div className="w-full max-w-xl bg-white p-6 sm:p-10 rounded-2xl shadow-2xl border border-gray-200">
 
         {/* Header & Title */}
+        <div className="text-center mb-2">
+          <Link to="/" className="inline-block">
+            <img src={logo_1} alt="MicroMerit" className="h-20 w-auto mx-auto" />
+          </Link>
+        </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-center text-gray-900 mb-2">
           Register as Issuer
         </h1>

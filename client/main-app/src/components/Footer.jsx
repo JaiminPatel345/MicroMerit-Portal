@@ -26,7 +26,7 @@ const Footer = () => {
                             {/*<div className="bg-blue-chill-600 p-2 rounded-lg group-hover:bg-blue-chill-500 transition-colors">*/}
                             {/*    <Shield className="w-6 h-6 text-white" />*/}
                             {/*</div>*/}
-                            <img src={"/logo.png"} alt={"MicroMerit"}/>
+                            <img src={"/logo_1.png"} alt={"MicroMerit"} />
                         </Link>
                         <p className="text-sm leading-relaxed text-gray-400">
                             India's first decentralized credential wallet. Empowering learners, issuers, and employers with secure, verifiable, and AI-powered skill data.
