@@ -56,6 +56,37 @@ export class OAuthRepository {
   }
 
   /**
+   * Create OAuth session for new users  
+   * Stores their OAuth profile data until they complete registration
+   */
+  async createOAuthSession(data: {
+    email: string;
+    googleProfileUrl?: string;
+    googleName?: string;
+    loginMethod: string;
+  }) {
+    // Set expiry to 7 days from now
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    return prisma.verification_session.create({
+      data: {
+        session_type: 'oauth_registration',
+        email: data.email,
+        otp_hash: '', // Not needed for OAuth
+        is_verified: true, // OAuth is pre-verified
+        verified_at: new Date(),
+        metadata: {
+          loginMethod: data.loginMethod,
+          googleName: data.googleName,
+          googleProfileUrl: data.googleProfileUrl,
+        },
+        expires_at: expiresAt,
+      },
+    });
+  }
+
+  /**
    * Update learner profile
    */
   async updateLearner(

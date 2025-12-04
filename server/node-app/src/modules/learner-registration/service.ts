@@ -187,26 +187,59 @@ export class RegistrationService {
           'PROFILE_PHOTO_UPLOAD_FAILED'
         );
       }
+    } else {
+      // Check for OAuth profile URL in session metadata
+      const metadata = session.metadata as any;
+      if (metadata?.googleProfileUrl) {
+        profilePhotoUrl = metadata.googleProfileUrl;
+        logger.info('Using Google profile photo from OAuth', { sessionId, profileUrl: profilePhotoUrl });
+      }
     }
 
-    // Create learner
-    const learner = await this.repository.createLearner({
-      name: input.name,
-      email: session.email || undefined,
-      phone: session.phone || undefined,
-      hashedPassword,
-      profileUrl: profilePhotoUrl,
-      otherEmails: [], // Initialize with empty array
-      dob: input.dob ? new Date(input.dob) : undefined,
-      gender: input.gender,
-    });
+    // Check if learner already exists (OAuth signup case - shouldn't happen now)
+    const existingLearner = await this.repository.findLearnerByEmail(session.email || '');
 
-    logger.info('Learner registration completed', {
-      learnerId: learner.id,
-      email: learner.email,
-      phone: learner.phone,
-      hasProfilePhoto: !!profilePhotoUrl
-    });
+    let learner;
+    if (existingLearner) {
+      // This shouldn't happen with new OAuth flow, but keep for safety
+      // Update existing learner
+      if (!profilePhotoUrl && existingLearner.profileUrl) {
+        profilePhotoUrl = existingLearner.profileUrl;
+      }
+
+      learner = await this.repository.updateLearner(existingLearner.id, {
+        name: input.name,
+        hashedPassword,
+        profileUrl: profilePhotoUrl,
+        dob: input.dob ? new Date(input.dob) : undefined,
+        gender: input.gender,
+      });
+
+      logger.info('Existing learner profile updated', {
+        learnerId: learner.id,
+        email: learner.email,
+        hasProfilePhoto: !!profilePhotoUrl
+      });
+    } else {
+      // Create new learner (normal flow)
+      learner = await this.repository.createLearner({
+        name: input.name,
+        email: session.email || undefined,
+        phone: session.phone || undefined,
+        hashedPassword,
+        profileUrl: profilePhotoUrl,
+        otherEmails: [], // Initialize with empty array
+        dob: input.dob ? new Date(input.dob) : undefined,
+        gender: input.gender,
+      });
+
+      logger.info('Learner registration completed', {
+        learnerId: learner.id,
+        email: learner.email,
+        phone: learner.phone,
+        hasProfilePhoto: !!profilePhotoUrl
+      });
+    }
 
     // Claim any pre-issued (unclaimed) credentials for this email
     if (learner.email) {

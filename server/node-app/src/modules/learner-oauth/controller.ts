@@ -45,29 +45,28 @@ export const handleGoogleCallback = async (
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-    // If this is a new user, redirect to profile-builder with OAuth data
+    // If this is a new user, redirect to profile-builder with temp token
     if (result.isNewUser) {
       const params = new URLSearchParams({
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        email: result.learner.email || '',
-        name: result.learner.name || '',
-        profileUrl: result.learner.profileUrl || '',
-        loginMethod: 'google'
+        tempToken: result.tempToken!,
+        email: result.email || '',
+        name: result.name || '',
+        profileUrl: result.profileUrl || '',
+        loginMethod: result.loginMethod || 'google'
       });
       return res.redirect(`${frontendUrl}/profile-builder?${params.toString()}`);
     }
 
     // Existing user - redirect to dashboard with tokens
     const params = new URLSearchParams({
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
+      accessToken: result.accessToken!,
+      refreshToken: result.refreshToken!,
       learner: JSON.stringify({
-        id: result.learner.id,
-        email: result.learner.email,
-        phone: result.learner.phone || '',
-        profileUrl: result.learner.profileUrl || '',
-        otherEmails: result.learner.otherEmails || []
+        id: result.learner!.id,
+        email: result.learner!.email,
+        phone: result.learner!.phone || '',
+        profileUrl: result.learner!.profileUrl || '',
+        otherEmails: result.learner!.otherEmails || []
       })
     });
 

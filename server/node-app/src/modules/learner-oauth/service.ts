@@ -37,24 +37,42 @@ export class OAuthService {
       const profile = profileResponse.data;
       const email = profile.email;
       const profilePicture = profile.picture;
-      const googleName = profile.name || ''; // Get name from Google profile
+      const googleName = profile.name || '';
 
-      // Check if learner already exists
+      // Check if learner already exists with complete profile
       let learner = await this.repository.findLearnerByEmail(email);
 
       if (!learner) {
-        // Create new learner (auto-complete registration)
-        learner = await this.repository.createLearner({
+        // New user - create a verification session (like email signup)
+        // This allows them to complete profile, and if they don't finish,
+        // they can continue later
+        const session = await this.repository.createOAuthSession({
           email,
-          profileUrl: profilePicture,
-          otherEmails: [],
-          // No password for OAuth users
+          googleProfileUrl: profilePicture,
+          googleName,
+          loginMethod: 'google',
         });
 
-        logger.info(`New learner created via Google OAuth: ${email}`);
-      } else {
-        logger.info(`Existing learner logged in via Google OAuth: ${email}`);
+        // Generate temporary token (valid for 7 days for completing registration)
+        const tempToken = generateAccessToken(
+          { sessionId: session.id, type: 'registration' },
+          '7d'
+        );
+
+        logger.info(`New Google OAuth session created: ${email}`);
+
+        return {
+          isNewUser: true,
+          tempToken,
+          email,
+          name: googleName,
+          profileUrl: profilePicture,
+          loginMethod: 'google',
+        };
       }
+
+      // Existing user with complete profile
+      logger.info(`Existing learner logged in via Google OAuth: ${email}`);
 
       // Claim any pre-issued (unclaimed) credentials for this email
       try {
@@ -84,18 +102,17 @@ export class OAuthService {
       );
 
       return {
+        isNewUser: false,
         learner: {
           id: learner.id,
           email: learner.email,
-          name: learner.name || googleName, // Use learner's name or Google name
+          name: learner.name || googleName,
           phone: learner.phone,
           profileUrl: learner.profileUrl || profilePicture,
           otherEmails: learner.other_emails,
         },
         accessToken: accessTokenJWT,
         refreshToken: refreshTokenJWT,
-        isNewUser: !learner.created_at ||
-          (new Date().getTime() - new Date(learner.created_at).getTime() < 5000),
       };
     } catch (error) {
       logger.error('Google OAuth error:', error);

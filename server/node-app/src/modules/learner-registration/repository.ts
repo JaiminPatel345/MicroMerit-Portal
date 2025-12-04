@@ -142,6 +142,39 @@ export class RegistrationRepository {
       },
     });
   }
+
+  /**
+   * Find learner by email
+   */
+  async findLearnerByEmail(email: string): Promise<any> {
+    if (!email) return null;
+    return prisma.learner.findUnique({
+      where: { email },
+    });
+  }
+
+  /**
+   * Update existing learner profile
+   */
+  async updateLearner(learnerId: number, data: {
+    name?: string;
+    hashedPassword?: string;
+    profileUrl?: string;
+    dob?: Date;
+    gender?: string;
+  }): Promise<any> {
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.hashedPassword !== undefined) updateData.hashed_password = data.hashedPassword;
+    if (data.profileUrl !== undefined) updateData.profileUrl = data.profileUrl;
+    if (data.dob !== undefined) updateData.dob = data.dob;
+    if (data.gender !== undefined) updateData.gender = data.gender;
+
+    return prisma.learner.update({
+      where: { id: learnerId },
+      data: updateData,
+    });
+  }
   async isEmailUsedAsSecondary(email: string): Promise<boolean> {
     const learner = await prisma.learner.findFirst({
       where: {
