@@ -216,6 +216,24 @@ const Home = () => {
                   Issue Credentials <ChevronRight className="w-4 h-4 ml-0.5" />
                 </Link>
               </div>
+
+              {/* Trusted Ecosystem (Moved to Hero) */}
+              <div className="mt-12 pt-8 border-t border-blue-chill-100/50 w-full overflow-hidden">
+                <p className="text-xs font-bold text-blue-chill-600 uppercase tracking-wider mb-6">Trusted Across India's Skilling Ecosystem</p>
+                <div className="w-full inline-flex flex-nowrap overflow-hidden [mask-image:_linear-gradient(to_right,transparent_0,_black_40px,_black_calc(100%-40px),transparent_100%)]">
+                  <div className="flex items-center justify-center md:justify-start [&_img]:mx-8 [&_img]:max-w-none animate-infinite-scroll">
+                    {[...partnerLogos, ...partnerLogos].map((logo, index) => (
+                      <img
+                        key={index}
+                        src={logo}
+                        alt="Partner Logo"
+                        className="h-16 w-auto object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300"
+                        onError={(e) => { e.target.style.display = 'none' }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
             </motion.div>
 
             {/* Right Illustration/Wallet */}
@@ -289,7 +307,7 @@ const Home = () => {
                   scale: { duration: 0.5, delay: 0.8 },
                   y: { repeat: Infinity, duration: 4, ease: "easeInOut" }
                 }}
-                className="absolute -top-12 -left-8 bg-white p-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-gray-100 z-20 flex items-center gap-3"
+                className="absolute -top-12 -right-8 bg-white p-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-gray-100 z-20 flex items-center gap-3"
               >
                 <div className="bg-yellow-50 p-2.5 rounded-full">
                   <Award className="w-6 h-6 text-yellow-600" />
@@ -550,37 +568,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* ---------------------------------- Trusted Ecosystem (Infinite Scroll) ---------------------------------- */}
-      <section className="py-8 bg-white border-y border-gray-100 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 text-center">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Trusted Across India's Skilling Ecosystem</p>
-        </div>
 
-        <div className="relative flex overflow-x-hidden group">
-          <div className="animate-marquee whitespace-nowrap flex items-center space-x-16 px-8">
-            {partnerLogos.map((logo, index) => (
-              <img
-                key={index}
-                src={logo}
-                alt="Partner Logo"
-                className="h-12 md:h-16 w-auto object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300"
-                onError={(e) => { e.target.style.display = 'none' }} // Hide broken images
-              />
-            ))}
-          </div>
-          <div className="absolute top-0 animate-marquee2 whitespace-nowrap flex items-center space-x-16 px-8">
-            {partnerLogos.map((logo, index) => (
-              <img
-                key={`dup-${index}`}
-                src={logo}
-                alt="Partner Logo"
-                className="h-12 md:h-16 w-auto object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300"
-                onError={(e) => { e.target.style.display = 'none' }}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
       {/* ---------------------------------- Top Issuers Section (Logo Wall Premium Redesign) ---------------------------------- */}
       <section className="py-20 relative overflow-hidden bg-gray-50"> {/* Added a light background for contrast */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
