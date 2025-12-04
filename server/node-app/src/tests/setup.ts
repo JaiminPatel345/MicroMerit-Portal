@@ -33,4 +33,21 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
+afterAll(async () => {
+  // Close Prisma connection if it exists
+  const { prisma, disconnectPrisma } = jest.requireMock('../utils/prisma');
+
+  if (disconnectPrisma && typeof disconnectPrisma === 'function') {
+    await disconnectPrisma();
+  } else if (prisma && prisma.$disconnect) {
+    await prisma.$disconnect();
+  }
+
+  // Clear all timers
+  jest.clearAllTimers();
+
+  // Give Jest time to clean up
+  await new Promise(resolve => setTimeout(resolve, 100));
+});
+
 export const prismaMock = jest.requireMock('../utils/prisma').prisma as DeepMockProxy<PrismaClient>;

@@ -20,7 +20,7 @@ describe('Learner Primary Contact Management', () => {
       const email = 'newemail@example.com';
       const mockLearner = {
         id: learnerId,
-        phone: '+1234567890',
+        phone: '+919876543210',
         email: null, // No primary email
         other_emails: [],
         status: 'active',
@@ -71,7 +71,7 @@ describe('Learner Primary Contact Management', () => {
       const mockLearner = {
         id: learnerId,
         email: 'existing@example.com', // Already has email
-        phone: '+1234567890',
+        phone: '+919876543210',
         other_emails: [],
         status: 'active',
       };
@@ -139,7 +139,7 @@ describe('Learner Primary Contact Management', () => {
       const mockUpdatedLearner = {
         id: learnerId,
         email: email,
-        phone: '+1234567890',
+        phone: '+919876543210',
         other_emails: [],
         status: 'active',
       };
@@ -206,7 +206,7 @@ describe('Learner Primary Contact Management', () => {
         id: sessionId,
         learner_id: learnerId,
         contact_type: 'phone', // Wrong type
-        phone: '+1234567890',
+        phone: '+919876543210',
         otp_hash: 'hashed-otp',
         is_verified: false,
         expires_at: new Date(Date.now() + 10 * 60 * 1000),
@@ -283,7 +283,7 @@ describe('Learner Primary Contact Management', () => {
   describe('requestAddPrimaryPhone', () => {
     it('should send OTP to phone for email-registered user', async () => {
       const learnerId = 1;
-      const phone = '+1234567890';
+      const phone = '+919876543210';
       const mockLearner = {
         id: learnerId,
         email: 'existing@example.com',
@@ -322,7 +322,7 @@ describe('Learner Primary Contact Management', () => {
         otpHash: 'hashed-otp',
         expiresAt: mockSession.expires_at,
       });
-      expect(mockNotification.sendOTP).toHaveBeenCalledWith('sms', phone, '123456');
+      expect(mockNotification.sendOTP).toHaveBeenCalledWith('phone', phone, '123456');
       expect(result).toEqual({
         sessionId: 'session-123',
         message: 'OTP sent to phone',
@@ -332,11 +332,11 @@ describe('Learner Primary Contact Management', () => {
 
     it('should throw error if learner already has primary phone', async () => {
       const learnerId = 1;
-      const phone = '+1234567890';
+      const phone = '+919876543210';
       const mockLearner = {
         id: learnerId,
         email: 'existing@example.com',
-        phone: '+0987654321', // Already has phone
+        phone: '+918765432109', // Already has phone
         other_emails: [],
         status: 'active',
       };
@@ -350,7 +350,7 @@ describe('Learner Primary Contact Management', () => {
 
     it('should throw error if phone is already registered', async () => {
       const learnerId = 1;
-      const phone = '+1234567890';
+      const phone = '+919876543210';
       const mockLearner = {
         id: learnerId,
         email: 'existing@example.com',
@@ -360,7 +360,7 @@ describe('Learner Primary Contact Management', () => {
       };
       const mockExistingLearner = {
         id: 2,
-        phone: '+1234567890',
+        phone: '+919876543210',
         email: null,
       };
 
@@ -374,7 +374,7 @@ describe('Learner Primary Contact Management', () => {
 
     it('should throw error if learner not found', async () => {
       const learnerId = 999;
-      const phone = '+1234567890';
+      const phone = '+919876543210';
 
       (learnerRepository.findById as jest.Mock).mockResolvedValue(null);
 
@@ -387,7 +387,7 @@ describe('Learner Primary Contact Management', () => {
       const learnerId = 1;
       const sessionId = 'session-123';
       const otp = '123456';
-      const phone = '+1234567890';
+      const phone = '+919876543210';
       const mockSession = {
         id: sessionId,
         learner_id: learnerId,
@@ -448,7 +448,7 @@ describe('Learner Primary Contact Management', () => {
         id: sessionId,
         learner_id: 2, // Different learner
         contact_type: 'phone',
-        phone: '+1234567890',
+        phone: '+919876543210',
         otp_hash: 'hashed-otp',
         is_verified: false,
         expires_at: new Date(Date.now() + 10 * 60 * 1000),
@@ -490,7 +490,7 @@ describe('Learner Primary Contact Management', () => {
         id: sessionId,
         learner_id: learnerId,
         contact_type: 'phone',
-        phone: '+1234567890',
+        phone: '+919876543210',
         otp_hash: 'hashed-otp',
         is_verified: true, // Already verified
         expires_at: new Date(Date.now() + 10 * 60 * 1000),
@@ -511,7 +511,7 @@ describe('Learner Primary Contact Management', () => {
         id: sessionId,
         learner_id: learnerId,
         contact_type: 'phone',
-        phone: '+1234567890',
+        phone: '+919876543210',
         otp_hash: 'hashed-otp',
         is_verified: false,
         expires_at: new Date(Date.now() - 1000), // Expired
@@ -530,7 +530,7 @@ describe('Learner Primary Contact Management', () => {
         id: sessionId,
         learner_id: learnerId,
         contact_type: 'phone',
-        phone: '+1234567890',
+        phone: '+919876543210',
         otp_hash: 'hashed-otp',
         is_verified: false,
         expires_at: new Date(Date.now() + 10 * 60 * 1000),
@@ -574,9 +574,9 @@ describe('Learner Primary Contact Management', () => {
       mockNotification.sendOTP.mockResolvedValue(true);
 
       const requestResult = await learnerService.requestAddPrimaryPhone(learnerId, phone);
-      
+
       expect(requestResult.sessionId).toBe('session-phone-add');
-      expect(mockNotification.sendOTP).toHaveBeenCalledWith('sms', phone, '123456');
+      expect(mockNotification.sendOTP).toHaveBeenCalledWith('phone', phone, '123456');
 
       // Test verify phase
       const otp = '123456';
@@ -594,7 +594,7 @@ describe('Learner Primary Contact Management', () => {
       (learnerRepository.updateLearnerPrimaryPhone as jest.Mock).mockResolvedValue(mockUpdatedLearner);
 
       const verifyResult = await learnerService.verifyPrimaryPhoneOTP(learnerId, 'session-phone-add', otp);
-      
+
       expect(verifyResult.phone).toBe(phone);
       expect(verifyResult.message).toBe('Primary phone added successfully');
     });
@@ -605,7 +605,7 @@ describe('Learner Primary Contact Management', () => {
       const mockLearner = {
         id: learnerId,
         email: null, // No email yet
-        phone: '+1234567890',
+        phone: '+919876543210',
         other_emails: [],
         status: 'active',
       };
@@ -631,7 +631,7 @@ describe('Learner Primary Contact Management', () => {
       mockNotification.sendOTP.mockResolvedValue(true);
 
       const requestResult = await learnerService.requestAddPrimaryEmail(learnerId, email);
-      
+
       expect(requestResult.sessionId).toBe('session-email-add');
       expect(mockNotification.sendOTP).toHaveBeenCalledWith('email', email, '654321');
 
@@ -651,7 +651,7 @@ describe('Learner Primary Contact Management', () => {
       (learnerRepository.updateLearnerPrimaryEmail as jest.Mock).mockResolvedValue(mockUpdatedLearner);
 
       const verifyResult = await learnerService.verifyPrimaryEmailOTP(learnerId, 'session-email-add', otp);
-      
+
       expect(verifyResult.email).toBe(email);
       expect(verifyResult.message).toBe('Primary email added successfully');
     });
