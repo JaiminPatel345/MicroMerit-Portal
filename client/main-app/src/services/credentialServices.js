@@ -58,4 +58,9 @@ export const credentialServices = {
         const response = await api.get('/credentials/latest');
         return response.data;
     },
+
+    getTopIssuers: async (limit = 5) => {
+        const response = await api.get('/credentials/top-issuers', { params: { limit } });
+        return response.data;
+    },
 };

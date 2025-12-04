@@ -248,6 +248,20 @@ export class CredentialIssuanceController {
             next(error);
         }
     }
+
+    /**
+     * Get top issuers
+     * GET /credentials/top-issuers
+     */
+    async getTopIssuers(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+            const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+            const issuers = await credentialIssuanceService.getTopIssuers(limit);
+            sendSuccess(res, issuers, 'Top issuers retrieved successfully');
+        } catch (error: any) {
+            next(error);
+        }
+    }
 }
 
 export const credentialIssuanceController = new CredentialIssuanceController();

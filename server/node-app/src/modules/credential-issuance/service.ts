@@ -7,6 +7,7 @@ import { writeToBlockchain } from '../../utils/blockchain';
 import { buildCanonicalJson, computeDataHash } from '../../utils/canonicalJson';
 import { NotFoundError, ValidationError } from '../../utils/errors';
 import { logger } from '../../utils/logger';
+import { sendCredentialIssuedEmail } from '../../utils/notification';
 
 /**
  * Service for credential issuance operations
@@ -223,6 +224,17 @@ export class CredentialIssuanceService {
                 });
             });
         }
+
+        // Step 11: Send email notification
+        // We don't await this to avoid blocking the response, or we can await if we want to ensure it's sent
+        // Given the previous async patterns, let's fire and forget but log errors (handled inside the function)
+        sendCredentialIssuedEmail(
+            learner_email,
+            (learner && learner.name) ? learner.name : 'Learner',
+            issuer.name,
+            credential.id,
+            certificate_title
+        ).catch(err => logger.error('Failed to send credential email', { error: err }));
 
         return {
             credential_id,
@@ -529,6 +541,13 @@ export class CredentialIssuanceService {
         }
 
         return credential;
+    }
+
+    /**
+     * Get top issuers
+     */
+    async getTopIssuers(limit: number = 5) {
+        return await credentialIssuanceRepository.getTopIssuers(limit);
     }
 }
 
