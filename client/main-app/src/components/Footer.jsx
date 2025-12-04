@@ -23,10 +23,10 @@ const Footer = () => {
                     {/* Brand Column */}
                     <div className="space-y-6">
                         <Link to="/" className="flex items-center space-x-2 group">
-                            <div className="bg-blue-chill-600 p-2 rounded-lg group-hover:bg-blue-chill-500 transition-colors">
-                                <Shield className="w-6 h-6 text-white" />
-                            </div>
-                            <span className="text-2xl font-bold text-white tracking-tight">MicroMerit</span>
+                            {/*<div className="bg-blue-chill-600 p-2 rounded-lg group-hover:bg-blue-chill-500 transition-colors">*/}
+                            {/*    <Shield className="w-6 h-6 text-white" />*/}
+                            {/*</div>*/}
+                            <img src={"/logo.png"} alt={"MicroMerit"}/>
                         </Link>
                         <p className="text-sm leading-relaxed text-gray-400">
                             India's first decentralized credential wallet. Empowering learners, issuers, and employers with secure, verifiable, and AI-powered skill data.
@@ -116,7 +116,7 @@ const Footer = () => {
                             </li>
                             <li className="flex items-start space-x-3">
                                 <MapPin className="w-5 h-5 text-blue-chill-500 flex-shrink-0" />
-                                <span>SKIT, Jaipur, Rajasthan 302017</span>
+                                <span>BVM, Anand, Gujarat 388120</span>
                             </li>
                             <li className="flex items-center space-x-3">
                                 <Mail className="w-5 h-5 text-blue-chill-500 flex-shrink-0" />
