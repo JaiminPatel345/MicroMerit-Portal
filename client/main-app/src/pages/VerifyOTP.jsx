@@ -5,6 +5,7 @@ import { signUpLeaner, signInIssuer } from '../services/authServices';
 import { useDispatch } from 'react-redux';
 import { issuerLoginSuccess } from '../store/authIssuerSlice';
 import { learnerLoginSuccess } from '../store/authLearnerSlice';
+import { setNotification } from '../utils/notification';
 const VerifyOTP = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,6 +20,7 @@ const VerifyOTP = () => {
 
   useEffect(() => {
     if (!identifier || !type) {
+      setNotification('Invalid verification session. Please try again.', 'error');
       navigate('/signup');
     }
   }, [identifier, type, navigate]);

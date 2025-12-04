@@ -4,6 +4,7 @@ import { User, Mail, Phone, Calendar, Upload, CheckCircle, Lock } from 'lucide-r
 import { useDispatch } from 'react-redux';
 import { learnerLoginSuccess } from '../../store/authLearnerSlice';
 import { completeProfile } from '../../services/authServices';
+import { setNotification } from '../../utils/notification';
 
 const ProfileBuilder = () => {
   const navigate = useNavigate();
@@ -37,6 +38,7 @@ const ProfileBuilder = () => {
       return;
     }
     if (!identifier || !type) {
+      setNotification('Session expired or invalid access. Please sign up again.', 'error');
       navigate('/signup');
     }
   }, [identifier, type, loginMethod, navigate]);

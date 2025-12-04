@@ -97,6 +97,12 @@ function Layout() {
                 </AuthRoutes>
               } />
 
+              <Route path="/pathway" element={
+                <AuthRoutes role="learner">
+                  <Roadmap />
+                </AuthRoutes>
+              } />
+
               <Route path="/skills" element={
                 <AuthRoutes role="learner">
                   <SkillProfile />
