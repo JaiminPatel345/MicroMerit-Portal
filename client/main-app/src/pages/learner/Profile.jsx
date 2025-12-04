@@ -183,7 +183,7 @@ export default function PublicProfile() {
           <>
             <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-6">
               {certificates.map((cert, i) => (
-                <Link to={`/credential/${cert.id}`} key={cert.id}>
+                <Link to={isOwner ? `/credential/${cert.id}` : `/c/${cert.credential_id}`} key={cert.id}>
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}

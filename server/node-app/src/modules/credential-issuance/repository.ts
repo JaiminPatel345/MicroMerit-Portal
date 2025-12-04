@@ -232,7 +232,8 @@ export class CredentialIssuanceRepository {
                 learner: {
                     select: {
                         id: true,
-                        name: true
+                        name: true,
+                        profileUrl: true
                     }
                 }
             }
