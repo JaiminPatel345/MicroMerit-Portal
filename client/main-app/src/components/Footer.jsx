@@ -116,7 +116,7 @@ const Footer = () => {
                             </li>
                             <li className="flex items-start space-x-3">
                                 <MapPin className="w-5 h-5 text-blue-chill-500 flex-shrink-0" />
-                                <span>SKIT, Jaipur, Rajasthan 302017</span>
+                                <span>BVM, Anand, Gujarat 388120</span>
                             </li>
                             <li className="flex items-center space-x-3">
                                 <Mail className="w-5 h-5 text-blue-chill-500 flex-shrink-0" />

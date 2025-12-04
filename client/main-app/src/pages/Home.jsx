@@ -23,6 +23,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { credentialServices } from '../services/credentialServices';
+import CountUp from '../components/CountUp';
 import Footer from '../components/Footer';
 
 const Home = () => {
@@ -224,18 +225,9 @@ const Home = () => {
               transition={{ duration: 1.0, ease: "easeOut" }}
               className="relative w-full max-w-lg mx-auto order-1 lg:order-2 mb-8 lg:mb-0"
             >
-              <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 border border-gray-200 ring-1 ring-gray-100 transform lg:rotate-2 transition-transform duration-500 ease-out">
+              <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 border border-gray-200 ring-1 ring-gray-100 transition-transform duration-500 ease-out">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-gray-900 flex items-center"><Wallet className="w-5 h-5 mr-2 text-blue-chill-600" /> Live Credentials</h3>
-                  <div className="text-right">
-                    {isLoadingCredentials ? (
-                      <span className="text-xs font-medium text-gray-500 animate-pulse">Loading...</span>
-                    ) : (
-                      <p className="text-xs font-bold text-blue-chill-600 bg-blue-chill-50 px-2 py-1 rounded-md">
-                        {totalCredentials.toLocaleString()} Issued
-                      </p>
-                    )}
-                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 flex items-center"><Wallet className="w-5 h-5 mr-2 text-blue-chill-600" />Latest Credentials</h3>
                 </div>
                 <div className="space-y-3">
                   {isLoadingCredentials ? (
@@ -287,6 +279,40 @@ const Home = () => {
                   )}
                 </div>
               </div>
+
+              {/* Floating Stats Card */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: [0, -10, 0] }}
+                transition={{
+                  opacity: { duration: 0.5, delay: 0.8 },
+                  scale: { duration: 0.5, delay: 0.8 },
+                  y: { repeat: Infinity, duration: 4, ease: "easeInOut" }
+                }}
+                className="absolute -top-12 -left-8 bg-white p-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-gray-100 z-20 flex items-center gap-3"
+              >
+                <div className="bg-yellow-50 p-2.5 rounded-full">
+                  <Award className="w-6 h-6 text-yellow-600" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-2xl font-extrabold text-gray-900 leading-none flex items-center">
+                    <CountUp
+                      from={0}
+                      //TODO: Show real count after data seed
+                      to={123}
+                      // to={totalCredentials > 0 ? totalCredentials : 123}
+                      separator=","
+                      direction="up"
+                      duration={1.5}
+                      className="count-up-text"
+                    />
+                    +
+                  </span>
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1">
+                    Credentials Issued & Verified
+                  </span>
+                </div>
+              </motion.div>
             </motion.div>
           </div>
         </div>
