@@ -27,6 +27,15 @@ router.get(
 );
 
 /**
+ * GET /credentials/top-issuers
+ * Get top issuers based on number of credentials issued
+ */
+router.get(
+    '/top-issuers',
+    asyncHandler(credentialIssuanceController.getTopIssuers.bind(credentialIssuanceController))
+);
+
+/**
  * POST /credentials/issue
  * Issue a new credential
  * Protected by issuer authentication or API key

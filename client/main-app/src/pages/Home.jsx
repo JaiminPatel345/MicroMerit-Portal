@@ -16,12 +16,14 @@ import {
   ChevronRight,
   Zap,
   CheckCircle,
+  Star,
 } from 'lucide-react';
 // Assuming Link is correctly imported from react-router-dom in your environment
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { credentialServices } from '../services/credentialServices';
+import Footer from '../components/Footer';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -31,6 +33,21 @@ const Home = () => {
   const [latestCredentials, setLatestCredentials] = useState([]);
   const [totalCredentials, setTotalCredentials] = useState(0);
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
+  const [topIssuers, setTopIssuers] = useState([]);
+  const [isLoadingIssuers, setIsLoadingIssuers] = useState(true);
+
+  const fetchTopIssuers = async () => {
+    try {
+      const response = await credentialServices.getTopIssuers(5);
+      if (response.success && response.data) {
+        setTopIssuers(response.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch top issuers:', error);
+    } finally {
+      setIsLoadingIssuers(false);
+    }
+  };
 
   const fetchLatestCredentials = async () => {
     try {
@@ -55,11 +72,8 @@ const Home = () => {
   }, [isIssuerAuth, isLearnerAuth, navigate]);
 
   useEffect(() => {
-    // Initial fetch (one-time)
     fetchLatestCredentials();
-
-    // Polling removed: previously refreshed every 5 seconds.
-    // This prevents frequent network requests for Live Credentials.
+    fetchTopIssuers();
   }, []);
   // FIXED: Simplified the transition to use a standard "easeOut" for professionalism
   // and to resolve the WAAPI compatibility error.
@@ -79,39 +93,39 @@ const Home = () => {
 
   const features = [
     {
-      icon: <Wallet className="w-8 h-8 text-white" />,
-      title: "All Certificates in One Wallet",
-      description: "Automatically collect certificates from providers like Skill India Digital, DigiLocker, EdTech platforms, and Universities"
+      icon: <Wallet className="w-6 h-6 text-blue-chill-200" />,
+      title: "Unified Wallet",
+      description: "Collect certificates from Skill India, DigiLocker, and Universities in one secure place."
     },
     {
-      icon: <TrendingUp className="w-8 h-8 text-white" />,
-      title: "AI Skill Pathway",
-      description: "Understand your current skill level, get AI-powered recommendations, and predict your NSQF level"
+      icon: <TrendingUp className="w-6 h-6 text-blue-chill-600" />,
+      title: "AI Pathways",
+      description: "Get AI-powered skill recommendations and predict your NSQF level instantly."
     },
     {
-      icon: <Shield className="w-8 h-8 text-white" />,
-      title: "Secure Credential Verification",
-      description: "Powered by blockchain hashing, QR verification, and provider API validation"
+      icon: <Shield className="w-6 h-6 text-blue-chill-600" />,
+      title: "Blockchain Verified",
+      description: "Tamper-proof credentials secured by blockchain hashing and cryptographic signatures."
     },
     {
-      icon: <Network className="w-8 h-8 text-white" />,
-      title: "Multi-Provider Credential Sync",
-      description: "Issue or import certificates from universities, training partners, skill councils, and EdTech platforms"
+      icon: <Network className="w-6 h-6 text-blue-chill-200" />,
+      title: "Multi-Provider Sync",
+      description: "Seamlessly import certificates from training partners, skill councils, and ed-tech."
     },
     {
-      icon: <Briefcase className="w-8 h-8 text-white" />,
-      title: "Employer-Ready Profiles",
-      description: "Generate verifiable portfolios for jobs and internships"
+      icon: <Briefcase className="w-6 h-6 text-blue-chill-600" />,
+      title: "Job-Ready Profiles",
+      description: "Generate verifiable portfolios that employers can trust and verify instantly."
     },
     {
-      icon: <Database className="w-8 h-8 text-white" />,
-      title: "Decentralized Data Integrity",
-      description: "Your data is stored securely and immutably, ensuring long-term authenticity and tamper-proof records."
+      icon: <Database className="w-6 h-6 text-blue-chill-600" />,
+      title: "Data Integrity",
+      description: "Your data is stored securely and immutably, ensuring long-term authenticity."
     }
   ];
 
   const steps = [
-    { icon: <Upload className="w-6 h-6" />, title: "Upload or Auto-Sync Certificates" },
+    { icon: <Upload className="w-6 h-6" />, title: "Issuer upload or Auto-Sync Certificates" },
     { icon: <Brain className="w-6 h-6" />, title: "AI extracts skills & levels" },
     { icon: <Lock className="w-6 h-6" />, title: "Blockchain secures authenticity" },
     { icon: <Database className="w-6 h-6" />, title: "Store in your MicroMerit Wallet" },
@@ -151,13 +165,12 @@ const Home = () => {
     }
   ];
 
-  const integrations = [
-    "DigiLocker",
-    "Skill India Digital",
-    "NSDC",
-    "Universities",
-    "EdTech Companies",
-    "Sector Skill Councils"
+  // Placeholder logos for infinite scroll
+  const partnerLogos = [
+    "https://ncvet.gov.in/wp-content/uploads/2023/09/ncvet-logo-full.jpg", // NCVET
+    "https://www.skillindiadigital.gov.in/assets/new-ux-img/skill-india-big-logo.svg", // Skill India Digital
+    "https://img1.digitallocker.gov.in/digilocker-landing-page/assets/img/DigilockerLogo.svg", // DigiLocker
+    "https://nsdcindia.org/sites/default/files/logo.jpg" //NOS
   ];
 
   return (
@@ -279,78 +292,109 @@ const Home = () => {
         </div>
       </section>
 
-      {/* ---------------------------------- Features Section (Responsive) ---------------------------------- */}
-      <section className="min-h-screen flex items-center py-16 md:py-24 bg-gray-50">
+      {/* ---------------------------------- Core Features (Bento Grid) ---------------------------------- */}
+      <section className="min-h-screen flex items-center py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12 md:mb-16"
+            className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">Core Features of MicroMerit</h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">Harnessing AI and distributed ledger technology to create a trustworthy and comprehensive skill ecosystem.</p>
+            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6">Core Features</h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Everything you need to build a trusted, verifiable, and future-ready skill profile.
+            </p>
           </motion.div>
 
-          <motion.div variants={stagger} initial="initial" whileInView="animate" viewport={{ once: true }} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {features.map((feature, index) => (
               <motion.div
                 key={index}
-                variants={fadeInUp}
-                className="bg-white rounded-2xl p-6 md:p-8 shadow-lg hover:shadow-2xl border-t-4 border-blue-chill-600 transition transform hover:scale-[1.02]"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className={`
+                  group relative overflow-hidden rounded-3xl p-8 border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500
+                  ${index === 0 || index === 3 ? 'md:col-span-2 bg-gradient-to-br from-blue-chill-50 to-white' : 'bg-white'}
+                  ${index === 1 || index === 4 ? 'bg-gradient-to-br from-gray-50 to-white' : ''}
+                  `}
               >
-                <div className="bg-blue-chill-600 p-3 rounded-xl inline-flex mb-4 shadow-md">
-                  {feature.icon}
+                <div className="relative z-10">
+                  <div className={`
+                    w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-sm transition-transform duration-500 group-hover:scale-110
+                    ${index === 0 || index === 3 ? 'bg-blue-chill-600 text-white' : 'bg-white text-blue-chill-600 border border-gray-100'}
+                    `}>
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-blue-chill-700 transition-colors">{feature.title}</h3>
+                  <p className="text-gray-600 leading-relaxed">{feature.description}</p>
                 </div>
-                <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-                <p className="text-gray-600 leading-relaxed text-sm">{feature.description}</p>
+
+                {/* Decorative Background Elements */}
+                <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-gradient-to-br from-blue-chill-100 to-transparent rounded-full opacity-0 group-hover:opacity-50 transition-opacity duration-500 blur-2xl"></div>
               </motion.div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* ---------------------------------- Process Steps (Responsive Flow) ---------------------------------- */}
-      <section className="py-16 md:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* ---------------------------------- Process Steps (Premium Flow) ---------------------------------- */}
+      <section className="py-24 bg-gradient-to-b from-white to-blue-chill-50 relative overflow-hidden">
+        {/* Background Elements */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none opacity-30">
+          <div className="absolute top-[20%] left-[10%] w-72 h-72 bg-blue-chill-200 rounded-full blur-3xl mix-blend-multiply animate-blob"></div>
+          <div className="absolute bottom-[20%] right-[10%] w-72 h-72 bg-teal-200 rounded-full blur-3xl mix-blend-multiply animate-blob animation-delay-2000"></div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12 md:mb-16"
+            className="text-center mb-20"
           >
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">The MicroMerit Flow: Simple and Secure</h2>
-            <p className="text-lg text-gray-600">From certificate upload to verified sharing in five transparent steps.</p>
+            <span className="text-blue-chill-600 font-bold tracking-wider uppercase text-sm mb-2 block">Seamless Experience</span>
+            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6">How MicroMerit Works</h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              From certificate upload to verified sharing, experience a secure and transparent journey in five simple steps.
+            </p>
           </motion.div>
 
-          {/* Flow Container */}
-          <div className="flex flex-col md:flex-row items-center justify-between relative">
-            {/* Horizontal Line Connector (Hidden on Mobile) */}
-            <div className="hidden md:block absolute top-[calc(40px+0.5rem)] left-0 right-0 h-1 bg-blue-chill-200 z-0 mx-8"></div>
+          <div className="relative">
+            {/* Connecting Line (Desktop) */}
+            <div className="hidden lg:block absolute top-1/2 left-0 w-full h-1 bg-gradient-to-r from-blue-chill-200 via-blue-chill-400 to-blue-chill-200 -translate-y-1/2 z-0 rounded-full opacity-50"></div>
 
-            {steps.map((step, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.15 }}
-                className="w-full md:w-1/5 text-center p-4 relative z-10 flex flex-col items-center"
-              >
-                {/* Vertical Line Connector (Only on Mobile) */}
-                {index > 0 && (
-                  <div className="block md:hidden absolute w-1 h-full bg-blue-chill-200 z-0 top-0 -translate-y-1/2"></div>
-                )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-6 relative z-10">
+              {steps.map((step, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.15 }}
+                  className="group relative"
+                >
+                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 h-full flex flex-col items-center text-center relative overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:border-blue-chill-300">
+                    {/* Step Number Badge */}
+                    <div className="absolute top-0 right-0 bg-blue-chill-50 text-blue-chill-600 text-xs font-bold px-3 py-1 rounded-bl-xl border-b border-l border-blue-chill-100">
+                      Step {index + 1}
+                    </div>
 
-                <div className="bg-blue-chill-600 rounded-full w-16 h-16 md:w-20 md:h-20 flex items-center justify-center mx-auto mb-4 shadow-xl text-white border-4 border-white transition-all duration-300">
-                  {step.icon}
-                </div>
-                <div className="bg-white text-blue-chill-600 rounded-full w-7 h-7 md:w-8 md:h-8 flex items-center justify-center mx-auto mb-3 font-extrabold text-xs border-2 border-blue-chill-600">
-                  {index + 1}
-                </div>
-                <p className="text-sm font-semibold text-gray-800 px-2">{step.title}</p>
-              </motion.div>
-            ))}
+                    {/* Icon Circle */}
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-chill-500 to-blue-chill-700 flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300 text-white ring-4 ring-blue-chill-50">
+                      {step.icon}
+                    </div>
+
+                    <h4 className="font-bold text-gray-900 text-lg mb-2 group-hover:text-blue-chill-700 transition-colors">{step.title}</h4>
+
+                    {/* Decorative bottom gradient */}
+                    <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-chill-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -417,101 +461,239 @@ const Home = () => {
         </div>
       </section>
 
-      {/* ---------------------------------- User Types (Responsive) ---------------------------------- */}
-      <section className="py-16 md:py-24 bg-white">
+
+      {/* ---------------------------------- Join as Issuer CTA (White Theme) ---------------------------------- */}
+      <section className="py-12 md:py-16 bg-white border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12 md:mb-16"
-          >
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">Empowering the Entire Skill Ecosystem</h2>
-            <p className="text-lg text-gray-600">MicroMerit provides tailored solutions for everyone involved in skilling.</p>
-          </motion.div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
-            {userTypes.map((type, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.15, duration: 0.7 }}
-                className={`rounded-2xl shadow-xl overflow-hidden transform hover:scale-[1.02] transition-transform duration-500`}
-              >
-                {/* Header */}
-                <div className={`${type.color} text-white p-6 md:p-8 flex flex-col items-center justify-center`}>
-                  {type.icon}
-                  <h3 className="text-2xl md:text-3xl font-extrabold mt-4">{type.title}</h3>
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Right Content - Feature Cards */}
+            <div className="grid gap-5">
+              {/* Feature Card 1: Manual Issuance */}
+              <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-300 group">
+                <div className="flex items-start">
+                  <div className="bg-blue-chill-50 p-3 rounded-xl mr-5 group-hover:bg-blue-chill-100 transition-colors">
+                    <Upload className="w-6 h-6 text-blue-chill-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Bulk Upload & Issue</h3>
+                    <p className="text-gray-600 text-sm leading-relaxed">
+                      Upload CSV/Excel files to issue thousands of certificates in minutes. Perfect for universities, training centers, and event organizers.
+                    </p>
+                  </div>
                 </div>
+              </div>
 
-                {/* Benefits */}
-                <div className="bg-white p-6 md:p-8">
-                  <ul className="space-y-4">
-                    {type.benefits.map((benefit, i) => (
-                      <li key={i} className="flex items-start text-gray-700 border-b border-gray-100 pb-2">
-                        <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-1" />
-                        <span className="font-medium">{benefit}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Link to={type.title === "For Providers" ? "/issuer/signup" : `/for-${type.title.toLowerCase().replace(' ', '-')}`} className={`mt-8 inline-block w-full text-center ${type.color} text-white px-6 py-3 rounded-full font-semibold hover:opacity-90 transition text-base`}>
-                    {type.title === "For Providers" ? "Join as Issuer" : "Learn More"} <ChevronRight className="w-4 h-4 inline-block ml-1" />
-                  </Link>
+              {/* Feature Card 2: API Integration */}
+              <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-300 group">
+                <div className="flex items-start">
+                  <div className="bg-blue-chill-50 p-3 rounded-xl mr-5 group-hover:bg-blue-chill-100 transition-colors">
+                    <Network className="w-6 h-6 text-blue-chill-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Developer API</h3>
+                    <p className="text-gray-600 text-sm leading-relaxed">
+                      Integrate our REST API directly into your LMS or ERP. Automate issuance upon course completion with seamless backend syncing.
+                    </p>
+                  </div>
                 </div>
-              </motion.div>
-            ))}
+              </div>
+            </div>
+            {/* Left Content */}
+            <div>
+              <span className="inline-block py-1 px-3 rounded-full bg-blue-chill-50 text-blue-chill-600 text-xs font-bold tracking-wider uppercase mb-4 border border-blue-chill-100">
+                For Organizations & Institutions
+              </span>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-gray-900 mb-4 leading-tight">
+                Empower Your Learners with <span className="text-blue-chill-600">Verifiable Credentials</span>
+              </h2>
+              <p className="text-base md:text-lg text-gray-600 mb-6 max-w-xl leading-relaxed">
+                Join the MicroMerit ecosystem to issue tamper-proof e-certificates instantly. Streamline your certification process with our secure platform.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link to="/issuer/signup" className="flex items-center justify-center px-6 py-3 bg-blue-chill-600 text-white rounded-xl font-bold text-base hover:bg-blue-chill-700 transition shadow-lg hover:shadow-blue-chill-200 transform hover:-translate-y-1">
+                  Join as Issuer <ChevronRight className="w-5 h-5 ml-2" />
+                </Link>
+                <Link to="/issuer/login" className="flex items-center justify-center px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-bold text-base hover:border-blue-chill-600 hover:text-blue-chill-600 transition">
+                  Sign In
+                </Link>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
 
-      {/* ---------------------------------- Integrations (Responsive) ---------------------------------- */}
-      <section className="py-16 md:py-20 bg-blue-chill-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12 md:mb-16"
-          >
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">Trusted Across India's Skilling Ecosystem</h2>
-            <p className="text-lg text-gray-600">Seamlessly integrated with government portals, educational bodies, and industry leaders.</p>
-          </motion.div>
+      {/* ---------------------------------- Trusted Ecosystem (Infinite Scroll) ---------------------------------- */}
+      <section className="py-8 bg-white border-y border-gray-100 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 text-center">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Trusted Across India's Skilling Ecosystem</p>
+        </div>
 
-          <div className="flex flex-wrap justify-center items-center gap-6 md:gap-12">
-            {integrations.map((integration, index) => (
-              <motion.div
+        <div className="relative flex overflow-x-hidden group">
+          <div className="animate-marquee whitespace-nowrap flex items-center space-x-16 px-8">
+            {partnerLogos.map((logo, index) => (
+              <img
                 key={index}
-                initial={{ opacity: 0, scale: 0.7 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-xl px-6 py-4 shadow-lg border-2 border-gray-100 hover:border-blue-chill-400 transition transform hover:scale-105"
-              >
-                <p className="text-lg font-bold text-gray-800 tracking-wider">{integration}</p>
-              </motion.div>
+                src={logo}
+                alt="Partner Logo"
+                className="h-12 md:h-16 w-auto object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300"
+                onError={(e) => { e.target.style.display = 'none' }} // Hide broken images
+              />
+            ))}
+          </div>
+          <div className="absolute top-0 animate-marquee2 whitespace-nowrap flex items-center space-x-16 px-8">
+            {partnerLogos.map((logo, index) => (
+              <img
+                key={`dup-${index}`}
+                src={logo}
+                alt="Partner Logo"
+                className="h-12 md:h-16 w-auto object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300"
+                onError={(e) => { e.target.style.display = 'none' }}
+              />
             ))}
           </div>
         </div>
       </section>
+      {/* ---------------------------------- Top Issuers Section (Logo Wall Premium Redesign) ---------------------------------- */}
+      <section className="py-20 relative overflow-hidden bg-gray-50"> {/* Added a light background for contrast */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
+              Global Leaders in Credentialing
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Discover the leading organizations empowering learners and professionals with verifiable credentials.
+            </p>
+          </div>
 
-      {/* ---------------------------------- Call to Action (Final) ---------------------------------- */}
-      <section className="py-20 md:py-24 bg-gradient-to-r from-blue-chill-600 to-blue-chill-800 text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          {isLoadingIssuers ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
+                <div key={i} className="flex flex-col items-center justify-center p-4 h-24 rounded-lg bg-white shadow-sm animate-pulse"></div>
+              ))}
+            </div>
+          ) : topIssuers.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-y-12 gap-x-4 md:gap-x-8">
+              {topIssuers.map((issuer, index) => {
+                // Determine rank styling
+                let rankBg = "bg-gray-200 text-gray-600";
+                let rankBorder = "border-gray-200";
+                let scale = "scale-100";
+
+                if (index === 0) {
+                  rankBg = "bg-yellow-500 text-white";
+                  rankBorder = "border-yellow-400";
+                  scale = "lg:scale-110"; // Make the top one slightly larger on large screens
+                } else if (index === 1) {
+                  rankBg = "bg-gray-400 text-white";
+                  rankBorder = "border-gray-300";
+                } else if (index === 2) {
+                  rankBg = "bg-orange-400 text-white";
+                  rankBorder = "border-orange-300";
+                }
+
+                return (
+                  <motion.div
+                    key={issuer.id}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, amount: 0.1 }}
+                    transition={{ delay: index * 0.05, duration: 0.5 }}
+                    className={`relative flex flex-col items-center text-center p-3 transition-all duration-500 hover:z-20 ${scale} hover:shadow-xl hover:bg-white rounded-xl`}
+                  >
+                    {/* Rank Badge - More prominent */}
+                    <div className={`absolute -top-4 ${index < 3 ? 'w-8 h-8' : 'w-6 h-6'} rounded-full flex items-center justify-center text-xs font-black shadow-md ${rankBg}`}>
+                      {index + 1}
+                    </div>
+
+                    {/* Logo Container */}
+                    <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white p-2 flex items-center justify-center overflow-hidden border-4 ${rankBorder} transition-all duration-300 shadow-lg mt-4`}>
+                      {issuer.logo_url ? (
+                        <img
+                          src={issuer.logo_url}
+                          alt={`${issuer.name} logo`}
+                          className="w-full h-full object-contain rounded-full"
+                          style={{ filter: index >= 3 ? 'grayscale(100%) opacity(70%)' : 'none' }} // Subtle effect for lower ranks
+                        />
+                      ) : (
+                        <Building2 className={`w-8 h-8 ${index === 0 ? 'text-yellow-500' : 'text-gray-400'}`} />
+                      )}
+                    </div>
+
+                    {/* Issuer Details on Hover (Collapsed on default) */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-white bg-opacity-95 backdrop-blur-sm rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer">
+                      <h3 className="font-extrabold text-gray-900 text-base mb-1 text-center line-clamp-2">{issuer.name}</h3>
+                      <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-3">{issuer.type}</p>
+
+                      <div className="flex items-center justify-center text-blue-chill-600 font-bold text-sm bg-blue-chill-50 px-3 py-1 rounded-full">
+                        <Award className="w-4 h-4 mr-1" />
+                        {issuer.credentials_issued.toLocaleString()} Credentials
+                      </div>
+                    </div>
+
+                    {/* Default Label (Visible when not hovering) */}
+                    <h3 className="font-semibold text-gray-800 text-sm mt-3 line-clamp-1 w-full">{issuer.name}</h3>
+
+                  </motion.div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
+              <div className="bg-gray-200 p-4 rounded-full mb-3">
+                <Building2 className="w-8 h-8 text-gray-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">No Issuers Found</h3>
+              <p className="text-gray-500 mt-1">Be the first to join the network.</p>
+              <Link to="/issuer/signup" className="mt-4 text-sm text-blue-chill-600 font-semibold hover:text-blue-chill-700 flex items-center">
+                Become an Issuer <ChevronRight className="w-3 h-3 ml-1" />
+              </Link>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ---------------------------------- Verify Credential CTA ---------------------------------- */}
+      <section className="py-20 md:py-24 bg-gradient-to-r from-blue-chill-600 to-blue-chill-800 text-white relative overflow-hidden">
+        {/* Background Patterns */}
+        <div className="absolute top-0 left-0 w-full h-full opacity-10">
+          <div className="absolute right-0 top-0 w-96 h-96 bg-white rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          <div className="absolute left-0 bottom-0 w-64 h-64 bg-teal-400 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+        </div>
+
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-4xl md:text-5xl font-extrabold mb-6">Build a Verifiable, Future-Ready Profile</h2>
-            <p className="text-lg md:text-xl mb-10 text-blue-chill-100 max-w-2xl mx-auto">Take control of your credentials. Sign up today and experience the future of skill verification.</p>
-            <Link to="/signup" className="inline-block bg-white text-blue-chill-600 px-8 md:px-12 py-4 md:py-5 rounded-full hover:bg-blue-chill-50 transition font-bold text-lg md:text-xl shadow-2xl shadow-blue-chill-900/50 transform hover:scale-105">
-              Create Your Free Account
-            </Link>
+            <div className="inline-flex items-center justify-center p-3 bg-white/10 rounded-full mb-6 backdrop-blur-sm border border-white/20">
+              <CheckCircle className="w-6 h-6 text-teal-300 mr-2" />
+              <span className="font-semibold text-blue-chill-50">Instant Verification</span>
+            </div>
+
+            <h2 className="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">
+              Verify Any Credential in Seconds
+            </h2>
+            <p className="text-lg md:text-xl mb-10 text-blue-chill-100 max-w-2xl mx-auto leading-relaxed">
+              Ensure the authenticity of skills and achievements. Our blockchain-backed verification guarantees trust and transparency for employers and institutions.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link to="/verify" className="inline-flex items-center justify-center bg-white text-blue-chill-700 px-8 md:px-10 py-4 rounded-xl hover:bg-blue-chill-50 transition font-bold text-lg shadow-xl shadow-blue-chill-900/20 transform hover:-translate-y-1 w-full sm:w-auto">
+                Verify Now <ChevronRight className="w-5 h-5 ml-2" />
+              </Link>
+              <Link to="/signup" className="inline-flex items-center justify-center bg-transparent border-2 border-white/30 text-white px-8 md:px-10 py-4 rounded-xl hover:bg-white/10 transition font-bold text-lg w-full sm:w-auto">
+                Create Account
+              </Link>
+            </div>
           </motion.div>
         </div>
       </section>
+
+      {/* ---------------------------------- Footer ---------------------------------- */}
+      <Footer />
     </div>
   );
 };

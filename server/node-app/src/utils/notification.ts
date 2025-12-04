@@ -27,11 +27,11 @@ const getTwilioClient = (): Twilio => {
   if (!twilioClient) {
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
-    
+
     if (!accountSid || !authToken) {
       throw new Error('Twilio credentials not configured');
     }
-    
+
     twilioClient = new Twilio(accountSid, authToken);
   }
   return twilioClient;
@@ -47,14 +47,14 @@ export const sendOTPEmail = async (email: string, otp: string): Promise<void> =>
   try {
     // TODO: Re-enable email sending when SMTP is properly configured
     // Temporarily disabled - OTP is only logged for development/testing
-    
+
     logger.warn(`[DEV MODE] OTP for ${email}: ${otp} (valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes)`);
     logger.info(`OTP email would be sent to ${email} (currently disabled)`);
-    
+
     // TEMPORARILY COMMENTED OUT - Uncomment when ready to send actual emails
-    /*
+
     const transporter = getEmailTransporter();
-    
+
     const mailOptions = {
       from: process.env.SMTP_USER,
       to: email,
@@ -69,10 +69,10 @@ export const sendOTPEmail = async (email: string, otp: string): Promise<void> =>
         </div>
       `,
     };
-    
+
     await transporter.sendMail(mailOptions);
     logger.info(`OTP email sent to ${email}`);
-    */
+
   } catch (error) {
     logger.error('Error in sendOTPEmail:', error);
     throw new Error('Failed to send OTP email');
@@ -89,10 +89,10 @@ export const sendOTPSMS = async (phone: string, otp: string): Promise<void> => {
   try {
     // TODO: Re-enable Twilio SMS when ready for production
     // Temporarily disabled - OTP is only logged for development/testing
-    
+
     logger.warn(`[DEV MODE] OTP for ${phone}: ${otp} (valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes)`);
     logger.info(`OTP SMS would be sent to ${phone} (currently disabled)`);
-    
+
     // TEMPORARILY COMMENTED OUT - Uncomment when ready to send actual SMS
     /*
     const client = getTwilioClient();
@@ -134,5 +134,72 @@ export const sendOTP = async (
     await sendOTPSMS(recipient, otp);
   } else {
     throw new Error('Invalid verification method');
+  }
+};
+
+/**
+ * Send Credential Issued Email
+ * @param email - Learner email
+ * @param learnerName - Learner name
+ * @param issuerName - Issuer name
+ * @param credentialId - Credential ID
+ * @param certificateTitle - Certificate title
+ * @returns Promise<void>
+ */
+export const sendCredentialIssuedEmail = async (
+  email: string,
+  learnerName: string,
+  issuerName: string,
+  credentialId: string,
+  certificateTitle: string
+): Promise<void> => {
+  try {
+    const transporter = getEmailTransporter();
+    const publicLink = `http://localhost:5173/credential/${credentialId}`;
+
+
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: email,
+      subject: `MicroMerit - You've received a new credential from ${issuerName}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #333;">New Credential Issued!</h2>
+          </div>
+          
+          <p>Hello <strong>${learnerName}</strong>,</p>
+          
+          <p>We are excited to inform you that <strong>${issuerName}</strong> has issued you a new credential:</p>
+          
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0; text-align: center;">
+            <h3 style="margin: 0; color: #2196F3;">${certificateTitle}</h3>
+          </div>
+          
+          <p>You can view and verify your credential publicly at the following link:</p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${publicLink}" style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">View Credential</a>
+          </div>
+          
+          <p style="font-size: 12px; color: #666; text-align: center;">
+            Or copy this link: <a href="${publicLink}">${publicLink}</a>
+          </p>
+          
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+          
+          <p style="font-size: 12px; color: #888; text-align: center;">
+            This is an automated message from MicroMerit.
+          </p>
+        </div>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    logger.info(`Credential issued email sent to ${email}`);
+  } catch (error) {
+    logger.error('Error in sendCredentialIssuedEmail:', error);
+    // We don't throw here to avoid failing the main issuance process if email fails
+    // But we log it as an error
   }
 };

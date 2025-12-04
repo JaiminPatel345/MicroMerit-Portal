@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Phone, ArrowLeft } from 'lucide-react';
-import Button from '../components/Button';
-import { sendOTP , verifyOTP } from '../services/authServices';
+import Button from '../../components/Button';
+import { sendOTP, verifyOTP } from '../../services/authServices';
 
 const OTPVerification = () => {
   const navigate = useNavigate();
