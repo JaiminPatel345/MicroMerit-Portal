@@ -35,7 +35,11 @@ describe('AI Service', () => {
             const mockCertificates = [
                 {
                     certificate_title: 'Python Programming',
-                    metadata: { skills: ['Python', 'Data Analysis'] },
+                    metadata: {
+                        ai_extracted: {
+                            skills: ['Python', 'Data Analysis']
+                        }
+                    },
                     issued_at: new Date('2024-01-15'),
                     issuer: { name: 'TechUniversity' }
                 }
@@ -96,7 +100,15 @@ describe('AI Service', () => {
                             certificate_title: 'Python Programming',
                             issuer_name: 'TechUniversity',
                             issued_at: mockCertificates[0]!.issued_at,
-                            metadata: mockCertificates[0]!.metadata
+                            metadata: {
+                                ai_extracted: {
+                                    skills: ['Python', 'Data Analysis'],
+                                    nsqf: {},
+                                    keywords: [],
+                                    description: '',
+                                    certificate_metadata: {}
+                                }
+                            }
                         }
                     ]
                 },
