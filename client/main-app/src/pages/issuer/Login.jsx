@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { validateEmail, validatePassword } from "../../utils/formValidation";
 import { issuerServices } from "../../services/issuerServices";
 import { issuerLoginSuccess } from "../../store/authIssuerSlice";
 import { useDispatch } from "react-redux";
 import { setNotification } from "../../utils/notification";
+import logo_1 from "../../assets/logo_1.png";
 
 export default function IssuerLogin() {
   const navigate = useNavigate();
@@ -80,6 +81,11 @@ export default function IssuerLogin() {
       <div className="bg-white p-6 sm:p-10 rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200">
 
         {/* Branding & Context */}
+        <div className="text-center mb-2">
+          <Link to="/" className="inline-block">
+            <img src={logo_1} alt="MicroMerit" className="h-20 w-auto mx-auto" />
+          </Link>
+        </div>
         <p className="text-center text-sm font-semibold text-gray-500 mb-2 uppercase tracking-widest">
           MicroMerit Platform
         </p>
