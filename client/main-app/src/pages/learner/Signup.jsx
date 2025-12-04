@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Mail, Phone, Lock, Chrome } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Mail, Lock, Chrome } from 'lucide-react';
 import { oauthGoogleLogin, signUpLeaner } from '../../services/authServices';
+import logo_1 from '../../assets/logo_1.png';
 
 
 const Signup = () => {
@@ -9,7 +10,6 @@ const Signup = () => {
   const [loginMethod, setLoginMethod] = useState(null);
   const [formData, setFormData] = useState({
     email: '',
-    mobile: '',
   });
   const [errors, setErrors] = useState({});
 
@@ -18,10 +18,7 @@ const Signup = () => {
     return emailRegex.test(email);
   };
 
-  const validateMobile = (mobile) => {
-    const mobileRegex = /^[6-9]\d{9}$/;
-    return mobileRegex.test(mobile);
-  };
+
 
   const validateForm = () => {
     const newErrors = {};
@@ -34,13 +31,7 @@ const Signup = () => {
       }
     }
 
-    if (loginMethod === 'mobile') {
-      if (!formData.mobile.trim()) {
-        newErrors.mobile = 'Mobile number is required';
-      } else if (!validateMobile(formData.mobile)) {
-        newErrors.mobile = 'Please enter a valid 10-digit mobile number';
-      }
-    }
+
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -61,30 +52,7 @@ const Signup = () => {
       return;
     }
 
-    if (loginMethod === 'mobile') {
-
-      try {
-
-        const response = await signUpLeaner.start({ phone: formData.mobile });
-        if (response?.data?.success === true) {
-          navigate('/verify-otp', {
-            state: {
-              identifier: formData.mobile,
-              type: 'mobile',
-              verificationType: 'signup',
-              sessionId: response.data.data.sessionId
-
-            }
-          });
-        }
-
-
-      } catch (err) {
-        setErrors({ mobile: err.response?.data?.message || 'Mobile signup failed. Please try again.' });
-        console.error('Error during mobile signup:', err);
-      }
-    }
-    else if (loginMethod === 'email') {
+    if (loginMethod === 'email') {
 
       try {
 
@@ -136,9 +104,12 @@ const Signup = () => {
 
   if (!loginMethod) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-chill-50 to-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gradient-to-b from-blue-chill-200 to-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full">
           <div className="text-center mb-8">
+            <Link to="/" className="inline-block mb-2">
+              <img src={logo_1} alt="MicroMerit" className="h-30 w-auto mx-auto" />
+            </Link>
             <h2 className="text-4xl font-bold text-gray-900 mb-2">Create Account</h2>
             <p className="text-gray-600">Choose your preferred signup method</p>
           </div>
@@ -159,20 +130,7 @@ const Signup = () => {
               </div>
             </button>
 
-            <button
-              onClick={() => setLoginMethod('mobile')}
-              className="w-full bg-white border-2 border-gray-200 hover:border-blue-chill-500 hover:bg-blue-chill-50 rounded-xl p-6 transition flex items-center justify-between group"
-            >
-              <div className="flex items-center space-x-4">
-                <div className="bg-blue-chill-100 p-3 rounded-lg group-hover:bg-blue-chill-200 transition">
-                  <Phone className="w-6 h-6 text-blue-chill-600" />
-                </div>
-                <div className="text-left">
-                  <p className="font-semibold text-gray-900">Mobile Number</p>
-                  <p className="text-sm text-gray-500">Sign up with OTP verification</p>
-                </div>
-              </div>
-            </button>
+
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -222,7 +180,7 @@ const Signup = () => {
             <span className="mr-2">←</span> Back
           </button>
           <h2 className="text-4xl font-bold text-gray-900 mb-2">
-            {loginMethod === 'email' ? 'Sign Up with Email' : 'Sign Up with Mobile'}
+            {loginMethod === 'email' ? 'Sign Up with Email' : 'Sign Up'}
           </h2>
           <p className="text-gray-600">Create your MicroMerit account</p>
         </div>
@@ -257,38 +215,13 @@ const Signup = () => {
               </>
             )}
 
-            {loginMethod === 'mobile' && (
-              <div>
-                <label htmlFor="mobile" className="block text-sm font-semibold text-gray-700 mb-2">
-                  Mobile Number
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Phone className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="tel"
-                    id="mobile"
-                    name="mobile"
-                    value={formData.mobile}
-                    onChange={handleInputChange}
-                    className={`block w-full pl-10 pr-3 py-3 border ${errors.mobile ? 'border-red-500' : 'border-gray-300'
-                      } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-transparent`}
-                    placeholder="10-digit mobile number"
-                    maxLength="10"
-                  />
-                </div>
-                {errors.mobile && (
-                  <p className="mt-1 text-sm text-red-600">{errors.mobile}</p>
-                )}
-              </div>
-            )}
+
 
             <button
               type="submit"
               className="w-full bg-blue-chill-600 text-white py-3 px-4 rounded-lg hover:bg-blue-chill-700 transition font-semibold text-lg shadow-lg hover:shadow-xl"
             >
-              {loginMethod === 'mobile' ? 'Send OTP' : 'Continue'}
+              {'Continue'}
             </button>
           </form>
         </div>

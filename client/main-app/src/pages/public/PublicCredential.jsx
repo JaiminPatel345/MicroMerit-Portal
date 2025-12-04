@@ -86,6 +86,27 @@ const PublicCredential = () => {
     return (
         <div className="min-h-screen bg-gray-50 p-6 lg:p-10">
             <div className="max-w-5xl mx-auto">
+                {/* Learner Profile Overview (Top Banner) */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <img
+                            src={credential.learner?.profileUrl || "https://ui-avatars.com/api/?name=" + credential.learner?.name}
+                            alt={credential.learner?.name}
+                            className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm"
+                        />
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">{credential.learner?.name}</h2>
+                            <p className="text-sm text-gray-500">Learner Profile</p>
+                        </div>
+                    </div>
+                    <Link
+                        to={`/p/${credential.learner?.id}`}
+                        className="px-4 py-2 bg-blue-chill-50 text-blue-chill-700 rounded-lg font-medium hover:bg-blue-chill-100 transition-colors flex items-center gap-2"
+                    >
+                        View Profile <ArrowRight size={16} />
+                    </Link>
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
                     {/* Left Column: Certificate Preview & Actions */}
@@ -147,6 +168,8 @@ const PublicCredential = () => {
                                 Issuer <strong>{credential.issuer?.name}</strong> is highly trusted.
                             </p>
                         </div>
+
+
                     </div>
 
                     {/* Right Column: Details & AI Insights */}
@@ -303,6 +326,59 @@ const PublicCredential = () => {
                                         </>
                                     )}
                                 </p>
+
+                                {/* Job Recommendations */}
+                                {(credential.metadata?.job_recommendations || credential.metadata?.ai_extracted?.job_recommendations)?.length > 0 && (
+                                    <div>
+                                        <h4 className="text-sm font-bold text-blue-300 mb-3 uppercase tracking-wider">Recommended Roles</h4>
+                                        <div className="space-y-3">
+                                            {(credential.metadata?.job_recommendations || credential.metadata?.ai_extracted?.job_recommendations).map((job, idx) => (
+                                                <div key={idx} className="bg-white/10 p-3 rounded-lg border border-white/10">
+                                                    <div className="flex justify-between items-start">
+                                                        <h5 className="font-bold text-sm text-white">{job.role}</h5>
+                                                        <span className="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">
+                                                            {job.match_percentage}%
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-400 mt-1">{job.reasoning}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* NOS Data */}
+                                {(credential.metadata?.nos_data || credential.metadata?.ai_extracted?.nos_data) && (
+                                    <div>
+                                        <h4 className="text-sm font-bold text-purple-300 mb-2 uppercase tracking-wider">NOS Alignment</h4>
+                                        <div className="bg-white/5 p-3 rounded-lg border border-white/5 text-sm text-gray-300">
+                                            <p><strong>QP Code:</strong> {(credential.metadata?.nos_data || credential.metadata?.ai_extracted?.nos_data).qp_code}</p>
+                                            <p><strong>NOS Code:</strong> {(credential.metadata?.nos_data || credential.metadata?.ai_extracted?.nos_data).nos_code}</p>
+                                            <p className="mt-1 text-xs text-gray-400">{(credential.metadata?.nos_data || credential.metadata?.ai_extracted?.nos_data).description}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <Link
+                                    to="/roadmap"
+                                    state={{
+                                        skills: credential.metadata?.ai_extracted?.skills || [],
+                                        title: credential.certificate_title
+                                    }}
+                                    className="block bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-white/10 hover:bg-white/20 transition-colors cursor-pointer group"
+                                >
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <h4 className="font-bold text-blue-300 group-hover:text-blue-200">
+                                                View Career Pathways
+                                            </h4>
+                                            <p className="text-xs text-gray-400 mt-1">
+                                                Explore opportunities based on your skills
+                                            </p>
+                                        </div>
+                                        <ArrowRight size={18} className="text-gray-400 group-hover:text-white" />
+                                    </div>
+                                </Link>
                             </div>
                         </div>
 
