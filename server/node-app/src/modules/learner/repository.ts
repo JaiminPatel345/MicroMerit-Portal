@@ -73,7 +73,6 @@ export class LearnerRepository {
       orderBy: { created_at: 'desc' },
     });
   }
-
   /**
    * Email verification session methods
    */
@@ -334,6 +333,33 @@ export class LearnerRepository {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async isEmailUsedAsSecondary(email: string): Promise<boolean> {
+    const learner = await prisma.learner.findFirst({
+      where: {
+        other_emails: {
+          has: email
+        }
+      }
+    });
+    return !!learner;
+  }
+
+  async claimCredentials(learnerId: number, email: string) {
+    return prisma.credential.updateMany({
+      where: {
+        learner_email: {
+          equals: email,
+          mode: 'insensitive',
+        },
+        status: 'unclaimed',
+      },
+      data: {
+        learner_id: learnerId,
+        status: 'issued',
+      },
+    });
   }
 }
 

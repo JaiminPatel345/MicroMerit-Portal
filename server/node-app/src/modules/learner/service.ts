@@ -42,6 +42,11 @@ export class LearnerService {
       if (existingLearner) {
         throw new Error('Learner with this email already exists');
       }
+
+      const isSecondary = await learnerRepository.isEmailUsedAsSecondary(data.email);
+      if (isSecondary) {
+        throw new Error('Email is already registered as a secondary email');
+      }
     }
 
     if (data.phone) {
@@ -112,6 +117,7 @@ export class LearnerService {
 
     logger.info('Learner logged in', { learnerId: learner.id, email: learner.email, phone: learner.phone });
 
+
     // Generate tokens
     const tokens = generateTokens({
       id: learner.id,
@@ -181,6 +187,11 @@ export class LearnerService {
       if (existingLearner && existingLearner.id !== learnerId) {
         throw new Error('Email is already in use');
       }
+
+      const isSecondary = await learnerRepository.isEmailUsedAsSecondary(data.email);
+      if (isSecondary) {
+        throw new Error('Email is already registered as a secondary email');
+      }
     }
 
     // Check if phone is being updated and already exists
@@ -237,6 +248,12 @@ export class LearnerService {
     const isAlreadyAdded = await learnerRepository.isEmailAlreadyAdded(learnerId, email);
     if (isAlreadyAdded) {
       throw new Error('Email is already added to your account');
+    }
+
+    // Check if email is used as secondary email by any user
+    const isUsedAsSecondary = await learnerRepository.isEmailUsedAsSecondary(email);
+    if (isUsedAsSecondary) {
+      throw new Error('Email is already registered as a secondary email');
     }
 
     // Generate OTP
@@ -310,6 +327,9 @@ export class LearnerService {
     // Add email to other_emails
     await learnerRepository.addEmailToOtherEmails(learnerId, session.email);
 
+    // Claim any pre-issued (unclaimed) credentials for this email
+    await learnerRepository.claimCredentials(learnerId, session.email);
+
     logger.info('Email added to learner account', { learnerId, email: session.email });
 
     return {
@@ -337,6 +357,11 @@ export class LearnerService {
     const existingLearner = await learnerRepository.findByEmail(email);
     if (existingLearner) {
       throw new Error('Email is already registered');
+    }
+
+    const isSecondary = await learnerRepository.isEmailUsedAsSecondary(email);
+    if (isSecondary) {
+      throw new Error('Email is already registered as a secondary email');
     }
 
     // Generate OTP
