@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { oauthGoogleLogin } from '../../services/authServices';
 import { learnerLoginSuccess } from '../../store/authLearnerSlice';
 
 const GoogleCallback = () => {
@@ -10,56 +9,59 @@ const GoogleCallback = () => {
     const dispatch = useDispatch();
 
     useEffect(() => {
-        const code = searchParams.get('code');
-        console.log('GoogleCallback - URL code:', code);
-        console.log('GoogleCallback - All search params:', Object.fromEntries(searchParams));
+        const accessToken = searchParams.get('accessToken');
+        const refreshToken = searchParams.get('refreshToken');
+        const isNewUser = searchParams.get('isNewUser') === 'true';
+        const learnerData = searchParams.get('learner');
+        const error = searchParams.get('error');
 
-        if (!code) {
-            console.log('GoogleCallback - No code found, redirecting to login');
-            navigate('/login');
+        console.log('GoogleCallback - URL params:', {
+            hasAccessToken: !!accessToken,
+            hasRefreshToken: !!refreshToken,
+            isNewUser,
+            hasLearnerData: !!learnerData,
+            error
+        });
+
+        // Check for error
+        if (error) {
+            console.log('GoogleCallback - Error from backend:', error);
+            navigate(`/login?error=${encodeURIComponent(error)}`);
             return;
         }
 
-        const handleCallback = async () => {
-            try {
-                console.log('GoogleCallback - Calling backend with code:', code);
-                const response = await oauthGoogleLogin.callback(code);
-                console.log('GoogleCallback - Backend response:', response);
+        // Check if we have all required data
+        if (!accessToken || !refreshToken || !learnerData) {
+            console.log('GoogleCallback - Missing required data, redirecting to login');
+            navigate('/login?error=Authentication failed');
+            return;
+        }
 
-                if (response.data.success) {
-                    console.log('GoogleCallback - Login successful, dispatching to store');
-                    dispatch(learnerLoginSuccess({
-                        learner: response.data.data.learner,
-                        accessToken: response.data.data.accessToken,
-                        refreshToken: response.data.data.refreshToken
-                    }));
+        try {
+            const learner = JSON.parse(learnerData);
+            console.log('GoogleCallback - Login successful, dispatching to store');
 
-                    // Check if new user or existing
-                    if (response.data.data.isNewUser) {
-                        console.log('GoogleCallback - New user, redirecting to dashboard');
-                        navigate('/dashboard');
-                    } else {
-                        console.log('GoogleCallback - Existing user, redirecting to dashboard');
-                        navigate('/dashboard');
-                    }
-                } else {
-                    console.log('GoogleCallback - Response not successful:', response);
-                    navigate('/login?error=Google login failed');
-                }
-            } catch (error) {
-                console.error('Google callback error:', error);
-                console.error('Error response:', error?.response);
-                console.error('Error data:', error?.response?.data);
-                navigate('/login?error=Google login failed');
-            }
-        };
+            dispatch(learnerLoginSuccess({
+                learner,
+                accessToken,
+                refreshToken
+            }));
 
-        handleCallback();
+            // Redirect to dashboard
+            console.log('GoogleCallback - Redirecting to dashboard');
+            navigate('/dashboard');
+        } catch (parseError) {
+            console.error('GoogleCallback - Failed to parse learner data:', parseError);
+            navigate('/login?error=Authentication data invalid');
+        }
     }, [searchParams, navigate, dispatch]);
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
             <div className="text-center">
+                <div className="mb-4">
+                    <div className="w-16 h-16 border-4 border-blue-chill-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                </div>
                 <h2 className="text-2xl font-semibold text-gray-900">Logging in with Google...</h2>
                 <p className="mt-2 text-gray-600">Please wait while we verify your credentials.</p>
             </div>

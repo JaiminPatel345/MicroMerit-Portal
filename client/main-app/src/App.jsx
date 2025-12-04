@@ -64,6 +64,7 @@ function Layout() {
               <Route path='/issuer/signup' element={<IssuerSignUp />} />
               <Route path='/issuer/login' element={<IssuerLogin />} />
               <Route path="/google-callback" element={<GoogleCallback />} />
+              <Route path="/auth/learner/oauth/google/callback" element={<GoogleCallback />} />
               <Route path="/profile-builder" element={<ProfileBuilder />} />
               <Route path="/verify" element={<Verification />} />
               <Route path="/verify/:id" element={<Verification />} />

@@ -37,6 +37,7 @@ export class OAuthService {
       const profile = profileResponse.data;
       const email = profile.email;
       const profilePicture = profile.picture;
+      const googleName = profile.name || ''; // Get name from Google profile
 
       // Check if learner already exists
       let learner = await this.repository.findLearnerByEmail(email);
@@ -86,8 +87,9 @@ export class OAuthService {
         learner: {
           id: learner.id,
           email: learner.email,
+          name: learner.name || googleName, // Use learner's name or Google name
           phone: learner.phone,
-          profileUrl: learner.profileUrl,
+          profileUrl: learner.profileUrl || profilePicture,
           otherEmails: learner.other_emails,
         },
         accessToken: accessTokenJWT,

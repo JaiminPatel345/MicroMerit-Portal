@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { User, Mail, Phone, Calendar, Upload, CheckCircle, Lock } from 'lucide-react';
 import { useDispatch } from 'react-redux';
 import { learnerLoginSuccess } from '../../store/authLearnerSlice';
@@ -9,12 +9,23 @@ import { setNotification } from '../../utils/notification';
 const ProfileBuilder = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const dispatch = useDispatch();
-  const { identifier, type, loginMethod, tempToken } = location.state || {};
+
+  // Check for OAuth data in URL params
+  const oauthAccessToken = searchParams.get('accessToken');
+  const oauthRefreshToken = searchParams.get('refreshToken');
+  const oauthEmail = searchParams.get('email');
+  const oauthName = searchParams.get('name');
+  const oauthProfileUrl = searchParams.get('profileUrl');
+  const loginMethod = searchParams.get('loginMethod') || location.state?.loginMethod;
+
+  // Original state data (for email/phone signup)
+  const { identifier, type, tempToken } = location.state || {};
 
   const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
+    fullName: oauthName || '',
+    email: oauthEmail || '',
     phone: '',
     dateOfBirth: '',
     gender: '',
@@ -30,10 +41,11 @@ const ProfileBuilder = () => {
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [profilePreview, setProfilePreview] = useState(null);
+  const [profilePreview, setProfilePreview] = useState(oauthProfileUrl || null);
   const [profilePhotoFile, setProfilePhotoFile] = useState(null);
 
   useEffect(() => {
+    // Skip validation for OAuth logins
     if (loginMethod === 'google' || loginMethod === 'digilocker') {
       return;
     }
@@ -112,6 +124,7 @@ const ProfileBuilder = () => {
     console.log('Form submitted');
     console.log('Form data:', formData);
     console.log('Temp token:', tempToken);
+    console.log('OAuth access token:', oauthAccessToken);
 
     if (!validateForm()) {
       console.log('Validation failed:', errors);
@@ -127,7 +140,7 @@ const ProfileBuilder = () => {
       const submitData = new FormData();
       submitData.append('name', formData.fullName);
 
-      // Password is optional
+      // Password is optional for OAuth users
       if (formData.password && formData.password.trim()) {
         submitData.append('password', formData.password.trim());
       }
@@ -162,22 +175,38 @@ const ProfileBuilder = () => {
         console.log(pair[0] + ':', pair[1]);
       }
 
+      // Use OAuth token if available, otherwise use tempToken
+      const authToken = oauthAccessToken || tempToken;
+
       console.log('Sending request to backend...');
       const response = await completeProfile.complete(submitData, {
         headers: {
-          'Authorization': `Bearer ${tempToken}`
+          'Authorization': `Bearer ${authToken}`
         }
       });
 
       console.log('Response received:', response);
 
       if (response?.data?.success === true) {
-        console.log('Registration successful, redirecting to dashboard...');
-        dispatch(learnerLoginSuccess({
-          learner: response.data.data.learner,
-          accessToken: response.data.data.accessToken,
-          refreshToken: response.data.data.refreshToken
-        }));
+        console.log('Registration successful, dispatching login...');
+
+        // For OAuth users, use the tokens from URL params
+        if (oauthAccessToken && oauthRefreshToken) {
+          dispatch(learnerLoginSuccess({
+            learner: response.data.data.learner,
+            accessToken: oauthAccessToken,
+            refreshToken: oauthRefreshToken
+          }));
+        } else {
+          // For regular signup, use tokens from response
+          dispatch(learnerLoginSuccess({
+            learner: response.data.data.learner,
+            accessToken: response.data.data.accessToken,
+            refreshToken: response.data.data.refreshToken
+          }));
+        }
+
+        console.log('Redirecting to dashboard...');
         navigate('/dashboard');
       } else {
         console.log('Unexpected response format:', response);

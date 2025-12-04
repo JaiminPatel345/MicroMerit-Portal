@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Menu, X, ChevronDown, Globe, UserCircle, Bell, Settings } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { learnerLogout } from '../../store/authLearnerSlice';
 
@@ -9,12 +9,18 @@ const LearnerHeader = () => {
   const [langOpen, setLangOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const authLearner = useSelector((state) => state.authLearner);
   const learner = authLearner?.learner;
   const dispatch = useDispatch();
 
-  const logoutUser = () => dispatch(learnerLogout());
+  const logoutUser = () => {
+    navigate('/login');
+    setTimeout(() => {
+      dispatch(learnerLogout());
+    }, 50);
+  };
 
   const languages = [
     { code: 'en', name: 'English' },

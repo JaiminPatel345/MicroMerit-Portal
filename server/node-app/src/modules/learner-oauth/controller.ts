@@ -36,21 +36,46 @@ export const handleGoogleCallback = async (
     const { code } = req.query;
 
     if (!code || typeof code !== 'string') {
-      throw new Error('Authorization code is required');
+      // Redirect to frontend login with error
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      return res.redirect(`${frontendUrl}/login?error=Authorization code missing`);
     }
 
     const result = await service.handleGoogleCallback(code);
-    
-    // Redirect to frontend with tokens (in production, use secure cookie or different approach)
-    // For now, return JSON response
-    sendSuccess(
-      res,
-      result,
-      result.isNewUser ? 'Account created successfully' : 'Login successful',
-      200
-    );
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+    // If this is a new user, redirect to profile-builder with OAuth data
+    if (result.isNewUser) {
+      const params = new URLSearchParams({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        email: result.learner.email || '',
+        name: result.learner.name || '',
+        profileUrl: result.learner.profileUrl || '',
+        loginMethod: 'google'
+      });
+      return res.redirect(`${frontendUrl}/profile-builder?${params.toString()}`);
+    }
+
+    // Existing user - redirect to dashboard with tokens
+    const params = new URLSearchParams({
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      learner: JSON.stringify({
+        id: result.learner.id,
+        email: result.learner.email,
+        phone: result.learner.phone || '',
+        profileUrl: result.learner.profileUrl || '',
+        otherEmails: result.learner.otherEmails || []
+      })
+    });
+
+    res.redirect(`${frontendUrl}/google-callback?${params.toString()}`);
   } catch (error) {
-    next(error);
+    // Redirect to frontend login with error
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/login?error=Google authentication failed`);
   }
 };
 
@@ -88,7 +113,7 @@ export const handleDigilockerCallback = async (
     }
 
     const result = await service.handleDigilockerCallback(code);
-    
+
     sendSuccess(
       res,
       result,
