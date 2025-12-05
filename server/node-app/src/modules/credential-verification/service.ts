@@ -55,13 +55,12 @@ export class CredentialVerificationService {
                 method: params.credential_id ? 'credential_id' : params.tx_hash ? 'tx_hash' : 'ipfs_cid',
             });
 
-            // Step 2: Extract blockchain config from metadata
-            // The metadata contains the canonical JSON from issuance which has blockchain info
-            const metadata = credential.metadata as any;
-            const network = metadata?.blockchain?.network || 'sepolia';
-            const contract_address = metadata?.blockchain?.contract_address || 'mock_contract';
+            // Step 2: Get blockchain config from environment variables (same as issuance)
+            // This ensures consistency - we use the same values that were used during issuance
+            const network = process.env.BLOCKCHAIN_NETWORK || 'sepolia';
+            const contract_address = process.env.BLOCKCHAIN_CONTRACT_ADDRESS || '';
 
-            logger.info('Using blockchain config from metadata', {
+            logger.info('Using blockchain config from environment', {
                 credential_id: credential.credential_id,
                 network,
                 contract_address,

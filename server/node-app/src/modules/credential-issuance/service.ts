@@ -31,11 +31,12 @@ export interface IssueCredentialResult {
     learner_email: string;
     certificate_title: string;
     ipfs_cid: string;
-    tx_hash: string;
+    tx_hash: string | null; // Null when blockchain confirmation is pending
     data_hash: string;
     pdf_url: string;
     status: string;
     issued_at: Date;
+    blockchain_status: 'pending' | 'confirmed' | 'failed'; // Track blockchain upload status
 }
 
 export class CredentialIssuanceService {
@@ -108,8 +109,10 @@ export class CredentialIssuanceService {
         logger.info('Uploaded to IPFS', { credential_id, ipfs_cid, pdf_url });
 
         // Step 5: Build canonical JSON with IPFS data but before blockchain (tx_hash and data_hash still null)
-        // Note: We'll get network and contract_address from blockchain service response
-        // For now, use temp values - will rebuild after blockchain write
+        // Use network and contract_address from environment variables
+        const network = process.env.BLOCKCHAIN_NETWORK || 'sepolia';
+        const contract_address = process.env.BLOCKCHAIN_CONTRACT_ADDRESS || '';
+
         let canonicalJson = buildCanonicalJson({
             credential_id,
             learner_id,
@@ -117,8 +120,8 @@ export class CredentialIssuanceService {
             issuer_id,
             certificate_title,
             issued_at,
-            network: 'sepolia',
-            contract_address: '0xa5A36eB55522FD75e6153d45D17416AbfFD57976',
+            network,
+            contract_address,
             ipfs_cid,
             pdf_url,
             tx_hash: null,
@@ -129,12 +132,7 @@ export class CredentialIssuanceService {
         const data_hash = computeDataHash(canonicalJson);
         logger.info('Computed data hash', { credential_id, data_hash });
 
-        // Step 7: Write to blockchain and get network/contract info
-        const blockchainResult = await writeToBlockchain(credential_id, data_hash, ipfs_cid);
-        const { tx_hash, network, contract_address } = blockchainResult;
-        logger.info('Blockchain write complete', { credential_id, tx_hash, network, contract_address });
-
-        // Step 8: Final canonical JSON with all data including blockchain info from service
+        // Step 7: Build canonical JSON without tx_hash (will be updated after blockchain confirmation)
         canonicalJson = buildCanonicalJson({
             credential_id,
             learner_id,
@@ -146,16 +144,17 @@ export class CredentialIssuanceService {
             contract_address,
             ipfs_cid,
             pdf_url,
-            tx_hash,
+            tx_hash: null, // Will be set after blockchain confirmation
             data_hash,
         });
 
-        // Step 9: Store in database
+        // Step 8: Store in database with tx_hash as null (pending blockchain confirmation)
         // If pre-verified data is provided, use it. Otherwise, initialize empty and trigger async OCR.
         let initialMetadata: any = {
             ...canonicalJson,
             issuer_name: issuer.name,
-            ai_extracted: {}
+            ai_extracted: {},
+            blockchain_status: 'pending' // Track blockchain confirmation status
         };
 
         if (ai_extracted_data) {
@@ -180,18 +179,33 @@ export class CredentialIssuanceService {
             issued_at,
             ipfs_cid,
             pdf_url,
-            tx_hash,
+            tx_hash: null, // Will be set after blockchain confirmation
             data_hash,
             metadata: initialMetadata,
             status,
         });
 
-        logger.info('Credential issued successfully', {
+        logger.info('Credential issued successfully (blockchain pending)', {
             credential_id,
             learner_id,
             learner_email,
             status,
+            blockchain_status: 'pending',
             pre_verified: !!ai_extracted_data
+        });
+
+        // Step 9: Process blockchain write asynchronously (don't wait for it)
+        this.processBlockchainAsync(
+            credential_id,
+            data_hash,
+            ipfs_cid,
+            network,
+            contract_address
+        ).catch(error => {
+            logger.error('Async blockchain processing failed', {
+                credential_id,
+                error: error.message
+            });
         });
 
         // Step 10: Process AI tasks asynchronously
@@ -243,11 +257,12 @@ export class CredentialIssuanceService {
             learner_email,
             certificate_title,
             ipfs_cid,
-            tx_hash,
+            tx_hash: null, // Not available yet - blockchain confirmation pending
             data_hash,
             pdf_url,
             status,
             issued_at,
+            blockchain_status: 'pending', // Indicate blockchain upload is in progress
         };
     }
 
@@ -286,6 +301,86 @@ export class CredentialIssuanceService {
             ...ocrResult,
             nsqf_context_used: nsqfContext.length > 0
         };
+    }
+
+    /**
+     * Process blockchain write asynchronously and update credential when complete
+     * This runs in background and doesn't block the response to user
+     */
+    private async processBlockchainAsync(
+        credential_id: string,
+        data_hash: string,
+        ipfs_cid: string,
+        network: string,
+        contract_address: string
+    ): Promise<void> {
+        try {
+            logger.info('Starting async blockchain processing', { credential_id });
+
+            // Write to blockchain
+            const blockchainResult = await writeToBlockchain(credential_id, data_hash, ipfs_cid);
+            const { tx_hash } = blockchainResult;
+
+            logger.info('Blockchain write complete (async)', {
+                credential_id,
+                tx_hash,
+                network,
+                contract_address
+            });
+
+            // Build updated canonical JSON with tx_hash
+            const canonicalJson = buildCanonicalJson({
+                credential_id,
+                learner_id: null, // Will be fetched from database if needed
+                learner_email: '', // Will be fetched from database if needed
+                issuer_id: 0, // Will be fetched from database if needed
+                certificate_title: '', // Not needed for blockchain update
+                issued_at: new Date(), // Not needed for blockchain update
+                network,
+                contract_address,
+                ipfs_cid,
+                pdf_url: '', // Will be in database already
+                tx_hash,
+                data_hash,
+            });
+
+            // Update credential with tx_hash and blockchain status
+            await credentialIssuanceRepository.updateCredential(credential_id, {
+                tx_hash,
+                metadata: {
+                    blockchain: canonicalJson.blockchain,
+                    blockchain_status: 'confirmed'
+                }
+            });
+
+            logger.info('Credential updated with blockchain info', {
+                credential_id,
+                tx_hash,
+                blockchain_status: 'confirmed'
+            });
+
+        } catch (error: any) {
+            logger.error('Async blockchain processing failed', {
+                credential_id,
+                error: error.message,
+                stack: error.stack
+            });
+
+            // Mark as failed in database
+            try {
+                await credentialIssuanceRepository.updateCredential(credential_id, {
+                    metadata: {
+                        blockchain_status: 'failed',
+                        blockchain_error: error.message
+                    }
+                });
+            } catch (updateError: any) {
+                logger.error('Failed to update blockchain status to failed', {
+                    credential_id,
+                    error: updateError.message
+                });
+            }
+        }
     }
 
     /**

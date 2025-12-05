@@ -35,7 +35,7 @@ export async function writeToBlockchain(
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                timeout: 10000, // 10 second timeout
+                timeout: 60000, // 60 second timeout for blockchain confirmation
             }
         );
 
@@ -74,7 +74,7 @@ export async function verifyBlockchainTransaction(tx_hash: string): Promise<bool
         const response = await axios.get(
             `${BLOCKCHAIN_SERVICE_URL}/blockchain/verify/${tx_hash}`,
             {
-                timeout: 10000, // 10 second timeout
+                timeout: 30000, // 30 second timeout
             }
         );
 
