@@ -8,17 +8,17 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Install dependencies
+# Install dependencies (including devDependencies for dev mode)
 RUN npm install
 
-# Copy source code
+# Copy source code and contracts
 COPY src ./src
-
-# Build TypeScript
-RUN npm run build
+COPY contracts ./contracts
+COPY scripts ./scripts
+COPY hardhat.config.js ./
 
 # Expose port 3001
 EXPOSE 3001
 
-# Start the service
-CMD ["npm", "start"]
+# Start the service in development mode with hot-reload
+CMD ["npm", "run", "dev"]
