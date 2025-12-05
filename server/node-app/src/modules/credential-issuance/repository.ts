@@ -148,6 +148,43 @@ export class CredentialIssuanceRepository {
     }
 
     /**
+     * Update credential (partial update)
+     * Allows updating specific fields like tx_hash and metadata
+     */
+    async updateCredential(credential_id: string, data: {
+        tx_hash?: string | null;
+        metadata?: any;
+    }) {
+        const updates: any = {};
+
+        if (data.tx_hash !== undefined) {
+            updates.tx_hash = data.tx_hash;
+        }
+
+        if (data.metadata !== undefined) {
+            // Fetch existing metadata and merge
+            const credential = await prisma.credential.findUnique({
+                where: { credential_id },
+            });
+
+            if (!credential) {
+                throw new Error(`Credential not found: ${credential_id}`);
+            }
+
+            const existingMetadata = (credential.metadata as any) || {};
+            updates.metadata = {
+                ...existingMetadata,
+                ...data.metadata,
+            };
+        }
+
+        return await prisma.credential.update({
+            where: { credential_id },
+            data: updates,
+        });
+    }
+
+    /**
      * Update credential metadata
      * Merges the provided updates into the existing metadata at the root level
      */
