@@ -11,6 +11,8 @@ const NewIssuance = () => {
     const { issuer } = useSelector((state) => state.authIssuer);
     const [issuanceType, setIssuanceType] = useState('single'); // Default to single
     const [successData, setSuccessData] = useState(null);
+    const [blockchainStatus, setBlockchainStatus] = useState(null);
+    const [refreshing, setRefreshing] = useState(false);
 
     // Single Issuance State
     const [formData, setFormData] = useState({
@@ -20,6 +22,169 @@ const NewIssuance = () => {
     });
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
+
+    // Check blockchain status when successData is set
+    useEffect(() => {
+        if (successData?.credential_id && successData.blockchain_status === 'pending') {
+            // Auto-check after 30 seconds
+            const timer = setTimeout(() => {
+                checkBlockchainStatus(successData.credential_id);
+            }, 30000);
+            return () => clearTimeout(timer);
+        }
+    }, [successData]);
+
+    const checkBlockchainStatus = async (credentialId) => {
+        setRefreshing(true);
+        try {
+            const response = await credentialServices.getBlockchainStatus(credentialId);
+            if (response.success) {
+                setBlockchainStatus(response.data);
+                // If confirmed, update successData
+                if (response.data.blockchain_status === 'confirmed') {
+                    setSuccessData(prev => ({
+                        ...prev,
+                        tx_hash: response.data.tx_hash,
+                        blockchain_status: 'confirmed'
+                    }));
+                }
+            }
+        } catch (error) {
+            console.error('Failed to check blockchain status:', error);
+        } finally {
+            setRefreshing(false);
+        }
+    };
+
+    const downloadJSON = () => {
+        if (!successData) return;
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(successData, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `credential-${successData.credential_id}.json`);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    };
+
+    const resetForm = () => {
+        setSuccessData(null);
+        setMessage('');
+    };
+
+    if (successData) {
+        const currentStatus = blockchainStatus?.blockchain_status || successData.blockchain_status || 'pending';
+        const txHash = blockchainStatus?.tx_hash || successData.tx_hash;
+
+        return (
+            <div className="max-w-3xl mx-auto space-y-8 p-8 border rounded-xl shadow-lg bg-gray-50">
+                <div className="text-center space-y-4">
+                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100">
+                        <CheckCircle className="h-10 w-10 text-green-600" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900">Credential Issued Successfully!</h3>
+                    <p className="text-gray-600">The credential has been uploaded to IPFS and is being confirmed on the blockchain.</p>
+                </div>
+
+                <div className="bg-white p-6 rounded-lg border border-gray-200 space-y-4 text-sm">
+                    <div className="grid grid-cols-3 gap-4">
+                        <span className="font-semibold text-gray-600">Credential ID:</span>
+                        <span className="col-span-2 font-mono text-gray-800 break-all">{successData.credential_id}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                        <span className="font-semibold text-gray-600">Learner Email:</span>
+                        <span className="col-span-2 text-gray-800">{successData.learner_email}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                        <span className="font-semibold text-gray-600">Certificate Title:</span>
+                        <span className="col-span-2 text-gray-800">{successData.certificate_title}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                        <span className="font-semibold text-gray-600">IPFS CID:</span>
+                        <span className="col-span-2 font-mono text-blue-600 break-all">{successData.ipfs_cid}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 items-center">
+                        <span className="font-semibold text-gray-600">Blockchain Status:</span>
+                        <div className="col-span-2 flex items-center space-x-2">
+                            {currentStatus === 'pending' ? (
+                                <>
+                                    <div className="flex items-center space-x-2">
+                                        <svg className="animate-spin h-4 w-4 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <span className="text-yellow-700 font-medium">Confirming on blockchain...</span>
+                                    </div>
+                                    <button
+                                        onClick={() => checkBlockchainStatus(successData.credential_id)}
+                                        disabled={refreshing}
+                                        className="ml-auto px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition disabled:opacity-50 flex items-center space-x-1"
+                                        title="Refresh blockchain status"
+                                    >
+                                        <svg
+                                            className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`}
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        <span>{refreshing ? 'Checking...' : 'Refresh'}</span>
+                                    </button>
+                                </>
+                            ) : currentStatus === 'confirmed' ? (
+                                <div className="flex items-center space-x-2">
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                    <span className="text-green-700 font-medium">Confirmed on blockchain</span>
+                                </div>
+                            ) : (
+                                <div className="flex items-center space-x-2">
+                                    <XCircle className="h-4 w-4 text-red-600" />
+                                    <span className="text-red-700 font-medium">Failed</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    {txHash ? (
+                        <div className="grid grid-cols-3 gap-4">
+                            <span className="font-semibold text-gray-600">Transaction Hash:</span>
+                            <span className="col-span-2 font-mono text-purple-600 break-all">{txHash}</span>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-3 gap-4">
+                            <span className="font-semibold text-gray-600">Transaction Hash:</span>
+                            <span className="col-span-2 text-xs text-gray-500 italic">
+                                Pending blockchain confirmation (may take up to 60 seconds)
+                            </span>
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a
+                        href={successData.pdf_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                        View on IPFS
+                    </a>
+                    <button
+                        onClick={downloadJSON}
+                        className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray- 700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                        Download JSON
+                    </button>
+                    <button
+                        onClick={resetForm}
+                        className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                    >
+                        Issue Another
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     // Bulk Issuance State
     const [bulkEntries, setBulkEntries] = useState([]);
@@ -331,22 +496,6 @@ const NewIssuance = () => {
                 setEditingEntry({ ...editingEntry, status: 'error' });
             }
         }
-    };
-
-    const downloadJSON = () => {
-        if (!successData) return;
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(successData, null, 2));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", `credential-${successData.credential_id}.json`);
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
-    };
-
-    const resetForm = () => {
-        setSuccessData(null);
-        setMessage('');
     };
 
     // Component to render small thumbnail

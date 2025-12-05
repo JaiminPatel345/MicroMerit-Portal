@@ -37,6 +37,11 @@ export const credentialServices = {
         return response.data;
     },
 
+    getBlockchainStatus: async (credentialId) => {
+        const response = await api.get(`/credentials/${credentialId}/blockchain-status`);
+        return response.data;
+    },
+
     // Learner
     claimCredential: async (data) => {
         const response = await api.post('/credentials/claim', data);
