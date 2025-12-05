@@ -1,6 +1,6 @@
 import { credentialVerificationRepository } from './repository';
 import { buildCanonicalJson, computeDataHash, verifyCredentialHash } from '../../utils/canonicalJson';
-import { verifyBlockchainTransaction } from '../../utils/blockchain';
+import { verifyBlockchainTransaction } from '../../services/blockchainClient';
 import { NotFoundError } from '../../utils/errors';
 import { logger } from '../../utils/logger';
 
@@ -55,7 +55,19 @@ export class CredentialVerificationService {
                 method: params.credential_id ? 'credential_id' : params.tx_hash ? 'tx_hash' : 'ipfs_cid',
             });
 
-            // Step 2: Rebuild canonical JSON from database fields
+            // Step 2: Extract blockchain config from metadata
+            // The metadata contains the canonical JSON from issuance which has blockchain info
+            const metadata = credential.metadata as any;
+            const network = metadata?.blockchain?.network || 'ethereum_testnet';
+            const contract_address = metadata?.blockchain?.contract_address || 'mock_contract';
+
+            logger.info('Using blockchain config from metadata', {
+                credential_id: credential.credential_id,
+                network,
+                contract_address,
+            });
+
+            // Step 3: Rebuild canonical JSON from database fields
             // This is what the hash was computed from at issuance time
             // Note: tx_hash was null when the hash was computed
             const canonicalJson = buildCanonicalJson({
@@ -65,13 +77,15 @@ export class CredentialVerificationService {
                 issuer_id: credential.issuer_id,
                 certificate_title: credential.certificate_title,
                 issued_at: new Date(credential.issued_at),
+                network,
+                contract_address,
                 ipfs_cid: credential.ipfs_cid,
                 pdf_url: credential.pdf_url,
                 tx_hash: null, // tx_hash was null when hash was computed
                 data_hash: null, // data_hash is always null when computing hash
             });
 
-            // Step 3: Recompute hash and verify it matches
+            // Step 4: Recompute hash and verify it matches
             const recomputedHash = computeDataHash(canonicalJson);
             const hashMatch = recomputedHash === credential.data_hash;
 
@@ -82,16 +96,16 @@ export class CredentialVerificationService {
                 match: hashMatch,
             });
 
-            // Step 4: Verify blockchain transaction
+            // Step 5: Verify blockchain transaction
             const blockchainVerified = await verifyBlockchainTransaction(credential.tx_hash || '');
 
-            // Step 5: Verify IPFS CID if provided
+            // Step 6: Verify IPFS CID if provided
             let ipfsCidMatch = true;
             if (providedIpfsCid) {
                 ipfsCidMatch = providedIpfsCid === credential.ipfs_cid;
             }
 
-            // Step 6: Determine overall validity
+            // Step 7: Determine overall validity
             if (hashMatch && blockchainVerified && ipfsCidMatch) {
                 return {
                     status: 'VALID',
