@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { credentialIssuanceRepository } from './repository';
 import { skillKnowledgeBaseRepository } from '../skill-knowledge-base/repository';
 import { uploadToFilebase } from '../../utils/filebase';
-import { writeToBlockchain } from '../../utils/blockchain';
+import { writeToBlockchain } from '../../services/blockchainClient';
 import { buildCanonicalJson, computeDataHash } from '../../utils/canonicalJson';
 import { NotFoundError, ValidationError } from '../../utils/errors';
 import { logger } from '../../utils/logger';
@@ -98,22 +98,18 @@ export class CredentialIssuanceService {
         let ipfs_cid: string;
         let pdf_url: string;
 
-        if (process.env.BLOCKCHAIN_MOCK_ENABLED === 'true') {
-            logger.info('Mocking Filebase upload (BLOCKCHAIN_MOCK_ENABLED=true)');
-            ipfs_cid = `mock-cid-${uuidv4()}`;
-            pdf_url = `https://mock-ipfs-gateway.com/${ipfs_cid}`;
-        } else {
-            const result = await uploadToFilebase(
-                original_pdf,
-                uniqueFileName,
-                mimetype || 'application/pdf'
-            );
-            ipfs_cid = result.cid;
-            pdf_url = result.gateway_url;
-            logger.info('Uploaded to IPFS', { credential_id, ipfs_cid, pdf_url });
-        }
+        const result = await uploadToFilebase(
+            original_pdf,
+            uniqueFileName,
+            mimetype || 'application/pdf'
+        );
+        ipfs_cid = result.cid;
+        pdf_url = result.gateway_url;
+        logger.info('Uploaded to IPFS', { credential_id, ipfs_cid, pdf_url });
 
         // Step 5: Build canonical JSON with IPFS data but before blockchain (tx_hash and data_hash still null)
+        // Note: We'll get network and contract_address from blockchain service response
+        // For now, use temp values - will rebuild after blockchain write
         let canonicalJson = buildCanonicalJson({
             credential_id,
             learner_id,
@@ -121,6 +117,8 @@ export class CredentialIssuanceService {
             issuer_id,
             certificate_title,
             issued_at,
+            network: 'temp',
+            contract_address: 'temp',
             ipfs_cid,
             pdf_url,
             tx_hash: null,
@@ -131,11 +129,12 @@ export class CredentialIssuanceService {
         const data_hash = computeDataHash(canonicalJson);
         logger.info('Computed data hash', { credential_id, data_hash });
 
-        // Step 7: Write to blockchain
-        const { tx_hash } = await writeToBlockchain(credential_id, data_hash, ipfs_cid);
-        logger.info('Blockchain write complete', { credential_id, tx_hash });
+        // Step 7: Write to blockchain and get network/contract info
+        const blockchainResult = await writeToBlockchain(credential_id, data_hash, ipfs_cid);
+        const { tx_hash, network, contract_address } = blockchainResult;
+        logger.info('Blockchain write complete', { credential_id, tx_hash, network, contract_address });
 
-        // Step 8: Final canonical JSON with all data including the computed data_hash
+        // Step 8: Final canonical JSON with all data including blockchain info from service
         canonicalJson = buildCanonicalJson({
             credential_id,
             learner_id,
@@ -143,6 +142,8 @@ export class CredentialIssuanceService {
             issuer_id,
             certificate_title,
             issued_at,
+            network,
+            contract_address,
             ipfs_cid,
             pdf_url,
             tx_hash,

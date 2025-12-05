@@ -33,6 +33,8 @@ export function buildCanonicalJson(params: {
     issuer_id: number;
     certificate_title: string;
     issued_at: Date;
+    network: string;
+    contract_address: string;
     ipfs_cid?: string | null;
     pdf_url?: string | null;
     tx_hash?: string | null;
@@ -48,8 +50,8 @@ export function buildCanonicalJson(params: {
         ipfs_cid: params.ipfs_cid || null,
         pdf_url: params.pdf_url || null,
         blockchain: {
-            network: process.env.BLOCKCHAIN_NETWORK || 'ethereum_testnet',
-            contract_address: process.env.BLOCKCHAIN_CONTRACT_ADDRESS || 'mock_contract',
+            network: params.network,
+            contract_address: params.contract_address,
             tx_hash: params.tx_hash || null,
         },
         meta_hash_alg: 'sha256',
