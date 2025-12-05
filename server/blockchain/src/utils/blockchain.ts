@@ -75,7 +75,7 @@ async function mockWriteToBlockchain(
         credential_id,
         data_hash,
         ipfs_cid,
-        network: process.env.BLOCKCHAIN_NETWORK || 'ethereum_testnet',
+        network: process.env.BLOCKCHAIN_NETWORK || 'sepolia',
         contract: process.env.BLOCKCHAIN_CONTRACT_ADDRESS || 'mock_contract',
     });
 
@@ -84,7 +84,7 @@ async function mockWriteToBlockchain(
 
     return {
         tx_hash,
-        network: process.env.BLOCKCHAIN_NETWORK || 'ethereum_testnet',
+        network: process.env.BLOCKCHAIN_NETWORK || 'sepolia',
         contract_address: process.env.BLOCKCHAIN_CONTRACT_ADDRESS || 'mock_contract',
         timestamp: new Date(),
     };
@@ -190,7 +190,7 @@ export async function writeToBlockchain(
 async function mockReadFromBlockchain(tx_hash: string): Promise<BlockchainReadResult> {
     logger.info('BLOCKCHAIN_READ (MOCK)', {
         tx_hash,
-        network: process.env.BLOCKCHAIN_NETWORK || 'ethereum_testnet',
+        network: process.env.BLOCKCHAIN_NETWORK || 'sepolia',
     });
 
     const isValidTxHash = /^0x[a-f0-9]+$/i.test(tx_hash);

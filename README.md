@@ -244,7 +244,7 @@ FILEBASE_GATEWAY_URL=https://ipfs.filebase.io/ipfs/
 
 # Blockchain Configuration
 BLOCKCHAIN_MOCK_ENABLED=true
-BLOCKCHAIN_NETWORK=ethereum_testnet
+BLOCKCHAIN_NETWORK=sepolia
 BLOCKCHAIN_CONTRACT_ADDRESS=mock_contract
 ```
 
