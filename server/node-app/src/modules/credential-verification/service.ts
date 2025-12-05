@@ -58,7 +58,7 @@ export class CredentialVerificationService {
             // Step 2: Extract blockchain config from metadata
             // The metadata contains the canonical JSON from issuance which has blockchain info
             const metadata = credential.metadata as any;
-            const network = metadata?.blockchain?.network || 'ethereum_testnet';
+            const network = metadata?.blockchain?.network || 'sepolia';
             const contract_address = metadata?.blockchain?.contract_address || 'mock_contract';
 
             logger.info('Using blockchain config from metadata', {
