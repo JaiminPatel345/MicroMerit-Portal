@@ -17,8 +17,8 @@ A production-ready blockchain microservice for credential verification on Ethere
 
 ```bash
 cd server/blockchain
-npm install
-npm run dev
+docker build -t micromerit-blockchain .
+docker run -p 3001:3001 --env-file .env micromerit-blockchain
 ```
 
 Service starts on **port 3001** in mock mode (no blockchain required).
@@ -33,7 +33,7 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for full setup guide.
 3. Deploy contract: `npx hardhat run scripts/deploy.js --network sepolia`
 4. Update `.env` with contract address
 5. Set `BLOCKCHAIN_MOCK_ENABLED=false`
-6. Start service: `npm run dev`
+6. Start service using docker: `docker run -p 3001:3001 --env-file .env micromerit-blockchain`
 
 ## 🏗️ Architecture
 
