@@ -89,6 +89,14 @@ router.put(
 );
 
 
+/**
+ * GET /credentials/:id/blockchain-status
+ * Get blockchain confirmation status for a credential
+ */
+router.get(
+    '/:id/blockchain-status',
+    asyncHandler(credentialIssuanceController.getBlockchainStatus.bind(credentialIssuanceController))
+);
 
 /**
  * GET /credentials/public/:id

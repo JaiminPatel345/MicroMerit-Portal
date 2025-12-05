@@ -262,6 +262,36 @@ export class CredentialIssuanceController {
             next(error);
         }
     }
+
+    /**
+     * Get blockchain status for a credential
+     * GET /credentials/:id/blockchain-status
+     */
+    async getBlockchainStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+            const credential_id = req.params.id;
+
+            if (!credential_id) {
+                sendError(res, 'Bad Request', 'Credential ID is required', 400);
+                return;
+            }
+
+            const credential = await credentialIssuanceService.getPublicCredential(credential_id);
+
+            const metadata = credential.metadata as any;
+            const blockchain_status = metadata?.blockchain_status || 'unknown';
+
+            sendSuccess(res, {
+                credential_id: credential.credential_id,
+                tx_hash: credential.tx_hash,
+                blockchain_status,
+                network: metadata?.blockchain?.network,
+                contract_address: metadata?.blockchain?.contract_address,
+            }, 'Blockchain status retrieved successfully');
+        } catch (error: any) {
+            next(error);
+        }
+    }
 }
 
 export const credentialIssuanceController = new CredentialIssuanceController();
