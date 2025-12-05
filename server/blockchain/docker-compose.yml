@@ -1,0 +1,23 @@
+services:
+  blockchain:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: blockchain-service-dev
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./src:/app/src
+      - ./contracts:/app/contracts
+      - ./scripts:/app/scripts
+      - ./hardhat.config.js:/app/hardhat.config.js
+      - ./.env:/app/.env
+    environment:
+      - NODE_ENV=development
+    restart: unless-stopped
+    networks:
+      - micromerit-network
+
+networks:
+  micromerit-network:
+    driver: bridge
