@@ -38,6 +38,25 @@ const getTwilioClient = (): Twilio => {
 };
 
 /**
+ * Check if emails and SMS should be sent
+ * Logic: 
+ * 1. If SEND_SMAILS_AND_MESSAGES is set, use that value
+ * 2. If null/undefined, default to true in production, false otherwise
+ * @returns boolean
+ */
+const shouldSendNotifications = (): boolean => {
+  const envValue = process.env.SEND_SMAILS_AND_MESSAGES;
+
+  // If env variable is explicitly set, use its value
+  if (envValue !== undefined && envValue !== null && envValue !== '') {
+    return envValue.toLowerCase() === 'true';
+  }
+
+  // Otherwise, default based on NODE_ENV
+  return process.env.NODE_ENV === 'production';
+};
+
+/**
  * Send OTP via email
  * @param email - Recipient email address
  * @param otp - OTP code
@@ -45,13 +64,12 @@ const getTwilioClient = (): Twilio => {
  */
 export const sendOTPEmail = async (email: string, otp: string): Promise<void> => {
   try {
-    // TODO: Re-enable email sending when SMTP is properly configured
-    // Temporarily disabled - OTP is only logged for development/testing
-
-    logger.warn(`[DEV MODE] OTP for ${email}: ${otp} (valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes)`);
-    logger.info(`OTP email would be sent to ${email} (currently disabled)`);
-
-    // TEMPORARILY COMMENTED OUT - Uncomment when ready to send actual emails
+    // Check if notifications should be sent
+    if (!shouldSendNotifications()) {
+      logger.warn(`[NOTIFICATIONS DISABLED] OTP for ${email}: ${otp} (valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes)`);
+      logger.info(`OTP email NOT sent to ${email} - notifications are disabled`);
+      return;
+    }
 
     const transporter = getEmailTransporter();
 
@@ -87,29 +105,27 @@ export const sendOTPEmail = async (email: string, otp: string): Promise<void> =>
  */
 export const sendOTPSMS = async (phone: string, otp: string): Promise<void> => {
   try {
-    // TODO: Re-enable Twilio SMS when ready for production
-    // Temporarily disabled - OTP is only logged for development/testing
+    // Check if notifications should be sent
+    if (!shouldSendNotifications()) {
+      logger.warn(`[NOTIFICATIONS DISABLED] OTP for ${phone}: ${otp} (valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes)`);
+      logger.info(`OTP SMS NOT sent to ${phone} - notifications are disabled`);
+      return;
+    }
 
-    logger.warn(`[DEV MODE] OTP for ${phone}: ${otp} (valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes)`);
-    logger.info(`OTP SMS would be sent to ${phone} (currently disabled)`);
-
-    // TEMPORARILY COMMENTED OUT - Uncomment when ready to send actual SMS
-    /*
     const client = getTwilioClient();
     const fromNumber = process.env.TWILIO_PHONE_NUMBER;
-    
+
     if (!fromNumber) {
       throw new Error('Twilio phone number not configured');
     }
-    
+
     await client.messages.create({
       body: `Your MicroMerit registration OTP is: ${otp}. Valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes.`,
       from: fromNumber,
       to: phone,
     });
-    
+
     logger.info(`OTP SMS sent to ${phone}`);
-    */
   } catch (error) {
     logger.error('Error in sendOTPSMS:', error);
     throw new Error('Failed to send OTP SMS');
@@ -154,6 +170,13 @@ export const sendCredentialIssuedEmail = async (
   certificateTitle: string
 ): Promise<void> => {
   try {
+    // Check if notifications should be sent
+    if (!shouldSendNotifications()) {
+      logger.warn(`[NOTIFICATIONS DISABLED] Credential issued email NOT sent to ${email}`);
+      logger.info(`Would have sent credential notification for: ${certificateTitle} from ${issuerName}`);
+      return;
+    }
+
     const transporter = getEmailTransporter();
     const publicLink = `http://localhost:5173/credential/${credentialId}`;
 
