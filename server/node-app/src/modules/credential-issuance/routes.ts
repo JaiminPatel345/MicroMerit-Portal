@@ -76,7 +76,16 @@ router.get(
     asyncHandler(credentialIssuanceController.getIssuerCredentials.bind(credentialIssuanceController))
 );
 
-
+/**
+ * POST /credentials/api/issue
+ * Issue a new credential via API key
+ */
+router.post(
+    '/api/issue',
+    validateApiKey,
+    uploadPdf.single('file'),
+    asyncHandler(credentialIssuanceController.issueCredentialApi.bind(credentialIssuanceController))
+);
 
 /**
  * PUT /credentials/:id/nsqf-verification

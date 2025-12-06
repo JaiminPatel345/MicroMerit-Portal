@@ -97,6 +97,94 @@ export class CredentialIssuanceController {
     }
 
     /**
+     * Issue a new credential via API Key
+     * POST /credentials/api/issue
+     */
+    async issueCredentialApi(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+            // Validate request body
+            const validatedData = issueCredentialSchema.parse({
+                ...req.body,
+                issued_at: req.body.issued_at || new Date().toISOString(),
+            });
+
+            // Check for uploaded PDF
+            if (!req.file) {
+                sendError(res, 'PDF file is required', 'Missing original_pdf file', 400);
+                return;
+            }
+
+            // Get issuer_id from API key context
+            const issuer_id = req.apiKey?.issuerId;
+
+            if (!issuer_id) {
+                sendError(res, 'Unauthorized', 'Issuer ID missing from context', 401);
+                return;
+            }
+
+            // Parse issued_at to Date
+            const issued_at = typeof validatedData.issued_at === 'string'
+                ? new Date(validatedData.issued_at)
+                : validatedData.issued_at;
+
+            // Parse JSON strings from FormData if present
+            let ai_extracted_data = req.body.ai_extracted_data;
+            let verification_status = req.body.verification_status;
+
+            if (typeof ai_extracted_data === 'string') {
+                try {
+                    const parsed = JSON.parse(ai_extracted_data);
+                    ai_extracted_data = aiExtractedDataSchema.parse(parsed);
+                } catch (e) {
+                    if (e instanceof SyntaxError) {
+                        sendError(res, 'Invalid JSON in ai_extracted_data', 'JSON Parse Error', 400);
+                        return;
+                    }
+                    throw e;
+                }
+            }
+
+            if (typeof verification_status === 'string') {
+                try {
+                    const parsed = JSON.parse(verification_status);
+                    verification_status = verificationStatusSchema.parse(parsed);
+                } catch (e) {
+                    if (e instanceof SyntaxError) {
+                        sendError(res, 'Invalid JSON in verification_status', 'JSON Parse Error', 400);
+                        return;
+                    }
+                    throw e;
+                }
+            }
+
+            const result = await credentialIssuanceService.issueCredential({
+                learner_email: validatedData.learner_email,
+                issuer_id,
+                certificate_title: validatedData.certificate_title,
+                issued_at,
+                original_pdf: req.file.buffer,
+                original_pdf_filename: req.file.originalname,
+                ai_extracted_data,
+                verification_status
+            });
+
+            // Return streamlined response for API
+            sendSuccess(res, {
+                credential_id: result.credential_id,
+                status: result.status, // Database status
+                claim_status: result.status === 'claimed' ? 'claimed' : 'unclaimed', // Explicit claim status
+                tx_hash: result.tx_hash,
+                data_hash: result.data_hash,
+                ipfs_cid: result.ipfs_cid,
+                blockchain_status: result.blockchain_status,
+                pdf_url: result.pdf_url
+            }, 'Credential issued successfully', 201);
+        } catch (error: any) {
+            next(error);
+        }
+    }
+
+    /**
      * Analyze credential for pre-issuance verification
      * POST /credentials/analyze
      */
