@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { credentialIssuanceController } from './controller';
 import { asyncHandler } from '../../middleware/error';
-import { uploadPdf } from '../../utils/pdfUpload';
+import { uploadPdf, pdfUpload } from '../../utils/pdfUpload';
 import { authenticateIssuer } from '../../middleware/auth';
 import { validateApiKey } from '../../middleware/apiKey';
 
@@ -76,7 +76,16 @@ router.get(
     asyncHandler(credentialIssuanceController.getIssuerCredentials.bind(credentialIssuanceController))
 );
 
-
+/**
+ * POST /credentials/api/issue
+ * Issue a new credential via API key
+ */
+router.post(
+    '/api/issue',
+    validateApiKey,
+    (pdfUpload.single('file') as any),
+    asyncHandler(credentialIssuanceController.issueCredentialApi.bind(credentialIssuanceController))
+);
 
 /**
  * PUT /credentials/:id/nsqf-verification

@@ -19,6 +19,7 @@ import SkillProfile from './pages/learner/SkillProfile';
 import Notifications from './pages/learner/Notifications';
 import Settings from './pages/learner/Settings';
 import GoogleCallback from './pages/learner/GoogleCallback';
+import DigilockerCallback from './pages/learner/DigilockerCallback';
 import Profile from './pages/learner/Profile';
 import EditProfile from './pages/learner/EditProfile';
 import Notification from './components/Notification';
@@ -47,7 +48,7 @@ import EmployerSearch from './pages/employer/Search';
 import EmployerProfile from './pages/employer/Properties';
 import EmployerHeader from './pages/employer/Header';
 
-const HideHeaderRoutes = ["/login", "/signup", "/verify-otp", "/profile-builder", "/issuer/login", "/issuer/signup", "/google-callback", "/employer/login", "/employer/signup"];
+const HideHeaderRoutes = ["/login", "/signup", "/verify-otp", "/profile-builder", "/issuer/login", "/issuer/signup", "/google-callback", "/digilocker-callback", "/employer/login", "/employer/signup"];
 
 function Layout() {
 
@@ -71,6 +72,7 @@ function Layout() {
               <Route path='/issuer/signup' element={<IssuerSignUp />} />
               <Route path='/issuer/login' element={<IssuerLogin />} />
               <Route path="/google-callback" element={<GoogleCallback />} />
+              <Route path="/digilocker-callback" element={<DigilockerCallback />} />
               <Route path="/auth/learner/oauth/google/callback" element={<GoogleCallback />} />
               <Route path="/profile-builder" element={<ProfileBuilder />} />
               <Route path="/verify" element={<Verification />} />

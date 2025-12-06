@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { loginLearner, oauthGoogleLogin } from '../../services/authServices';
+import { loginLearner, oauthGoogleLogin, oauthDigilockerLogin } from '../../services/authServices';
 import { learnerLoginSuccess } from '../../store/authLearnerSlice';
 import { useDispatch } from 'react-redux';
 import logo_1 from '../../assets/logo_1.png';
@@ -98,8 +98,21 @@ const Login = () => {
     }
   };
 
-  const handleDigiLockerLogin = () => {
-    navigate('/');
+  const handleDigiLockerLogin = async () => {
+    try {
+      console.log('DigiLocker login - Starting OAuth flow');
+      const response = await oauthDigilockerLogin.oauth();
+      console.log('DigiLocker login - OAuth response:', response);
+      if (response.data.success) {
+        console.log('DigiLocker login - Redirecting to:', response.data.data.authUrl);
+        window.location.href = response.data.data.authUrl;
+      } else {
+        console.log('DigiLocker login - Response not successful:', response);
+      }
+    } catch (error) {
+      console.error("DigiLocker login failed", error);
+      setErrors({ submit: 'Failed to initiate DigiLocker login. Please try again.' });
+    }
   };
 
   return (
