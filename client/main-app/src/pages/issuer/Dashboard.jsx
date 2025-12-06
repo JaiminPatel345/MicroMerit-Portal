@@ -142,7 +142,10 @@ const IssuerDashboard = () => {
                   </tr>
                 ) : (
                   recentCredentials.map((c) => (
-                    <tr key={c.id} className="hover:bg-gray-50">
+                    <tr key={c.id}
+                      onClick={() => navigate(`/c/${c.credential_id}`)}
+                      className="hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{c.learner_email}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{c.certificate_title}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(c.issued_at).toLocaleDateString()}</td>

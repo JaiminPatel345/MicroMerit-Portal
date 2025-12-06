@@ -1,22 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { CheckCircle, XCircle, Search, FileText, User, Calendar, Hash, Globe, ShieldCheck } from 'lucide-react';
+import {
+    CheckCircle,
+    XCircle,
+    Search,
+    FileText,
+    User,
+    Calendar,
+    Hash,
+    Globe,
+    ShieldCheck,
+    Loader2,
+    ArrowRight,
+    Copy,
+    Check
+} from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000/api';
 
+const CopyButton = ({ text }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <button
+            onClick={handleCopy}
+            className="ml-2 inline-flex items-center justify-center p-1 rounded-md text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            title="Copy to clipboard"
+        >
+            {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+        </button>
+    );
+};
+
 const Verification = () => {
     const { id } = useParams();
-    const [searchParams] = useSearchParams();
     const [inputValue, setInputValue] = useState(id || '');
     const [inputType, setInputType] = useState('credential_id');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
 
+    // Initial load handler
     useEffect(() => {
         if (id) {
-            // Auto-detect type for URL parameter
             handleVerify(id, detectInputType(id));
         }
     }, [id]);
@@ -40,9 +73,7 @@ const Verification = () => {
         setResult(null);
 
         try {
-            // Build payload based on selected type
             const payload = { [type]: value };
-
             const response = await axios.post(`${API_BASE_URL}/credentials/verify`, payload);
 
             if (response.data.success) {
@@ -73,255 +104,302 @@ const Verification = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-4xl mx-auto">
-                <div className="text-center mb-12">
-                    <h1 className="text-4xl font-extrabold text-gray-900 mb-4">
-                        Credential Verification
+        <div className="min-h-screen bg-gray-50 pb-12">
+            {/* Header Section */}
+            <div className="bg-white border-b border-gray-100">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 text-center">
+                    <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight sm:text-5xl mb-4">
+                        Verify a Credential
                     </h1>
-                    <p className="text-lg text-gray-600">
-                        Verify the authenticity of digital credentials issued on the MicroMerit platform.
+                    <p className="max-w-2xl mx-auto text-lg text-gray-500">
+                        Instantly verify the authenticity of certificates issued on the MicroMerit blockchain network.
                     </p>
                 </div>
+            </div>
 
-                {/* Search Box */}
-                <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-                    <form onSubmit={handleSubmit} className="relative">
-                        <div className="flex flex-col gap-4">
-                            {/* Input Type Selector */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Verification Type
-                                </label>
-                                <select
-                                    value={inputType}
-                                    onChange={(e) => setInputType(e.target.value)}
-                                    className="block w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition duration-150 ease-in-out"
-                                >
-                                    <option value="credential_id">Credential ID</option>
-                                    <option value="tx_hash">Transaction Hash</option>
-                                    <option value="ipfs_cid">IPFS CID</option>
-                                </select>
-                            </div>
-
-                            {/* Input Field and Button */}
-                            <div className="flex flex-col md:flex-row gap-4">
-                                <div className="relative flex-grow">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <Search className="h-5 w-5 text-gray-400" />
-                                    </div>
-                                    <input
-                                        type="text"
-                                        className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm transition duration-150 ease-in-out"
-                                        placeholder={
-                                            inputType === 'credential_id'
-                                                ? 'Enter Credential ID (e.g., 550e8400-e29b-41d4-a716-446655440000)'
-                                                : inputType === 'tx_hash'
-                                                    ? 'Enter Transaction Hash (e.g., 0x123...)'
-                                                    : 'Enter IPFS CID (e.g., Qm... or bafy...)'
-                                        }
-                                        value={inputValue}
-                                        onChange={(e) => setInputValue(e.target.value)}
-                                    />
+            <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10">
+                {/* Search Box Card */}
+                <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+                    <div className="p-6 sm:p-8">
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                {/* Type Selector */}
+                                <div className="md:col-span-1">
+                                    <label htmlFor="verify-type" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Verification Method
+                                    </label>
+                                    <select
+                                        id="verify-type"
+                                        value={inputType}
+                                        onChange={(e) => setInputType(e.target.value)}
+                                        className="block w-full rounded-lg border-gray-300 bg-gray-50 py-3 px-4 text-gray-900 focus:border-blue-chill-500 focus:ring-blue-chill-500 sm:text-sm"
+                                    >
+                                        <option value="credential_id">Credential ID</option>
+                                        <option value="tx_hash">Transaction Hash</option>
+                                        <option value="ipfs_cid">IPFS CID</option>
+                                    </select>
                                 </div>
-                                <button
-                                    type="submit"
-                                    disabled={loading || !inputValue}
-                                    className={`inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200 ${loading || !inputValue ? 'opacity-50 cursor-not-allowed' : ''
-                                        }`}
-                                >
-                                    {loading ? (
-                                        <>
-                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            Verifying...
-                                        </>
-                                    ) : (
-                                        'Verify'
-                                    )}
-                                </button>
+
+                                {/* Input Field */}
+                                <div className="md:col-span-3">
+                                    <label htmlFor="verify-input" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Credential Identifier
+                                    </label>
+                                    <div className="relative rounded-md shadow-sm">
+                                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                            <Search className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            id="verify-input"
+                                            className="block w-full rounded-lg border-gray-300 pl-10 py-3 focus:border-blue-chill-500 focus:ring-blue-chill-500 sm:text-sm"
+                                            placeholder={
+                                                inputType === 'credential_id'
+                                                    ? 'e.g. 550e8400-e29b-41d4-a716-446655440000'
+                                                    : inputType === 'tx_hash'
+                                                        ? 'e.g. 0x123abc...'
+                                                        : 'e.g. QmHash...'
+                                            }
+                                            value={inputValue}
+                                            onChange={(e) => setInputValue(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
                             </div>
+
+                            <button
+                                type="submit"
+                                disabled={loading || !inputValue}
+                                className={`w-full flex justify-center items-center py-3.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white transition-all duration-200
+                                    ${loading || !inputValue
+                                        ? 'bg-blue-chill-400 cursor-not-allowed'
+                                        : 'bg-blue-chill-600 hover:bg-blue-chill-700 hover:shadow-md'
+                                    }`}
+                            >
+                                {loading && <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />}
+                                {loading ? 'Verifying on Blockchain...' : 'Verify Authenticity'}
+                            </button>
+                        </form>
+                    </div>
+
+                    {/* Loading State Overlay */}
+                    {loading && !result && (
+                        <div className="bg-gray-50 px-6 py-12 border-t border-gray-100 flex flex-col items-center justify-center text-center animate-fade-in">
+                            <Loader2 className="h-10 w-10 text-blue-chill-600 animate-spin mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900">Verifying Credential</h3>
+                            <p className="text-gray-500 mt-1 max-w-sm">
+                                We are querying the blockchain and verifying data integrity. This may take a moment.
+                            </p>
                         </div>
-                    </form>
+                    )}
                 </div>
 
-                {/* Error Message */}
+                {/* Error State */}
                 {error && (
-                    <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-8 rounded-md">
-                        <div className="flex">
-                            <div className="flex-shrink-0">
-                                <XCircle className="h-5 w-5 text-red-400" />
-                            </div>
-                            <div className="ml-3">
-                                <p className="text-sm text-red-700">{error}</p>
-                            </div>
+                    <div className="mt-8 bg-red-50 border border-red-200 rounded-xl p-6 flex gap-4 animate-fade-in">
+                        <XCircle className="h-6 w-6 text-red-500 flex-shrink-0" />
+                        <div>
+                            <h3 className="text-lg font-medium text-red-800">Verification Failed</h3>
+                            <p className="mt-1 text-red-700">{error}</p>
+                            <p className="mt-2 text-sm text-red-600">
+                                Please check the identifier and try again. If the issue persists, contact the issuer.
+                            </p>
                         </div>
                     </div>
                 )}
 
-                {/* Result */}
+                {/* Success Result */}
                 {result && (
-                    <div className="space-y-8 animate-fade-in">
-                        {/* Status Banner */}
-                        <div className={`rounded-xl shadow-md overflow-hidden ${result.status === 'VALID' && result.credential?.status !== 'revoked'
-                            ? 'bg-white border-t-4 border-green-500'
-                            : 'bg-white border-t-4 border-red-500'
-                            }`}>
-                            <div className="p-6">
-                                <div className="flex items-center justify-center mb-6">
-                                    {result.status === 'VALID' && result.credential?.status !== 'revoked' ? (
-                                        <div className="flex flex-col items-center">
-                                            <div className="h-20 w-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                                                <CheckCircle className="h-10 w-10 text-green-600" />
-                                            </div>
-                                            <h2 className="text-2xl font-bold text-green-700">Valid Credential</h2>
-                                            <p className="text-green-600 mt-1">This credential has been verified on the blockchain.</p>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center">
-                                            <div className="h-20 w-20 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                                                <XCircle className="h-10 w-10 text-red-600" />
-                                            </div>
-                                            <h2 className="text-2xl font-bold text-red-700">
-                                                {result.credential?.status === 'revoked' ? 'Credential Revoked' : 'Invalid Credential'}
-                                            </h2>
-                                            <p className="text-red-600 mt-1">
-                                                {result.credential?.status === 'revoked'
-                                                    ? 'This credential has been revoked by the issuer.'
-                                                    : (result.reason || 'Verification failed.')}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
+                    <div className="mt-8 space-y-6 animate-fade-in">
 
-                                {/* Verification Checks */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-gray-100 pt-6">
-                                    <div className="flex items-center justify-center p-4 bg-gray-50 rounded-lg">
-                                        <div className={`mr-3 ${result.verified_fields?.hash_match ? 'text-green-500' : 'text-red-500'}`}>
-                                            {result.verified_fields?.hash_match ? <CheckCircle size={20} /> : <XCircle size={20} />}
+                        {/* Status Card */}
+                        <div className={`rounded-xl shadow-lg border overflow-hidden ${result.status === 'VALID' && result.credential?.status !== 'revoked'
+                            ? 'bg-white border-green-200'
+                            : 'bg-white border-red-200'
+                            }`}>
+                            <div className={`${result.status === 'VALID' && result.credential?.status !== 'revoked'
+                                ? 'bg-green-50/50'
+                                : 'bg-red-50/50'
+                                } p-8 text-center border-b ${result.status === 'VALID' && result.credential?.status !== 'revoked'
+                                    ? 'border-green-100'
+                                    : 'border-red-100'
+                                }`}>
+                                {result.status === 'VALID' && result.credential?.status !== 'revoked' ? (
+                                    <>
+                                        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                                            <CheckCircle className="h-8 w-8 text-green-600" />
                                         </div>
-                                        <span className="text-sm font-medium text-gray-700">Data Integrity</span>
-                                    </div>
-                                    <div className="flex items-center justify-center p-4 bg-gray-50 rounded-lg">
-                                        <div className={`mr-3 ${result.verified_fields?.blockchain_verified ? 'text-green-500' : 'text-red-500'}`}>
-                                            {result.verified_fields?.blockchain_verified ? <CheckCircle size={20} /> : <XCircle size={20} />}
+                                        <h2 className="text-2xl font-bold text-gray-900">Valid Credential</h2>
+                                        <p className="text-gray-500 mt-2">
+                                            Verified on <span className="font-medium text-gray-900">Sepolia Network</span>
+                                        </p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+                                            <XCircle className="h-8 w-8 text-red-600" />
                                         </div>
-                                        <span className="text-sm font-medium text-gray-700">Blockchain Record</span>
-                                    </div>
-                                    <div className="flex items-center justify-center p-4 bg-gray-50 rounded-lg">
-                                        <div className={`mr-3 ${result.verified_fields?.ipfs_cid_match ? 'text-green-500' : 'text-red-500'}`}>
-                                            {result.verified_fields?.ipfs_cid_match ? <CheckCircle size={20} /> : <XCircle size={20} />}
-                                        </div>
-                                        <span className="text-sm font-medium text-gray-700">IPFS Storage</span>
-                                    </div>
+                                        <h2 className="text-2xl font-bold text-gray-900">
+                                            {result.credential?.status === 'revoked' ? 'Credential Revoked' : 'Invalid Credential'}
+                                        </h2>
+                                        <p className="text-red-500 mt-2">
+                                            {result.reason || 'Authentication checks failed.'}
+                                        </p>
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Verification Steps Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+                                <div className="p-4 flex items-center justify-center gap-3">
+                                    {result.verified_fields?.hash_match
+                                        ? <CheckCircle className="text-green-500 h-5 w-5" />
+                                        : <XCircle className="text-red-500 h-5 w-5" />}
+                                    <span className="font-medium text-gray-700">Data Integrity</span>
+                                </div>
+                                <div className="p-4 flex items-center justify-center gap-3">
+                                    {result.verified_fields?.blockchain_verified
+                                        ? <CheckCircle className="text-green-500 h-5 w-5" />
+                                        : <XCircle className="text-red-500 h-5 w-5" />}
+                                    <span className="font-medium text-gray-700">Blockchain Record</span>
+                                </div>
+                                <div className="p-4 flex items-center justify-center gap-3">
+                                    {result.verified_fields?.ipfs_cid_match
+                                        ? <CheckCircle className="text-green-500 h-5 w-5" />
+                                        : <XCircle className="text-red-500 h-5 w-5" />}
+                                    <span className="font-medium text-gray-700">IPFS Storage</span>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Credential Details (Only if Valid) */}
+
+                        {/* Credential Details (Matched with Issuer Success UI) */}
                         {result.status === 'VALID' && result.credential && (
-                            <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                                    <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                                        <FileText className="mr-2 h-5 w-5 text-primary-600" />
-                                        Credential Details
-                                    </h3>
-                                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-                                        {result.credential.status}
-                                    </span>
+                            <div className="bg-white p-6 rounded-lg border border-gray-200 space-y-4 text-sm shadow-md animate-fade-in relative">
+                                <h3 className="text-lg font-bold text-gray-900 border-b pb-2 mb-4">Credential Details</h3>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <span className="font-semibold text-gray-600">Credential ID:</span>
+                                    <div className="col-span-2 flex items-center gap-2">
+                                        <span className="font-mono text-gray-800 break-all bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                                            {result.credential.credential_id}
+                                        </span>
+                                        <CopyButton text={result.credential.credential_id} />
+                                    </div>
                                 </div>
 
-                                <div className="p-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        {/* Left Column */}
-                                        <div className="space-y-6">
-                                            <div>
-                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Certificate Title</label>
-                                                <p className="mt-1 text-lg font-medium text-gray-900">{result.credential.certificate_title}</p>
-                                            </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <span className="font-semibold text-gray-600">Certificate Title:</span>
+                                    <span className="col-span-2 text-gray-800 font-medium">{result.credential.certificate_title}</span>
+                                </div>
 
-                                            <div>
-                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center">
-                                                    <User className="mr-1 h-3 w-3" /> Learner
-                                                </label>
-                                                <div className="mt-1">
-                                                    <p className="text-base font-medium text-gray-900">{result.credential.learner?.name || 'N/A'}</p>
-                                                    <p className="text-sm text-gray-500">{result.credential.learner_email}</p>
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center">
-                                                    <ShieldCheck className="mr-1 h-3 w-3" /> Issuer
-                                                </label>
-                                                <div className="mt-1">
-                                                    <p className="text-base font-medium text-gray-900">{result.credential.issuer?.name}</p>
-                                                    <p className="text-sm text-gray-500 capitalize">{result.credential.issuer?.type?.replace('_', ' ')}</p>
-                                                    {result.credential.issuer?.website_url && (
-                                                        <a href={result.credential.issuer.website_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:text-primary-700 hover:underline">
-                                                            {result.credential.issuer.website_url}
-                                                        </a>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Right Column */}
-                                        <div className="space-y-6">
-                                            <div>
-                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center">
-                                                    <Calendar className="mr-1 h-3 w-3" /> Issued On
-                                                </label>
-                                                <p className="mt-1 text-base text-gray-900">{formatDate(result.credential.issued_at)}</p>
-                                            </div>
-
-                                            <div>
-                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center">
-                                                    <Hash className="mr-1 h-3 w-3" /> Credential ID
-                                                </label>
-                                                <p className="mt-1 text-sm font-mono text-gray-600 bg-gray-50 p-2 rounded border border-gray-200 break-all">
-                                                    {result.credential.credential_id}
-                                                </p>
-                                            </div>
-
-                                            <div>
-                                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center">
-                                                    <Globe className="mr-1 h-3 w-3" /> Blockchain Transaction
-                                                </label>
-                                                <a
-                                                    href={`https://sepolia.etherscan.io/tx/${result.credential.tx_hash}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="mt-1 block text-sm font-mono text-primary-600 hover:text-primary-700 hover:underline break-all"
-                                                >
-                                                    {result.credential.tx_hash}
-                                                </a>
-                                            </div>
-                                        </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <span className="font-semibold text-gray-600">Issued To:</span>
+                                    <div className="col-span-2 text-gray-800">
+                                        <div className="font-medium">{result.credential.learner?.name || 'Authorized Learner'}</div>
+                                        <div className="text-gray-500 text-xs">{result.credential.learner_email}</div>
                                     </div>
+                                </div>
 
-                                    {/* Actions */}
-                                    <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end">
-                                        {result.credential.pdf_url && (
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <span className="font-semibold text-gray-600">Issued By:</span>
+                                    <div className="col-span-2 text-gray-800">
+                                        <div className="font-medium">{result.credential.issuer?.name}</div>
+                                        {result.credential.issuer?.website_url && (
                                             <a
-                                                href={result.credential.pdf_url}
+                                                href={result.credential.issuer.website_url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                                                className="text-blue-600 hover:underline text-xs"
                                             >
-                                                <FileText className="mr-2 h-4 w-4" />
-                                                View Certificate
+                                                {result.credential.issuer.website_url}
                                             </a>
                                         )}
                                     </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <span className="font-semibold text-gray-600">Issued On:</span>
+                                    <span className="col-span-2 text-gray-800">{formatDate(result.credential.issued_at)}</span>
+                                </div>
+
+                                {result.credential.ipfs_cid && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        <span className="font-semibold text-gray-600">IPFS CID:</span>
+                                        <div className="col-span-2 flex items-center gap-2">
+                                            <span className="font-mono text-gray-800 break-all bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                                                {result.credential.ipfs_cid}
+                                            </span>
+                                            <CopyButton text={result.credential.ipfs_cid} />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {result.credential.data_hash && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        <span className="font-semibold text-gray-600">Data Hash:</span>
+                                        <div className="col-span-2 flex items-center gap-2">
+                                            <span className="font-mono text-gray-800 break-all bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                                                {result.credential.data_hash}
+                                            </span>
+                                            <CopyButton text={result.credential.data_hash} />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {result.credential.tx_hash ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        <span className="font-semibold text-gray-600">Transaction Hash:</span>
+                                        <div className="col-span-2 flex items-center gap-2">
+                                            <span className="font-mono text-purple-600 break-all text-xs sm:text-sm">
+                                                {result.credential.tx_hash}
+                                            </span>
+                                            <CopyButton text={result.credential.tx_hash} />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        <span className="font-semibold text-gray-600">Transaction Hash:</span>
+                                        <span className="col-span-2 text-gray-500 italic">Pending confirmation</span>
+                                    </div>
+                                )}
+
+                                <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-end border-t border-gray-100 mt-4">
+                                    {result.credential.tx_hash && (
+                                        <a
+                                            href={`https://sepolia.etherscan.io/tx/${result.credential.tx_hash}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 shadow-sm"
+                                        >
+                                            <Globe className="mr-2 h-4 w-4" />
+                                            View on Blockchain
+                                        </a>
+                                    )}
+                                    {result.credential.pdf_url && (
+                                        <a
+                                            href={result.credential.pdf_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm"
+                                        >
+                                            <FileText className="mr-2 h-4 w-4" />
+                                            View Original Certificate
+                                        </a>
+                                    )}
+                                    <Link
+                                        to={`/c/${result.credential.credential_id}`}
+                                        className="inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm"
+                                    >
+                                        View Credential Details
+                                        <ArrowRight className="ml-2 h-4 w-4" />
+                                    </Link>
                                 </div>
                             </div>
                         )}
                     </div>
                 )}
-            </div>
+            </main>
         </div>
     );
 };
