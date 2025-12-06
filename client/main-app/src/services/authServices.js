@@ -20,6 +20,10 @@ export const oauthGoogleLogin = {
   callback: (code) => api.get(`/auth/learner/oauth/google/callback?code=${code}`),
 };
 
+export const oauthDigilockerLogin = {
+  oauth: () => api.get('/auth/learner/oauth/digilocker'),
+};
+
 // Issuer Auth Services
 export const signInIssuer = {
   start: (payload) => api.post('/auth/issuer/start-register', payload),

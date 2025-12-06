@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { credentialIssuanceController } from './controller';
 import { asyncHandler } from '../../middleware/error';
-import { uploadPdf } from '../../utils/pdfUpload';
+import { uploadPdf, pdfUpload } from '../../utils/pdfUpload';
 import { authenticateIssuer } from '../../middleware/auth';
 import { validateApiKey } from '../../middleware/apiKey';
 
@@ -83,7 +83,7 @@ router.get(
 router.post(
     '/api/issue',
     validateApiKey,
-    uploadPdf.single('file'),
+    (pdfUpload.single('file') as any),
     asyncHandler(credentialIssuanceController.issueCredentialApi.bind(credentialIssuanceController))
 );
 
