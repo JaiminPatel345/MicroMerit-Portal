@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { sendForbidden } from '../utils/response';
 import { logger } from '../utils/logger';
 
-type UserRole = 'admin' | 'issuer' | 'learner';
+type UserRole = 'admin' | 'issuer' | 'learner' | 'employer';
 
 /**
  * Middleware to check if user has required role
@@ -42,6 +42,11 @@ export const requireIssuer = requireRole('issuer');
  * Middleware to check if user is learner
  */
 export const requireLearner = requireRole('learner');
+
+/**
+ * Middleware to check if user is employer
+ */
+export const requireEmployer = requireRole('employer');
 
 /**
  * Middleware to check if user is either issuer or admin

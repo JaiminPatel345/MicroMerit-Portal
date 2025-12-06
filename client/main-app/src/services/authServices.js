@@ -45,5 +45,17 @@ export const learnerApi = {
   getPublicCredential: (id) => api.get(`/credentials/public/${id}`),
 };
 
+export const employerApi = {
+  login: (payload) => api.post('/auth/employer/login', payload),
+  register: (payload) => api.post('/auth/employer/register', payload),
+  getProfile: () => api.get('/employer/me'),
+  updateProfile: (payload) => api.put('/employer/me', payload),
+  getDashboardStats: () => api.get('/employer/dashboard'),
+  verifyCredential: (payload) => api.post('/employer/verify', payload),
+  bulkVerify: (payload) => api.post('/employer/verify/bulk', payload),
+  searchCandidates: (params) => api.get('/employer/search', { params }),
+  verifyEmail: (payload) => api.post('/auth/employer/verify-email', payload),
+};
+
 
 

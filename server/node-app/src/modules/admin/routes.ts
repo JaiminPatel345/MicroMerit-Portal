@@ -66,6 +66,28 @@ resourceRouter.post(
   asyncHandler(adminController.unblockIssuer.bind(adminController))
 );
 
+// Employer management
+resourceRouter.get(
+  '/employers',
+  authenticateToken,
+  requireAdmin,
+  asyncHandler(adminController.listEmployers.bind(adminController))
+);
+
+resourceRouter.post(
+  '/employers/:id/approve',
+  authenticateToken,
+  requireAdmin,
+  asyncHandler(adminController.approveEmployer.bind(adminController))
+);
+
+resourceRouter.post(
+  '/employers/:id/reject',
+  authenticateToken,
+  requireAdmin,
+  asyncHandler(adminController.rejectEmployer.bind(adminController))
+);
+
 // Learner management
 resourceRouter.get(
   '/learners',

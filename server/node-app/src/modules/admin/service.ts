@@ -1,5 +1,7 @@
 import { adminRepository } from './repository';
 import { issuerRepository } from '../issuer/repository';
+import { employerRepository } from '../employer/repository';
+import { prisma } from '../../utils/prisma';
 import { comparePassword } from '../../utils/bcrypt';
 import { generateTokens, TokenResponse, verifyRefreshToken } from '../../utils/jwt';
 import { admin, issuer } from '@prisma/client';
@@ -307,6 +309,53 @@ export class AdminService {
       learners: learnerStats,
       recentActivity: sanitizedRecentCredentials,
     };
+  }
+
+  /**
+   * List all employers
+   */
+  async listEmployers(page: number, limit: number, status?: string, search?: string) {
+    return employerRepository.findAll(page, limit, status, search);
+  }
+
+  /**
+   * Approve an employer
+   */
+  async approveEmployer(id: number) {
+    const employer = await employerRepository.findById(id);
+    if (!employer) {
+      throw new Error('Employer not found');
+    }
+
+    if (employer.status === 'approved') {
+      throw new Error('Employer is already approved');
+    }
+
+    const approvedEmployer = await employerRepository.updateStatus(id, 'approved');
+
+    // TODO: Send approval email
+
+    return approvedEmployer;
+  }
+
+  /**
+   * Reject an employer
+   */
+  async rejectEmployer(id: number, reason: string) {
+    const employer = await employerRepository.findById(id);
+    if (!employer) {
+      throw new Error('Employer not found');
+    }
+
+    if (employer.status === 'rejected') {
+      throw new Error('Employer is already rejected');
+    }
+
+    const rejectedEmployer = await employerRepository.updateStatus(id, 'rejected', reason);
+
+    // TODO: Send rejection email with reason
+
+    return rejectedEmployer;
   }
 }
 
