@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Menu, X, ChevronDown, Globe, Search, Loader2, Award, Building2, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { publicApi } from '../services/publicServices';
+import LoginRoleSelector from './LoginRoleSelector';
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -18,6 +19,7 @@ const Header = () => {
   const [servicesOpen, setServicesOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
 
   // Mobile dropdowns
   const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
@@ -325,7 +327,12 @@ const Header = () => {
             </div>
 
             <div className="flex items-center space-x-3">
-              <Link to="/login" className="text-sm font-medium text-gray-700 hover:text-blue-chill-600">Log In</Link>
+              <button
+                onClick={() => setLoginModalOpen(true)}
+                className="text-sm font-medium text-gray-700 hover:text-blue-chill-600"
+              >
+                Log In
+              </button>
               <Link to="/signup" className="bg-blue-chill-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-chill-700 transition shadow-sm">
                 Sign Up
               </Link>
@@ -434,7 +441,12 @@ const Header = () => {
             <div className="pt-4 space-y-3 border-t">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Learners</p>
               <div className="grid grid-cols-2 gap-3">
-                <Link to="/login" className="block text-center border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 text-sm font-medium">Log In</Link>
+                <button
+                  onClick={() => { setMobileMenuOpen(false); setLoginModalOpen(true); }}
+                  className="block text-center border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 text-sm font-medium"
+                >
+                  Log In
+                </button>
                 <Link to="/signup" className="block text-center bg-blue-chill-600 text-white px-4 py-2 rounded-lg hover:bg-blue-chill-700 text-sm font-medium">Sign Up</Link>
               </div>
 
@@ -449,6 +461,7 @@ const Header = () => {
           </div>
         </div>
       )}
+      <LoginRoleSelector isOpen={loginModalOpen} onClose={() => setLoginModalOpen(false)} />
     </header>
   );
 };

@@ -96,18 +96,18 @@ const Dashboard = () => {
             </div>
 
             {/* Statistics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {statCards.map((stat, index) => (
                     <Link key={index} to={stat.link}>
-                        <div className="card hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-lg transition-all duration-300 cursor-pointer group transform hover:-translate-y-1">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                                    <p className="mt-2 text-3xl font-bold text-gray-900">
+                                    <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">{stat.title}</p>
+                                    <p className="mt-4 text-4xl font-extrabold text-gray-900 tracking-tight">
                                         {loading ? '...' : stat.value}
                                     </p>
                                 </div>
-                                <div className={`${stat.color} p-3 rounded-lg text-white`}>{stat.icon}</div>
+                                <div className={`${stat.color} p-4 rounded-xl text-white shadow-md group-hover:scale-110 transition-transform duration-300`}>{stat.icon}</div>
                             </div>
                         </div>
                     </Link>
@@ -115,87 +115,119 @@ const Dashboard = () => {
             </div>
 
             {/* Quick Actions */}
-            <div className="card">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                    <svg className="w-6 h-6 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Quick Actions
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <Link
                         to="/issuers?status=pending"
-                        className="p-4 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all duration-200"
+                        className="p-6 border border-gray-100 rounded-xl hover:shadow-md hover:border-yellow-200 bg-gradient-to-br from-yellow-50 to-white transition-all duration-300 group"
                     >
-                        <div className="flex items-center space-x-3">
-                            <div className="bg-yellow-100 p-2 rounded-lg">
-                                <svg
-                                    className="w-6 h-6 text-yellow-600"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                    />
-                                </svg>
+                        <div className="flex flex-col h-full bg-white bg-opacity-60 rounded-lg p-2">
+                            <div className="flex items-center mb-3">
+                                <div className="bg-yellow-100 p-3 rounded-xl group-hover:scale-110 transition-transform">
+                                    <svg
+                                        className="w-6 h-6 text-yellow-600"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                        />
+                                    </svg>
+                                </div>
+                                <h3 className="ml-3 font-bold text-gray-900">Review Issuers</h3>
                             </div>
-                            <div>
-                                <h3 className="font-semibold text-gray-900">Review Pending</h3>
-                                <p className="text-sm text-gray-600">Approve or reject issuers</p>
+                            <p className="text-sm text-gray-600">Approve or reject pending issuer requests</p>
+                        </div>
+                    </Link>
+
+                    <Link
+                        to="/employers?status=pending"
+                        className="p-6 border border-gray-100 rounded-xl hover:shadow-md hover:border-purple-200 bg-gradient-to-br from-purple-50 to-white transition-all duration-300 group"
+                    >
+                        <div className="flex flex-col h-full bg-white bg-opacity-60 rounded-lg p-2">
+                            <div className="flex items-center mb-3">
+                                <div className="bg-purple-100 p-3 rounded-xl group-hover:scale-110 transition-transform">
+                                    <svg
+                                        className="w-6 h-6 text-purple-600"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                                        />
+                                    </svg>
+                                </div>
+                                <h3 className="ml-3 font-bold text-gray-900">Review Employers</h3>
                             </div>
+                            <p className="text-sm text-gray-600">Review employer registrations</p>
                         </div>
                     </Link>
 
                     <Link
                         to="/issuers"
-                        className="p-4 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all duration-200"
+                        className="p-6 border border-gray-100 rounded-xl hover:shadow-md hover:border-blue-200 bg-gradient-to-br from-blue-50 to-white transition-all duration-300 group"
                     >
-                        <div className="flex items-center space-x-3">
-                            <div className="bg-blue-100 p-2 rounded-lg">
-                                <svg
-                                    className="w-6 h-6 text-blue-600"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                                    />
-                                </svg>
+                        <div className="flex flex-col h-full bg-white bg-opacity-60 rounded-lg p-2">
+                            <div className="flex items-center mb-3">
+                                <div className="bg-blue-100 p-3 rounded-xl group-hover:scale-110 transition-transform">
+                                    <svg
+                                        className="w-6 h-6 text-blue-600"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                                        />
+                                    </svg>
+                                </div>
+                                <h3 className="ml-3 font-bold text-gray-900">Manage Issuers</h3>
                             </div>
-                            <div>
-                                <h3 className="font-semibold text-gray-900">Manage Issuers</h3>
-                                <p className="text-sm text-gray-600">View all issuers</p>
-                            </div>
+                            <p className="text-sm text-gray-600">View and edit all issuers</p>
                         </div>
                     </Link>
 
                     <Link
-                        to="/issuers?blocked=true"
-                        className="p-4 border-2 border-gray-200 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all duration-200"
+                        to="/employers"
+                        className="p-6 border border-gray-100 rounded-xl hover:shadow-md hover:border-indigo-200 bg-gradient-to-br from-indigo-50 to-white transition-all duration-300 group"
                     >
-                        <div className="flex items-center space-x-3">
-                            <div className="bg-red-100 p-2 rounded-lg">
-                                <svg
-                                    className="w-6 h-6 text-red-600"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-                                    />
-                                </svg>
+                        <div className="flex flex-col h-full bg-white bg-opacity-60 rounded-lg p-2">
+                            <div className="flex items-center mb-3">
+                                <div className="bg-indigo-100 p-3 rounded-xl group-hover:scale-110 transition-transform">
+                                    <svg
+                                        className="w-6 h-6 text-indigo-600"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                                        />
+                                    </svg>
+                                </div>
+                                <h3 className="ml-3 font-bold text-gray-900">Manage Employers</h3>
                             </div>
-                            <div>
-                                <h3 className="font-semibold text-gray-900">Blocked Issuers</h3>
-                                <p className="text-sm text-gray-600">Review blocked accounts</p>
-                            </div>
+                            <p className="text-sm text-gray-600">View and edit all employers</p>
                         </div>
                     </Link>
                 </div>

@@ -16,10 +16,18 @@ const AuthRoutes = ({ role, children }) => {
 
     const { isAuthenticated: isIssuerAuth } = useSelector((state) => state.authIssuer);
     const { isAuthenticated: isLearnerAuth } = useSelector((state) => state.authLearner);
+    const { isAuthenticated: isEmployerAuth } = useSelector((state) => state.authEmployer);
 
     if (role === 'issuer') {
         if (!isIssuerAuth) {
             return <NotifyAndRedirect message="You must be logged in as an issuer to access this page." to="/issuer/login" state={{ from: location }} />;
+        }
+        return children;
+    }
+
+    if (role === 'employer') {
+        if (!isEmployerAuth) {
+            return <NotifyAndRedirect message="You must be logged in as an employer to access this page." to="/employer/login" state={{ from: location }} />;
         }
         return children;
     }

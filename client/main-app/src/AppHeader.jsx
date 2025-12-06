@@ -6,6 +6,7 @@ import Header from './components/MainHeader';
 const AppHeader = () => {
   const authLearner = useSelector(state => state.authLearner);
   const authIssuer = useSelector(state => state.authIssuer);
+  const authEmployer = useSelector(state => state.authEmployer);
 
 
   if (authLearner?.isAuthenticated) {
@@ -13,6 +14,10 @@ const AppHeader = () => {
   }
 
   if (authIssuer?.isAuthenticated) {
+    return;
+  }
+
+  if (authEmployer?.isAuthenticated) {
     return;
   }
 

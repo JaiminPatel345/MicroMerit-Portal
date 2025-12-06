@@ -9,6 +9,7 @@ import { logger } from './utils/logger';
 import { issuerAuthRoutes, issuerResourceRoutes } from './modules/issuer/routes';
 import { learnerAuthRoutes, learnerResourceRoutes } from './modules/learner/routes';
 import { adminAuthRoutes, adminResourceRoutes } from './modules/admin/routes';
+import { employerAuthRoutes, employerResourceRoutes } from './modules/employer/routes';
 import pdfRoutes from './modules/pdf/routes';
 import credentialIssuanceRoutes from './modules/credential-issuance/routes';
 import credentialVerificationRoutes from './modules/credential-verification/routes';
@@ -33,7 +34,7 @@ app.use(addSignedUrlsMiddleware);
 
 // CORS configuration
 app.use((req, res, next) => {
-  const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173'];
+  const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173', 'http://localhost:5174'];
   const origin = req.headers.origin;
 
   if (origin && allowedOrigins.includes(origin)) {
@@ -66,11 +67,13 @@ app.get('/health', (req, res) => {
 app.use('/auth/issuer', issuerAuthRoutes);
 app.use('/auth/learner', learnerAuthRoutes);
 app.use('/auth/admin', adminAuthRoutes);
+app.use('/auth/employer', employerAuthRoutes);
 
 // Resource management routes
 app.use('/issuer', issuerResourceRoutes);
 app.use('/learner', learnerResourceRoutes);
 app.use('/admin', adminResourceRoutes);
+app.use('/employer', employerResourceRoutes);
 
 // Other routes
 app.use('/credentials', credentialIssuanceRoutes); // New credential issuance system

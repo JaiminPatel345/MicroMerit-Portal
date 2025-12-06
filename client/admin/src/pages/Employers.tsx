@@ -1,100 +1,81 @@
+
 import { formatDate } from '../utils/dateUtils';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useAppDispatch, useAppSelector } from '../store/hooks.ts';
 import {
-    fetchIssuers,
+    fetchEmployers,
     setFilters,
-    approveIssuer,
-    setSelectedIssuer,
-} from '../store/issuerSlice.ts';
-import type { IssuerStatus, IssuerProfile } from '../api/issuerAPI.ts';
-import IssuerDetailsModal from '../components/IssuerDetailsModal.tsx';
-import RejectModal from '../components/RejectModal.tsx';
-import ApproveModal from '../components/ApproveModal.tsx';
-import BlockModal from '../components/BlockModal.tsx';
-import UnblockModal from '../components/UnblockModal.tsx';
+    setSelectedEmployer,
+} from '../store/employerSlice.ts';
+import type { EmployerStatus, EmployerProfile } from '../api/employerAPI.ts';
+import EmployerDetailsModal from '../components/EmployerDetailsModal.tsx';
+import EmployerRejectModal from '../components/EmployerRejectModal.tsx';
+import EmployerApproveModal from '../components/EmployerApproveModal.tsx';
 
-const Issuers = () => {
+const Employers = () => {
     const dispatch = useAppDispatch();
     const [searchParams, setSearchParams] = useSearchParams();
-    const { issuers, loading, filters, error } = useAppSelector((state) => state.issuer);
+    const { employers, loading, error, pagination } = useAppSelector((state) => state.employer);
 
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [showRejectModal, setShowRejectModal] = useState(false);
-    const [showBlockModal, setShowBlockModal] = useState(false);
-    const [showUnblockModal, setShowUnblockModal] = useState(false);
     const [showApproveModal, setShowApproveModal] = useState(false);
-    const [selectedIssuerForAction, setSelectedIssuerForAction] = useState<IssuerProfile | null>(
+    const [selectedEmployerForAction, setSelectedEmployerForAction] = useState<EmployerProfile | null>(
         null
     );
 
     const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState<IssuerStatus | ''>('');
-    const [blockedFilter, setBlockedFilter] = useState<string>('');
+    const [statusFilter, setStatusFilter] = useState<EmployerStatus | ''>('');
 
     useEffect(() => {
-        // Read filters from URL
-        const status = searchParams.get('status') as IssuerStatus | null;
-        const blocked = searchParams.get('blocked');
+        const status = searchParams.get('status') as EmployerStatus | null;
+        const page = Number(searchParams.get('page')) || 1;
 
         if (status) setStatusFilter(status);
-        if (blocked) setBlockedFilter(blocked);
 
         const newFilters: any = {};
         if (status) newFilters.status = status;
-        if (blocked === 'true') newFilters.is_blocked = true;
-        if (blocked === 'false') newFilters.is_blocked = false;
+        if (searchTerm) newFilters.search = searchTerm;
 
         dispatch(setFilters(newFilters));
-        dispatch(fetchIssuers(newFilters));
-    }, [searchParams, dispatch]);
+        dispatch(fetchEmployers({ filters: newFilters, page }));
+    }, [searchParams, dispatch, searchTerm]); // Search term dependency needed to re-fetch on search
 
     const handleFilterChange = () => {
         const params: any = {};
         if (statusFilter) params.status = statusFilter;
-        if (blockedFilter) params.blocked = blockedFilter;
-
+        // Don't modify page on filter change, maybe reset to 1
         setSearchParams(params);
     };
 
-    const handleApprove = (issuer: IssuerProfile) => {
-        setSelectedIssuerForAction(issuer);
+    // Debounce search ideally, but for now simple
+    const handleSearch = (e: any) => {
+        setSearchTerm(e.target.value);
+    }
+
+    const handleApprove = (employer: EmployerProfile) => {
+        setSelectedEmployerForAction(employer);
         setShowApproveModal(true);
     };
 
-    const handleReject = (issuer: IssuerProfile) => {
-        setSelectedIssuerForAction(issuer);
+    const handleReject = (employer: EmployerProfile) => {
+        setSelectedEmployerForAction(employer);
         setShowRejectModal(true);
     };
 
-    const handleBlock = (issuer: IssuerProfile) => {
-        setSelectedIssuerForAction(issuer);
-        setShowBlockModal(true);
-    };
-
-    const handleUnblock = (issuer: IssuerProfile) => {
-        setSelectedIssuerForAction(issuer);
-        setShowUnblockModal(true);
-    };
-
-    const handleViewDetails = (issuer: IssuerProfile) => {
-        dispatch(setSelectedIssuer(issuer));
+    const handleViewDetails = (employer: EmployerProfile) => {
+        dispatch(setSelectedEmployer(employer));
         setShowDetailsModal(true);
     };
-
-    const filteredIssuers = issuers.filter((issuer) =>
-        issuer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        issuer.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
 
     return (
         <div className="space-y-8">
             {/* Page Header */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Issuer Management</h1>
-                    <p className="mt-2 text-gray-600 text-lg">Manage and review all issuer applications</p>
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Employer Management</h1>
+                    <p className="mt-2 text-gray-600 text-lg">Manage and review employer registrations</p>
                 </div>
             </div>
 
@@ -119,7 +100,7 @@ const Issuers = () => {
             {/* Filters */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                    <div>
+                    <div className="md:col-span-2">
                         <label className="block text-sm font-bold text-gray-700 mb-3">Search</label>
                         <div className="relative group">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -130,7 +111,7 @@ const Issuers = () => {
                             <input
                                 type="text"
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={handleSearch}
                                 placeholder="Search by name, email..."
                                 className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all outline-none"
                             />
@@ -142,33 +123,13 @@ const Issuers = () => {
                         <div className="relative">
                             <select
                                 value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value as IssuerStatus | '')}
+                                onChange={(e) => setStatusFilter(e.target.value as EmployerStatus | '')}
                                 className="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all outline-none appearance-none cursor-pointer"
                             >
                                 <option value="">All Statuses</option>
                                 <option value="pending">Pending</option>
                                 <option value="approved">Approved</option>
                                 <option value="rejected">Rejected</option>
-                            </select>
-                            <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-500">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-3">Blocked</label>
-                        <div className="relative">
-                            <select
-                                value={blockedFilter}
-                                onChange={(e) => setBlockedFilter(e.target.value)}
-                                className="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all outline-none appearance-none cursor-pointer"
-                            >
-                                <option value="">All</option>
-                                <option value="true">Blocked Only</option>
-                                <option value="false">Not Blocked</option>
                             </select>
                             <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-500">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -186,13 +147,13 @@ const Issuers = () => {
                 </div>
             </div>
 
-            {/* Issuers Table */}
+            {/* Employers Table */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                {loading ? (
+                {loading && employers.length === 0 ? (
                     <div className="flex justify-center py-20">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
                     </div>
-                ) : filteredIssuers.length === 0 ? (
+                ) : employers.length === 0 ? (
                     <div className="text-center py-24">
                         <div className="bg-gray-50 rounded-full h-24 w-24 flex items-center justify-center mx-auto mb-6">
                             <svg
@@ -209,7 +170,7 @@ const Issuers = () => {
                                 />
                             </svg>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">No issuers found</h3>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">No employers found</h3>
                         <p className="text-gray-500">Try adjusting your filters to see more results</p>
                     </div>
                 ) : (
@@ -218,10 +179,10 @@ const Issuers = () => {
                             <thead className="bg-gray-50">
                                 <tr>
                                     <th className="px-8 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                        Issuer
+                                        Company
                                     </th>
                                     <th className="px-8 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                        Type
+                                        Contact
                                     </th>
                                     <th className="px-8 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                                         Status
@@ -235,99 +196,67 @@ const Issuers = () => {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-100">
-                                {filteredIssuers.map((issuer) => (
-                                    <tr key={issuer.id} className="hover:bg-gray-50 transition-colors duration-200">
+                                {employers.map((employer) => (
+                                    <tr key={employer.id} className="hover:bg-gray-50 transition-colors duration-200">
                                         <td className="px-8 py-5">
                                             <div className="flex items-center">
-                                                {issuer.logo_url ? (
-                                                    <img
-                                                        src={issuer.logo_url}
-                                                        alt={issuer.name}
-                                                        className="h-12 w-12 rounded-xl object-cover border border-gray-200 shadow-sm"
-                                                    />
-                                                ) : (
-                                                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary-100 to-primary-50 flex items-center justify-center text-primary-700 font-bold text-xl shadow-sm">
-                                                        {issuer.name.charAt(0)}
-                                                    </div>
-                                                )}
+                                                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center text-blue-600 font-bold text-xl shadow-sm">
+                                                    {employer.company_name.charAt(0).toUpperCase()}
+                                                </div>
                                                 <div className="ml-5">
-                                                    <div className="text-sm font-bold text-gray-900">{issuer.name}</div>
-                                                    <div className="text-sm text-gray-500 mt-1">{issuer.email}</div>
+                                                    <div className="text-sm font-bold text-gray-900">{employer.company_name}</div>
+                                                    {employer.company_website && <a href={employer.company_website} target="_blank" className="text-xs text-gray-500 hover:text-primary-600 hover:underline mt-1 block">{employer.company_website}</a>}
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-5 whitespace-nowrap">
-                                            <div className="text-sm text-gray-700 capitalize bg-gray-100 px-3 py-1 rounded-full inline-block border border-gray-200 font-medium">
-                                                {issuer.type.replace('_', ' ')}
+                                        <td className="px-8 py-5">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-medium text-gray-900">{employer.email}</span>
+                                                <span className="text-xs text-gray-500 mt-1">{employer.phone || 'No phone'}</span>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-5 whitespace-nowrap">
-                                            <div className="flex flex-col space-y-2">
-                                                <span
-                                                    className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border inline-flex w-fit ${issuer.status === 'pending'
-                                                        ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                                        : issuer.status === 'approved'
-                                                            ? 'bg-green-50 text-green-700 border-green-200'
-                                                            : 'bg-red-50 text-red-700 border-red-200'
-                                                        }`}
-                                                >
-                                                    {issuer.status}
-                                                </span>
-                                                {issuer.is_blocked && (
-                                                    <span className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border bg-red-100 text-red-800 border-red-200 w-fit">
-                                                        Blocked
-                                                    </span>
-                                                )}
-                                            </div>
+                                        <td className="px-8 py-5">
+                                            <span
+                                                className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border ${employer.status === 'pending'
+                                                    ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                                    : employer.status === 'approved'
+                                                        ? 'bg-green-50 text-green-700 border-green-200'
+                                                        : 'bg-red-50 text-red-700 border-red-200'
+                                                    }`}
+                                            >
+                                                {employer.status}
+                                            </span>
                                         </td>
-                                        <td className="px-8 py-5 whitespace-nowrap text-sm text-gray-500">
-                                            {formatDate(issuer.created_at)}
+                                        <td className="px-8 py-5 text-sm text-gray-500">
+                                            {formatDate(employer.created_at)}
                                         </td>
-                                        <td className="px-8 py-5 whitespace-nowrap text-sm font-medium">
+                                        <td className="px-8 py-5">
                                             <div className="flex justify-center space-x-3">
                                                 <button
-                                                    onClick={() => handleViewDetails(issuer)}
+                                                    onClick={() => handleViewDetails(employer)}
                                                     className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
                                                     title="View Details"
                                                 >
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                                 </button>
 
-                                                {issuer.status === 'pending' && (
+                                                {employer.status === 'pending' && (
                                                     <>
                                                         <button
-                                                            onClick={() => handleApprove(issuer)}
+                                                            onClick={() => handleApprove(employer)}
                                                             className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all"
                                                             title="Approve"
                                                         >
                                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                                                         </button>
                                                         <button
-                                                            onClick={() => handleReject(issuer)}
+                                                            onClick={() => handleReject(employer)}
                                                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
                                                             title="Reject"
                                                         >
                                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                                         </button>
                                                     </>
-                                                )}
-                                                {issuer.status === 'approved' && !issuer.is_blocked && (
-                                                    <button
-                                                        onClick={() => handleBlock(issuer)}
-                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                                        title="Block"
-                                                    >
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
-                                                    </button>
-                                                )}
-                                                {issuer.status === 'approved' && issuer.is_blocked && (
-                                                    <button
-                                                        onClick={() => handleUnblock(issuer)}
-                                                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all"
-                                                        title="Unblock"
-                                                    >
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                    </button>
                                                 )}
                                             </div>
                                         </td>
@@ -337,47 +266,63 @@ const Issuers = () => {
                         </table>
                     </div>
                 )}
+                {/* Pagination */}
+                {pagination.pages > 1 && (
+                    <div className="flex justify-center items-center space-x-2 mt-6">
+                        <button
+                            onClick={() => {
+                                const params = new URLSearchParams(searchParams);
+                                params.set('page', (pagination.page - 1).toString());
+                                setSearchParams(params);
+                            }}
+                            disabled={pagination.page === 1}
+                            className="p-2 border rounded-md disabled:opacity-50 hover:bg-gray-50 transition-colors"
+                        >
+                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <span className="text-gray-600 text-sm font-medium">
+                            Page {pagination.page} of {pagination.pages}
+                        </span>
+                        <button
+                            onClick={() => {
+                                const params = new URLSearchParams(searchParams);
+                                params.set('page', (pagination.page + 1).toString());
+                                setSearchParams(params);
+                            }}
+                            disabled={pagination.page === pagination.pages}
+                            className="p-2 border rounded-md disabled:opacity-50 hover:bg-gray-50 transition-colors"
+                        >
+                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Modals */}
-            <IssuerDetailsModal isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
+            <EmployerDetailsModal isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
 
-            {selectedIssuerForAction && (
+            {selectedEmployerForAction && (
                 <>
-                    <RejectModal
+                    <EmployerRejectModal
                         isOpen={showRejectModal}
                         onClose={() => {
                             setShowRejectModal(false);
-                            setSelectedIssuerForAction(null);
+                            setSelectedEmployerForAction(null);
                         }}
-                        issuer={selectedIssuerForAction}
+                        employer={selectedEmployerForAction}
                     />
 
-                    <ApproveModal
+                    <EmployerApproveModal
                         isOpen={showApproveModal}
                         onClose={() => {
                             setShowApproveModal(false);
-                            setSelectedIssuerForAction(null);
+                            setSelectedEmployerForAction(null);
                         }}
-                        issuer={selectedIssuerForAction}
-                    />
-
-                    <BlockModal
-                        isOpen={showBlockModal}
-                        onClose={() => {
-                            setShowBlockModal(false);
-                            setSelectedIssuerForAction(null);
-                        }}
-                        issuer={selectedIssuerForAction}
-                    />
-
-                    <UnblockModal
-                        isOpen={showUnblockModal}
-                        onClose={() => {
-                            setShowUnblockModal(false);
-                            setSelectedIssuerForAction(null);
-                        }}
-                        issuer={selectedIssuerForAction}
+                        employer={selectedEmployerForAction}
                     />
                 </>
             )}
@@ -385,4 +330,4 @@ const Issuers = () => {
     );
 };
 
-export default Issuers;
+export default Employers;

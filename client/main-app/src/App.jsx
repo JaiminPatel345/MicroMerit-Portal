@@ -40,8 +40,15 @@ import IssuerSettings from './pages/issuer/Settings';
 import AuthRoutes from './components/AuthRoutes';
 import PublicIssuerProfile from './pages/public/PublicIssuerProfile';
 import PublicCredential from './pages/public/PublicCredential';
+import EmployerLogin from './pages/employer/Login';
+import EmployerSignup from './pages/employer/Signup';
+import EmployerDashboard from './pages/employer/Dashboard';
+import EmployerVerify from './pages/employer/Verify';
+import EmployerSearch from './pages/employer/Search';
+import EmployerProfile from './pages/employer/Properties';
+import EmployerHeader from './pages/employer/Header';
 
-const HideHeaderRoutes = ["/login", "/signup", "/verify-otp", "/profile-builder", "/issuer/login", "/issuer/signup", "/google-callback", "/digilocker-callback"];
+const HideHeaderRoutes = ["/login", "/signup", "/verify-otp", "/profile-builder", "/issuer/login", "/issuer/signup", "/google-callback", "/digilocker-callback", "/employer/login", "/employer/signup"];
 
 function Layout() {
 
@@ -149,6 +156,24 @@ function Layout() {
                 <Route path="profile" element={<IssuerProfile />} />
                 <Route path="settings" element={<IssuerSettings />} />
 
+                <Route path="settings" element={<IssuerSettings />} />
+
+              </Route>
+
+              <Route path='/employer/signup' element={<EmployerSignup />} />
+              <Route path='/employer/login' element={<EmployerLogin />} />
+              <Route path='/employer' element={
+                // Ideally use AuthRoutes role="employer" but for MVP we might skip strict role check if AuthRoutes not ready
+                // Assuming AuthRoutes handles it or we use a simple wrapper
+                // We'll trust localStorage check in Header or Page for now, or assume adding role="employer" to AuthRoutes works (need to verify)
+                <AuthRoutes role="employer">
+                  <EmployerHeader />
+                </AuthRoutes>
+              }>
+                <Route path="dashboard" element={<EmployerDashboard />} />
+                <Route path="verify" element={<EmployerVerify />} />
+                <Route path="search" element={<EmployerSearch />} />
+                <Route path="profile" element={<EmployerProfile />} />
               </Route>
 
             </Routes>
