@@ -9,6 +9,8 @@ import NSQFVerificationModal from '../../components/NSQFVerificationModal';
 
 const NewIssuance = () => {
     const { issuer } = useSelector((state) => state.authIssuer);
+
+    // All state declarations must be before any conditional returns
     const [issuanceType, setIssuanceType] = useState('single'); // Default to single
     const [successData, setSuccessData] = useState(null);
     const [blockchainStatus, setBlockchainStatus] = useState(null);
@@ -23,6 +25,23 @@ const NewIssuance = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
 
+    // Bulk Issuance State
+    const [bulkEntries, setBulkEntries] = useState([]);
+    const [processing, setProcessing] = useState(false);
+
+    // Global Title State
+    const [globalTitle, setGlobalTitle] = useState('');
+
+    // Edit/Verify Modal State
+    const [editingEntry, setEditingEntry] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState(null);
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+    // Analysis Modal State
+    const [analyzingData, setAnalyzingData] = useState(null);
+    const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+    const [isIssuingAfterAnalysis, setIsIssuingAfterAnalysis] = useState(false);
+
     // Check blockchain status when successData is set
     useEffect(() => {
         if (successData?.credential_id && successData.blockchain_status === 'pending') {
@@ -33,6 +52,17 @@ const NewIssuance = () => {
             return () => clearTimeout(timer);
         }
     }, [successData]);
+
+    // Cleanup preview URL when modal closes or entry changes
+    useEffect(() => {
+        if (editingEntry && editingEntry.fileBlob) {
+            const url = URL.createObjectURL(editingEntry.fileBlob);
+            setPreviewUrl(url);
+            return () => URL.revokeObjectURL(url);
+        } else {
+            setPreviewUrl(null);
+        }
+    }, [editingEntry?.fileBlob]); // Only update if the file itself changes
 
     const checkBlockchainStatus = async (credentialId) => {
         setRefreshing(true);
@@ -186,13 +216,6 @@ const NewIssuance = () => {
         );
     }
 
-    // Bulk Issuance State
-    const [bulkEntries, setBulkEntries] = useState([]);
-    const [processing, setProcessing] = useState(false);
-
-    // Global Title State
-    const [globalTitle, setGlobalTitle] = useState('');
-
     const applyGlobalTitle = () => {
         if (!globalTitle.trim()) return;
         setBulkEntries(bulkEntries.map(entry => ({
@@ -201,16 +224,6 @@ const NewIssuance = () => {
         })));
         setNotification("Applied title to all entries", "success");
     };
-
-    // Edit/Verify Modal State
-    const [editingEntry, setEditingEntry] = useState(null);
-    const [previewUrl, setPreviewUrl] = useState(null);
-    const [showClearConfirm, setShowClearConfirm] = useState(false);
-
-    // Analysis Modal State
-    const [analyzingData, setAnalyzingData] = useState(null);
-    const [showAnalysisModal, setShowAnalysisModal] = useState(false);
-    const [isIssuingAfterAnalysis, setIsIssuingAfterAnalysis] = useState(false);
 
     const handleClearAll = () => {
         setShowClearConfirm(true);
@@ -221,17 +234,6 @@ const NewIssuance = () => {
         setShowClearConfirm(false);
         setNotification("All entries cleared", "success");
     };
-
-    // Cleanup preview URL when modal closes or entry changes
-    useEffect(() => {
-        if (editingEntry && editingEntry.fileBlob) {
-            const url = URL.createObjectURL(editingEntry.fileBlob);
-            setPreviewUrl(url);
-            return () => URL.revokeObjectURL(url);
-        } else {
-            setPreviewUrl(null);
-        }
-    }, [editingEntry?.fileBlob]); // Only update if the file itself changes
 
     const handleChange = (e) => {
         if (e.target.name === 'file') {
