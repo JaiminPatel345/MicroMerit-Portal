@@ -89,26 +89,18 @@ const LearnerHeader = () => {
     }
   }, []);
 
+  // Cookie Helper
+  const setCookie = (name, value, days) => {
+    const d = new Date();
+    d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+    const expires = "expires=" + d.toUTCString();
+    document.cookie = name + "=" + value + ";" + expires + ";path=/";
+  };
+
   const changeLanguage = (langCode) => {
-    const selectElem = document.querySelector('.goog-te-combo');
-    if (selectElem) {
-      selectElem.value = langCode;
-      selectElem.dispatchEvent(new Event('change', { bubbles: true }));
-      setLangOpen(false);
-    } else {
-      console.warn("Google Translate dropdown not found. Retrying...");
-      // Simple retry once after a short delay
-      setTimeout(() => {
-        const retryElem = document.querySelector('.goog-te-combo');
-        if (retryElem) {
-          retryElem.value = langCode;
-          retryElem.dispatchEvent(new Event('change', { bubbles: true }));
-          setLangOpen(false);
-        } else {
-          alert("Translation service is initializing. Please try again in a moment.");
-        }
-      }, 1000);
-    }
+    setLangOpen(false);
+    setCookie('googtrans', `/auto/${langCode}`, 1);
+    window.location.reload();
   };
 
   const isActive = (path) => location.pathname === path ? 'text-blue-chill-600 font-medium' : 'text-gray-700 hover:text-blue-chill-600';
