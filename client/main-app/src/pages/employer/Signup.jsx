@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { employerApi } from '../../services/authServices';
+import logo_1 from '../../assets/logo_1.png';
 import { ArrowRight, ArrowLeft, Loader, UploadCloud, Phone } from 'lucide-react';
 import { useRef } from 'react';
 const EmployerSignup = () => {
@@ -106,8 +107,11 @@ const EmployerSignup = () => {
 
     if (step === 3) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+            <div className="min-h-screen bg-gradient-to-b from-blue-chill-200 to-white flex items-center justify-center p-4">
                 <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-lg border border-gray-100 text-center">
+                    <Link to="/" className="inline-block mb-4">
+                        <img src={logo_1} alt="MicroMerit" className="h-20 w-auto mx-auto" />
+                    </Link>
                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-600">
                         <ArrowRight size={32} />
                     </div>
@@ -126,17 +130,20 @@ const EmployerSignup = () => {
 
     if (step === 2) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-chill-50 to-white flex items-center justify-center p-4">
+            <div className="min-h-screen bg-gradient-to-b from-blue-chill-200 to-white flex items-center justify-center p-4">
                 <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-lg border border-gray-100">
                     <button
                         onClick={() => setStep(1)}
-                        className="flex items-center text-gray-600 hover:text-blue-chill-600 mb-6 transition"
+                        className="flex items-center text-gray-600 hover:text-blue-chill-600 mb-4 transition"
                     >
                         <ArrowLeft className="w-5 h-5 mr-2" />
                         Back
                     </button>
 
                     <div className="text-center mb-8">
+                        <Link to="/" className="inline-block mb-4">
+                            <img src={logo_1} alt="MicroMerit" className="h-20 w-auto mx-auto" />
+                        </Link>
                         <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-chill-100 rounded-full mb-4">
                             <Phone className="w-8 h-8 text-blue-chill-600" />
                         </div>
@@ -188,11 +195,14 @@ const EmployerSignup = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-10">
+        <div className="min-h-screen bg-gradient-to-b from-blue-chill-200 to-white flex items-center justify-center p-4 py-10">
             <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-2xl border border-gray-100">
                 <div className="text-center mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900">Partner Registration</h1>
-                    <p className="text-gray-500 mt-2">Join as an Employer to verify credentials</p>
+                    <Link to="/" className="inline-block mb-4">
+                        <img src={logo_1} alt="MicroMerit" className="h-20 w-auto mx-auto" />
+                    </Link>
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Partner Registration</h1>
+                    <p className="text-gray-500 mt-2 font-medium">Join as an Employer to verify credentials</p>
                 </div>
 
                 {error && (
