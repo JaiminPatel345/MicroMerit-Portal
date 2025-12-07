@@ -14,9 +14,33 @@ import {
     Check,
     User,
     Calendar,
-    Globe
+    Globe,
+    Copy,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react';
 import { learnerApi } from '../../services/authServices';
+
+const CopyButton = ({ text }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <button
+            onClick={handleCopy}
+            className="ml-2 inline-flex items-center justify-center p-1 rounded-md text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            title="Copy to clipboard"
+        >
+            {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+        </button>
+    );
+};
 
 const PublicCredential = () => {
     const { id } = useParams();
@@ -24,6 +48,7 @@ const PublicCredential = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [copySuccess, setCopySuccess] = useState(false);
+    const [isBlockchainProofOpen, setIsBlockchainProofOpen] = useState(false);
 
     useEffect(() => {
         const fetchCredential = async () => {
@@ -203,27 +228,87 @@ const PublicCredential = () => {
                         </div>
 
                         {/* Blockchain Proof */}
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                                <Hash size={18} className="text-purple-500" /> Blockchain Proof
-                            </h3>
-                            <div className="space-y-3">
-                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-gray-50 rounded-lg text-sm">
-                                    <span className="text-gray-500 mb-1 sm:mb-0">Transaction Hash</span>
-                                    <div className="flex items-center gap-2">
-                                        <code className="bg-white px-2 py-1 rounded border border-gray-200 text-xs font-mono text-gray-600 truncate max-w-[200px]">
-                                            {credential.tx_hash || 'Pending...'}
-                                        </code>
-                                        <ExternalLink size={14} className="text-blue-chill-600 cursor-pointer" onClick={() => window.open(`https://sepolia.etherscan.io/tx/${credential.tx_hash}`, '_blank')} />
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                            <button
+                                onClick={() => setIsBlockchainProofOpen(!isBlockchainProofOpen)}
+                                className="w-full flex items-center justify-between p-6 bg-white hover:bg-gray-50 transition-colors"
+                            >
+                                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                                    <Shield size={18} className="text-purple-500" /> Proof of Authenticity
+                                </h3>
+                                {isBlockchainProofOpen ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
+                            </button>
+
+                            {isBlockchainProofOpen && (
+                                <div className="px-6 pb-6 space-y-4 border-t border-gray-100 pt-4">
+                                    <div className="space-y-3">
+                                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-gray-50 rounded-lg text-sm">
+                                            <span className="text-gray-500 mb-1 sm:mb-0">Credential ID</span>
+                                            <div className="flex items-center gap-2 max-w-full">
+                                                <code className="bg-white px-2 py-1 rounded border border-gray-200 text-xs font-mono text-gray-600 truncate max-w-[200px] sm:max-w-xs">
+                                                    {credential.credential_id}
+                                                </code>
+                                                <CopyButton text={credential.credential_id} />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-gray-50 rounded-lg text-sm">
+                                            <span className="text-gray-500 mb-1 sm:mb-0">Transaction Hash</span>
+                                            <div className="flex items-center gap-2 max-w-full">
+                                                <code className="bg-white px-2 py-1 rounded border border-gray-200 text-xs font-mono text-gray-600 truncate max-w-[200px] sm:max-w-xs">
+                                                    {credential.tx_hash || 'Pending...'}
+                                                </code>
+                                                <CopyButton text={credential.tx_hash} />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-gray-50 rounded-lg text-sm">
+                                            <span className="text-gray-500 mb-1 sm:mb-0">IPFS CID</span>
+                                            <div className="flex items-center gap-2 max-w-full">
+                                                <code className="bg-white px-2 py-1 rounded border border-gray-200 text-xs font-mono text-gray-600 truncate max-w-[200px] sm:max-w-xs">
+                                                    {credential.ipfs_cid || 'N/A'}
+                                                </code>
+                                                {credential.ipfs_cid && <CopyButton text={credential.ipfs_cid} />}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-gray-50 rounded-lg text-sm">
+                                            <span className="text-gray-500 mb-1 sm:mb-0">Data Hash</span>
+                                            <div className="flex items-center gap-2 max-w-full">
+                                                <code className="bg-white px-2 py-1 rounded border border-gray-200 text-xs font-mono text-gray-600 truncate max-w-[200px] sm:max-w-xs">
+                                                    {credential.data_hash}
+                                                </code>
+                                                <CopyButton text={credential.data_hash} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-3 pt-2">
+                                        {credential.tx_hash && (
+                                            <a
+                                                href={`https://sepolia.etherscan.io/tx/${credential.tx_hash}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                                            >
+                                                <Globe size={16} className="mr-2 text-gray-500" />
+                                                View on Blockchain
+                                            </a>
+                                        )}
+                                        {credential.ipfs_cid && (
+                                            <a
+                                                href={`https://ipfs.io/ipfs/${credential.ipfs_cid}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                                            >
+                                                <Hash size={16} className="mr-2 text-gray-500" />
+                                                View on IPFS
+                                            </a>
+                                        )}
                                     </div>
                                 </div>
-                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-gray-50 rounded-lg text-sm">
-                                    <span className="text-gray-500 mb-1 sm:mb-0">Data Hash</span>
-                                    <code className="bg-white px-2 py-1 rounded border border-gray-200 text-xs font-mono text-gray-600 truncate max-w-[200px]">
-                                        {credential.data_hash}
-                                    </code>
-                                </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Skills & NSQF */}
