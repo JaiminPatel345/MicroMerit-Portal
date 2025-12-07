@@ -37,14 +37,28 @@ async def process_ocr(
     try:
         # Read file
         file_bytes = await file.read()
+        logger.info(f"Received file: {file.filename}, content_type: {file.content_type}, size: {len(file_bytes)} bytes")
         
         # Step 1: Extract text using OCR
         extracted_text = ocr_service.extract_text(file_bytes, file.filename)
         
-        if not extracted_text or len(extracted_text.strip()) < 10:
-            raise HTTPException(status_code=422, detail="OCR failed or empty text extracted")
+        # Enhanced validation with better error messages
+        if not extracted_text:
+            logger.error(f"OCR FAILED: No text extracted from {file.filename}")
+            raise HTTPException(
+                status_code=422, 
+                detail="No text could be extracted from the document. Please ensure it contains readable text and is not a blank page."
+            )
         
-        logger.info(f"Extracted {len(extracted_text)} characters from {file.filename}")
+        text_length = len(extracted_text.strip())
+        if text_length < 10:
+            logger.error(f"OCR FAILED: Only {text_length} characters extracted from {file.filename}")
+            raise HTTPException(
+                status_code=422, 
+                detail=f"Only {text_length} characters extracted. The document may be blank, contain only images, or have unreadable text."
+            )
+        
+        logger.info(f"✓ Successfully extracted {len(extracted_text)} characters from {file.filename}")
         
         # Parse NSQF context if provided
         parsed_context = []
