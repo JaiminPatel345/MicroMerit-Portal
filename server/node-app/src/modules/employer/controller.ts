@@ -88,10 +88,20 @@ export class EmployerController {
     async verify(req: Request, res: Response) {
         try {
             if (!req.user) return sendError(res, 'Unauthorized');
-            const { credential_id } = req.body;
-            if (!credential_id) return sendError(res, 'Credential ID required', 'Validation Error', 400);
+            console.log('Verify Request Body:', req.body);
+            const { credential_id, tx_hash, ipfs_cid } = req.body;
+            
+            if (!credential_id && !tx_hash && !ipfs_cid) {
+                return sendError(res, 'Credential ID, Transaction Hash, or IPFS CID is required', 'Validation Error', 400);
+            }
 
-            const result = await employerService.verifyCredential(req.user.id, credential_id);
+            const verificationInput = { 
+                credential_id, 
+                tx_hash, 
+                ipfs_cid 
+            };
+
+            const result = await employerService.verifyCredential(req.user.id, verificationInput);
             sendSuccess(res, result, 'Verification Complete');
         } catch (error: any) {
             sendError(res, error.message, 'Verification Failed', 500);
