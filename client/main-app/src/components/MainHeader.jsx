@@ -8,6 +8,7 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const searchRef = useRef(null);
+  const mountedRef = useRef(true);
 
   // Search State
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,51 +53,110 @@ const Header = () => {
   ];
 
   useEffect(() => {
-    // Google Translate Init
-    if (window.google?.translate) return;
-    if (!document.getElementById('google_translate_element')) {
-      const translateDiv = document.createElement('div');
-      translateDiv.id = 'google_translate_element';
-      document.body.appendChild(translateDiv);
-    }
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  // ---------- Google Translate: load once + init ----------
+  useEffect(() => {
+    // if script already present, do nothing
+    if (document.querySelector('#google-translate-script')) return;
+
+    // Define the callback BEFORE loading the script
     window.googleTranslateElementInit = function () {
       try {
+        // Use InlineLayout.SIMPLE so widget renders as a select
         new window.google.translate.TranslateElement(
           {
             pageLanguage: 'en',
             includedLanguages: languages.map((l) => l.code).join(','),
             layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
+            autoDisplay: false,
           },
           'google_translate_element'
         );
-      } catch (error) {
-        console.error(error);
+      } catch (e) {
+        // silent failure if Translate API object not available
+        // console.error('Translate init failed', e);
       }
     };
-    if (!document.getElementById('google-translate-script')) {
-      const script = document.createElement('script');
-      script.id = 'google-translate-script';
-      script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-      script.async = true;
-      document.head.appendChild(script);
-    }
-  }, []);
 
-  // Search Debounce
+    // Inject the script
+    const s = document.createElement('script');
+    s.id = 'google-translate-script';
+    s.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+    s.async = true;
+    document.body.appendChild(s);
+
+    // No cleanup for script — we want widget to persist across SPA nav
+  }, []); // run once
+
+  // ---------- Helper: wait for the .goog-te-combo to appear ----------
+  const waitForCombo = (timeout = 5000) => {
+    return new Promise((resolve) => {
+      const existing = document.querySelector('.goog-te-combo');
+      if (existing) return resolve(existing);
+
+      const start = Date.now();
+      const id = setInterval(() => {
+        const el = document.querySelector('.goog-te-combo');
+        if (el) {
+          clearInterval(id);
+          return resolve(el);
+        }
+        if (Date.now() - start > timeout) {
+          clearInterval(id);
+          return resolve(null);
+        }
+      }, 300);
+    });
+  };
+
+  // Robust changeLanguage that waits & retries
+  const changeLanguage = async (langCode) => {
+    // open the dropdown UI so the widget loads if hidden — sometimes needed
+    setLangOpen(false);
+
+    // wait for select element to exist
+    const combo = await waitForCombo(7000);
+    if (!combo) {
+      // last attempt: the widget might be in an iframe — try to find it there
+      // Note: due to cross-origin, it's often not accessible. Inform dev via console
+      console.warn('goog-te-combo not found. Google Translate widget may not have rendered yet.');
+      return;
+    }
+
+    try {
+      combo.value = langCode;
+      combo.dispatchEvent(new Event('change', { bubbles: true }));
+    } catch (e) {
+      console.warn('Failed to change language via goog-te-combo', e);
+    }
+
+    // some browsers require a tiny delay and a second trigger
+    setTimeout(() => {
+      const el = document.querySelector('.goog-te-combo');
+      if (el) {
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }, 300);
+  };
+
+  // ---------- Search Debounce ----------
   useEffect(() => {
     const timer = setTimeout(async () => {
       if (searchQuery.length >= 2) {
         setIsSearching(true);
         try {
           const res = await publicApi.search(searchQuery);
-          if (res.data?.success) {
+          if (res.data?.success && mountedRef.current) {
             setSearchResults(res.data.data);
             setShowResults(true);
           }
         } catch (error) {
           console.error("Search failed", error);
         } finally {
-          setIsSearching(false);
+          if (mountedRef.current) setIsSearching(false);
         }
       } else {
         setSearchResults(null);
@@ -118,14 +178,6 @@ const Header = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const changeLanguage = (langCode) => {
-    const selectElem = document.querySelector('.goog-te-combo');
-    if (selectElem) {
-      selectElem.value = langCode;
-      selectElem.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-  };
-
   const handleResultClick = (path) => {
     navigate(path);
     setShowResults(false);
@@ -134,11 +186,25 @@ const Header = () => {
 
   return (
     <header className="bg-white sticky top-0 z-50 shadow-sm">
-      <div id="google_translate_element" style={{ position: 'absolute', top: '-9999px' }}></div>
+      {/* <- IMPORTANT: single hidden container for Google Translate widget */}
+      <div
+        id="google_translate_element"
+        style={{
+          position: "absolute",
+          top: "0",
+          left: "0",
+          opacity: 0,
+          pointerEvents: "none",
+          height: "1px",
+          width: "1px",
+          overflow: "hidden",
+          zIndex: -1
+        }}
+      ></div>
+
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 gap-4">
-
           {/* LOGO */}
           <Link to="/" className="flex flex-col flex-shrink-0">
             <span className="text-2xl font-bold text-gray-900">MicroMerit</span>
@@ -224,7 +290,7 @@ const Header = () => {
                     {searchResults.learners.map(learner => (
                       <button
                         key={learner.id}
-                        onClick={() => handleResultClick(`/p/${learner.id}`)} // Assuming ID is used for slug for now, or need to fetch slug
+                        onClick={() => handleResultClick(`/p/${learner.id}`)}
                         className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg flex items-center gap-3 transition-colors"
                       >
                         <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200">
@@ -316,7 +382,7 @@ const Header = () => {
                   {languages.map((lang) => (
                     <button
                       key={lang.code}
-                      onClick={() => changeLanguage(lang.code)}
+                      onClick={() => { changeLanguage(lang.code); setLangOpen(false); }}
                       className="block w-full text-left px-4 py-2 text-sm hover:bg-blue-chill-50"
                     >
                       {lang.name}
@@ -349,7 +415,6 @@ const Header = () => {
           >
             {mobileMenuOpen ? <X /> : <Menu />}
           </button>
-
         </div>
       </div>
 
@@ -357,7 +422,6 @@ const Header = () => {
       {mobileMenuOpen && (
         <div className="lg:hidden bg-white border-t">
           <div className="px-4 py-4 space-y-3">
-
             {/* Mobile Search */}
             <div className="relative mb-4">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -427,7 +491,7 @@ const Header = () => {
                   {languages.map((lang) => (
                     <button
                       key={lang.code}
-                      onClick={() => changeLanguage(lang.code)}
+                      onClick={() => { changeLanguage(lang.code); setMobileMenuOpen(false); setMobileLangOpen(false); }}
                       className="w-full text-left px-3 py-2 bg-gray-50 rounded hover:bg-blue-chill-50 text-sm"
                     >
                       {lang.name}
@@ -457,10 +521,10 @@ const Header = () => {
                 </Link>
               </div>
             </div>
-
           </div>
         </div>
       )}
+
       <LoginRoleSelector isOpen={loginModalOpen} onClose={() => setLoginModalOpen(false)} />
     </header>
   );

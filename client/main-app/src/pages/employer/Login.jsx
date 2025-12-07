@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { employerApi } from '../../services/authServices';
 import { useDispatch } from 'react-redux';
+import logo_1 from '../../assets/logo_1.png';
 import { employerLoginSuccess } from '../../store/authEmployerSlice';
 import { ArrowRight, Loader } from 'lucide-react';
 
@@ -58,11 +59,14 @@ const EmployerLogin = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-b from-blue-chill-200 to-white flex items-center justify-center p-4">
             <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
                 <div className="text-center mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900">Employer Login</h1>
-                    <p className="text-gray-500 mt-2">Access verification tools and candidate search</p>
+                    <Link to="/" className="inline-block mb-4">
+                        <img src={logo_1} alt="MicroMerit" className="h-20 w-auto mx-auto" />
+                    </Link>
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Employer Portal</h1>
+                    <p className="text-gray-500 mt-2 font-medium">Access verification tools and candidate search</p>
                 </div>
 
                 {error && (

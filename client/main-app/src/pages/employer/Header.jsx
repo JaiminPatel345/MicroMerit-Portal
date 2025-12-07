@@ -1,11 +1,15 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { LayoutDashboard, FileCheck, Search, Building2, LogOut } from 'lucide-react';
+import { employerLogout } from '../../store/authEmployerSlice';
 
 const EmployerHeader = () => {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
 
     const handleLogout = () => {
+        dispatch(employerLogout());
         localStorage.removeItem('token');
         localStorage.removeItem('userRole');
         navigate('/employer/login');
