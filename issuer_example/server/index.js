@@ -12,7 +12,7 @@ const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 
 app.use(cors({
-  origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+  origin: process.env.CLIENT_ORIGIN || ['http://localhost:5173', 'http://localhost:5174'],
 }));
 app.use(express.json());
 
