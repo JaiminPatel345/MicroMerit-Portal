@@ -102,6 +102,7 @@ export class CredentialIssuanceController {
      */
     async issueCredentialApi(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
+            console.log("===========================")
             // Validate request body
             const validatedData = issueCredentialSchema.parse({
                 ...req.body,

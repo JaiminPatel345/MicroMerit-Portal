@@ -149,7 +149,8 @@ Setup database:
 npx prisma migrate dev
 
 # Generate Prisma client
-npx prisma generate
+nn
+
 
 # Seed database (optional)
 npm run seed
