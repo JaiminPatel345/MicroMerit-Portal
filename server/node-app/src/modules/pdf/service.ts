@@ -317,6 +317,9 @@ export class PdfService {
 
     await this.repository.updateCredentialMetadata(credential.credential_id, updatedMetadata);
 
+    // Update the pdf_url field directly in the credential table
+    await this.repository.updateCredentialPdfUrl(credential.credential_id, pdfUrl);
+
     logger.info(`PDF certificate generated for credential: ${credentialUid}`);
 
     return {
