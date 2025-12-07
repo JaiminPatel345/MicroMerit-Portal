@@ -78,6 +78,7 @@ model verification_session {
   session_type String
   learner_id   Int?
   issuer_id    Int?
+  employer_id  Int?
   email        String?
   phone        String?
   contact_type String?
@@ -91,6 +92,7 @@ model verification_session {
   @@index([session_type])
   @@index([learner_id])
   @@index([issuer_id])
+  @@index([employer_id])
   @@index([email])
   @@index([phone])
   @@index([expires_at])
@@ -162,4 +164,34 @@ model LearnerSkillProfile {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   learner    learner  @relation(fields: [learner_id], references: [id])
+}
+
+model employer {
+  id                Int       @id @default(autoincrement())
+  company_name      String
+  company_website   String?
+  company_address   String?
+  industry_type     String?
+  company_size      String?
+  contact_person    String?
+  email             String      @unique
+  phone             String?
+  password_hash     String
+  company_doc_url   String?      // Uploaded proof document - made optional for initial flexibility or filebase upload
+  status            String      @default("pending") // pending | approved | rejected
+  approved_at       DateTime?
+  rejected_reason   String?
+  created_at        DateTime    @default(now())
+  activity_logs     employer_activity_log[]
+}
+
+model employer_activity_log {
+  id             Int       @id @default(autoincrement())
+  employer_id    Int
+  credential_id  String?
+  activity_type  String     // "verify" | "bulk_verify" | "search"
+  details        Json?
+  created_at     DateTime   @default(now())
+
+  employer       employer @relation(fields: [employer_id], references: [id])
 }

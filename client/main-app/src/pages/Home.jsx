@@ -268,7 +268,7 @@ const Home = () => {
                                                     key={index}
                                                     src={logo}
                                                     alt="Partner Logo"
-                                                    className="h-16 w-auto object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300"
+                                                    className="h-16 w-auto object-contain  opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300"
                                                     onError={(e) => { e.target.style.display = 'none'; }}
                                                 />
                                             ))}
@@ -715,7 +715,12 @@ const Home = () => {
 
             {/* ---------------------------------- Top Issuers Section (Logo Wall Premium Redesign) ---------------------------------- */}
             <section
-                className="py-20 relative overflow-hidden bg-gray-50"> {/* Added a light background for contrast */}
+                className="py-20 relative overflow-hidden bg-white"> {/* Added a light background for contrast */}
+
+                {/* Background Accents */}
+                <div className="absolute top-0 left-0 w-1/2 h-full bg-blue-chill-500/10 skew-x-12 translate-x-1/10"></div>
+                <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-chill-900/10 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2"></div>
+
                 <div
                     className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                     <div className="text-center mb-16">
@@ -834,6 +839,84 @@ const Home = () => {
                     }
                 </div >
             </section >
+
+            {/* ---------------------------------- Join as Employer CTA (Dark Theme) ---------------------------------- */}
+            <section className="py-20 md:py-24 bg-white relative overflow-hidden">
+                {/* Background Accents */}
+                <div className="absolute top-0 right-0 w-1/2 h-full bg-blue-chill-500/10 skew-x-12 translate-x-1/4"></div>
+                <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-chill-900/10 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2"></div>
+
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                    <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+
+                        {/* Left Content (Text) */}
+                        <div className="order-2 lg:order-1">
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                            >
+                                <span className="inline-flex items-center gap-2 py-1 px-3 rounded-full bg-blue-chill-200/10 text-blue-chill-500 text-xs font-bold tracking-wider uppercase mb-6 border border-blue-chill-500/20">
+                                    <Users className="w-3 h-3" />
+                                    For Employers
+                                </span>
+                                <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-black mb-6 leading-tight">
+                                    The Future of Hiring is <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-chill-400 to-teal-300">Verified.</span>
+                                </h2>
+                                <p className="text-lg text-slate-500 mb-8 max-w-xl leading-relaxed">
+                                    Skip the background checks. Access a pre-verified talent pool where every skill, project, and certificate is backed by the blockchain.
+                                </p>
+
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <Link to="/employer/signup" className="flex items-center justify-center px-8 py-4 bg-gradient-to-r from-blue-chill-600 to-teal-500 text-white rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-blue-chill-500/25 hover:-translate-y-1 transition-all duration-300">
+                                        Join as Employer
+                                    </Link>
+                                    <Link to="/employer/login" className="flex items-center justify-center px-8 py-4 bg-transparent border border-slate-700 text-slate-500 rounded-xl font-bold text-lg hover:bg-slate-800 hover:text-white hover:border-slate-600 transition-all">
+                                        Log In
+                                    </Link>
+                                </div>
+                            </motion.div>
+                        </div>
+
+                        {/* Right Content - Visual Blocks */}
+                        <div className="order-1 lg:order-2 grid gap-6">
+                            <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-6 rounded-2xl transform lg:translate-x-8 hover:bg-slate-800/80 transition-colors duration-500">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="w-12 h-12 rounded-full bg-blue-chill-500/20 flex items-center justify-center text-blue-chill-400">
+                                        <Zap className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-white font-bold text-lg">Instant Verification</h4>
+                                        <p className="text-slate-200 text-sm">Real-time blockchain consensus</p>
+                                    </div>
+                                </div>
+                                <div className="h-2 w-full bg-slate-700 rounded-full overflow-hidden">
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        whileInView={{ width: "100%" }}
+                                        viewport={{ once: true }}
+                                        transition={{ duration: 1.5, delay: 0.5 }}
+                                        className="h-full bg-gradient-to-r from-blue-chill-500 to-teal-400"
+                                    ></motion.div>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-6 rounded-2xl transform lg:-translate-x-4 hover:bg-slate-800/80 transition-colors duration-500">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-400">
+                                        <Shield className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-white font-bold text-lg">Zero Fraud Risk</h4>
+                                        <p className="text-slate-200 text-sm">Cryptographically secured records</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
 
             {/* ---------------------------------- Verify Credential CTA ---------------------------------- */}
             < section

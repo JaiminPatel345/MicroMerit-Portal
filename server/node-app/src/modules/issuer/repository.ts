@@ -144,19 +144,124 @@ export class IssuerRepository {
   }
 
   async getStats(issuerId: number) {
-    const [credentialsIssued, activeRecipients] = await Promise.all([
+    const today = new Date();
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(today.getMonth() - 5);
+    sixMonthsAgo.setDate(1); // Start of month
+
+    const [
+      totalIssued,
+      activeRecipients,
+      topCertificates,
+      statusDistribution,
+      issuanceTrends,
+      verificationTrends,
+      totalVerificationsRes,
+      learnerGrowth
+    ] = await Promise.all([
+      // 1. Total Issued
       prisma.credential.count({
         where: { issuer_id: issuerId },
       }),
+
+      // 2. Active Recipients (Distinct emails)
       prisma.credential.groupBy({
         by: ['learner_email'],
         where: { issuer_id: issuerId },
       }).then(groups => groups.length),
+
+      // 3. Top 5 Certificates
+      prisma.credential.groupBy({
+        by: ['certificate_title'],
+        where: { issuer_id: issuerId },
+        _count: { certificate_title: true },
+        orderBy: {
+          _count: {
+            certificate_title: 'desc'
+          }
+        },
+        take: 5,
+      }),
+
+      // 4. Status Distribution
+      prisma.credential.groupBy({
+        by: ['status'],
+        where: { issuer_id: issuerId },
+        _count: { status: true },
+      }),
+
+      // 5. Issuance Trends (Last 6 Months)
+      prisma.$queryRaw`
+        SELECT TO_CHAR(issued_at, 'Mon YYYY') as month,
+               DATE_TRUNC('month', issued_at) as date,
+               COUNT(*)::int as count
+        FROM "Credential"
+        WHERE issuer_id = ${issuerId}
+          AND issued_at >= ${sixMonthsAgo}
+        GROUP BY month, date
+        ORDER BY date ASC
+      `,
+
+      // 6. Verification Trends (Last 6 Months)
+      prisma.$queryRaw`
+        SELECT TO_CHAR(l.created_at, 'Mon YYYY') as month,
+               DATE_TRUNC('month', l.created_at) as date,
+               COUNT(*)::int as count
+        FROM employer_activity_log l
+        JOIN "Credential" c ON l.credential_id = c.credential_id
+        WHERE c.issuer_id = ${issuerId}
+          AND l.activity_type = 'verify'
+          AND l.created_at >= ${sixMonthsAgo}
+        GROUP BY month, date
+        ORDER BY date ASC
+      `,
+
+      // 7. Total Verifications
+      prisma.$queryRaw`
+        SELECT COUNT(*)::int as count
+        FROM employer_activity_log l
+        JOIN "Credential" c ON l.credential_id = c.credential_id
+        WHERE c.issuer_id = ${issuerId}
+          AND l.activity_type = 'verify'
+      `,
+
+      // 8. Learner Growth
+      prisma.$queryRaw`
+         SELECT TO_CHAR(first_seen, 'Mon YYYY') as month,
+                DATE_TRUNC('month', first_seen) as date,
+                COUNT(*)::int as count
+         FROM (
+            SELECT learner_email, MIN(issued_at) as first_seen
+            FROM "Credential"
+            WHERE issuer_id = ${issuerId}
+            GROUP BY learner_email
+         ) as sub
+         WHERE first_seen >= ${sixMonthsAgo}
+         GROUP BY month, date
+         ORDER BY date ASC
+       `
     ]);
 
+    const totalVerificationsRaw = totalVerificationsRes as any[];
+    const totalVerifications = totalVerificationsRaw[0]?.count || 0;
+
     return {
-      credentialsIssued,
-      activeRecipients,
+      summary: {
+        totalIssued,
+        activeRecipients,
+        totalVerifications: Number(totalVerifications),
+      },
+      topCertificates: topCertificates.map(t => ({
+        name: t.certificate_title,
+        value: t._count.certificate_title
+      })),
+      statusDistribution: statusDistribution.map(s => ({
+        name: s.status,
+        value: s._count.status
+      })),
+      trends: issuanceTrends,
+      verificationTrends,
+      learnerGrowth
     };
   }
 

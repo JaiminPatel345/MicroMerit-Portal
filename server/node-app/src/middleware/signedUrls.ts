@@ -8,7 +8,7 @@ import { logger } from '../utils/logger';
 async function convertIfS3Url(url: string): Promise<string> {
   // Check if it's an S3 URL
   const s3UrlPattern = /^https?:\/\/[a-z0-9.-]+\.s3\.[a-z0-9-]+\.amazonaws\.com\//i;
-  
+
   if (s3UrlPattern.test(url)) {
     try {
       // Get expiration time from env or default to 1 hour
@@ -79,14 +79,27 @@ export const convertS3UrlsToSigned = async (
   };
 
   async function processAndSendResponse(data: any, jsonMethod: any) {
+    // If headers are already sent, stop immediately to avoid "ERR_HTTP_HEADERS_SENT"
+    if (res.headersSent) return;
+
     try {
       // Convert S3 URLs to signed URLs
       const processedData = await convertUrlsInObject(data);
+
+      // Check again after async operation
+      if (res.headersSent) return;
+
       jsonMethod(processedData);
-    } catch (error) {
-      logger.error('Error converting S3 URLs to signed URLs:', error);
-      // Send original data if conversion fails
-      jsonMethod(data);
+    } catch (error: any) {
+      // Only log if it's NOT a headers sent error (which we expect to avoid now, but just in case)
+      if (error.code !== 'ERR_HTTP_HEADERS_SENT') {
+        logger.error('Error converting S3 URLs to signed URLs:', error);
+      }
+
+      // Attempt to send original data if headers weren't sent
+      if (!res.headersSent) {
+        jsonMethod(data);
+      }
     }
   }
 

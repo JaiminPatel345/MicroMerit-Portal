@@ -20,7 +20,7 @@ export class AdminController {
     try {
       const validatedData = adminLoginSchema.parse(req.body);
       const result = await adminService.login(validatedData);
-      
+
       sendSuccess(res, result, 'Login successful');
     } catch (error: any) {
       logger.error('Admin login failed', { error: error.message });
@@ -36,7 +36,7 @@ export class AdminController {
     try {
       const { refreshToken } = refreshTokenSchema.parse(req.body);
       const tokens = await adminService.refresh(refreshToken);
-      
+
       sendSuccess(res, tokens, 'Token refreshed successfully');
     } catch (error: any) {
       logger.error('Token refresh failed', { error: error.message });
@@ -82,7 +82,7 @@ export class AdminController {
 
       approveIssuerSchema.parse(req.body); // Validate but don't use notes for now
       const issuer = await adminService.approveIssuer(req.user.id, issuerId);
-      
+
       sendSuccess(res, issuer, 'Issuer approved successfully');
     } catch (error: any) {
       logger.error('Issuer approval failed', { error: error.message });
@@ -109,7 +109,7 @@ export class AdminController {
 
       const { reason } = rejectIssuerSchema.parse(req.body);
       const issuer = await adminService.rejectIssuer(req.user.id, issuerId, reason);
-      
+
       sendSuccess(res, issuer, 'Issuer rejected successfully');
     } catch (error: any) {
       logger.error('Issuer rejection failed', { error: error.message });
@@ -136,7 +136,7 @@ export class AdminController {
 
       const { reason } = blockIssuerSchema.parse(req.body);
       const issuer = await adminService.blockIssuer(req.user.id, issuerId, reason);
-      
+
       sendSuccess(res, issuer, 'Issuer blocked successfully');
     } catch (error: any) {
       logger.error('Issuer blocking failed', { error: error.message });
@@ -163,7 +163,7 @@ export class AdminController {
 
       unblockIssuerSchema.parse(req.body); // Validate but don't use notes for now
       const issuer = await adminService.unblockIssuer(req.user.id, issuerId);
-      
+
       sendSuccess(res, issuer, 'Issuer unblocked successfully');
     } catch (error: any) {
       logger.error('Issuer unblocking failed', { error: error.message });
@@ -186,7 +186,7 @@ export class AdminController {
       const is_blocked = req.query.is_blocked === 'true' ? true : req.query.is_blocked === 'false' ? false : undefined;
 
       const issuers = await adminService.listIssuers({ status, is_blocked });
-      
+
       sendSuccess(res, issuers, 'Issuers retrieved successfully');
     } catch (error: any) {
       logger.error('List issuers failed', { error: error.message });
@@ -209,7 +209,7 @@ export class AdminController {
       const search = req.query.search as string | undefined;
 
       const learners = await adminService.listLearners({ status, search });
-      
+
       sendSuccess(res, learners, 'Learners retrieved successfully');
     } catch (error: any) {
       logger.error('List learners failed', { error: error.message });
@@ -235,7 +235,7 @@ export class AdminController {
       }
 
       const learner = await adminService.getLearnerDetails(learnerId);
-      
+
       sendSuccess(res, learner, 'Learner details retrieved successfully');
     } catch (error: any) {
       logger.error('Get learner details failed', { error: error.message });
@@ -256,11 +256,51 @@ export class AdminController {
       }
 
       const analytics = await adminService.getPlatformAnalytics();
-      
+
       sendSuccess(res, analytics, 'Analytics retrieved successfully');
     } catch (error: any) {
       logger.error('Get analytics failed', { error: error.message });
       sendError(res, error.message, 'Failed to retrieve analytics', 400);
+    }
+  }
+
+  // Employer Management
+
+  async listEmployers(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) return sendError(res, 'Unauthorized', 'Unauthorized', 401);
+      const status = req.query.status as string;
+      const search = req.query.search as string;
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 10;
+
+      const result = await adminService.listEmployers(page, limit, status, search);
+      sendSuccess(res, result, 'Employers retrieved');
+    } catch (error: any) {
+      sendError(res, error.message, 'Failed to list employers', 400);
+    }
+  }
+
+  async approveEmployer(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) return sendError(res, 'Unauthorized', 'Unauthorized', 401);
+      const id = Number(req.params.id);
+      const result = await adminService.approveEmployer(id);
+      sendSuccess(res, result, 'Employer approved');
+    } catch (error: any) {
+      sendError(res, error.message, 'Failed to approve', 400);
+    }
+  }
+
+  async rejectEmployer(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) return sendError(res, 'Unauthorized', 'Unauthorized', 401);
+      const id = Number(req.params.id);
+      const { reason } = req.body;
+      const result = await adminService.rejectEmployer(id, reason);
+      sendSuccess(res, result, 'Employer rejected');
+    } catch (error: any) {
+      sendError(res, error.message, 'Failed to reject', 400);
     }
   }
 }

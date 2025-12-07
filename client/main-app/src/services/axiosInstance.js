@@ -11,6 +11,11 @@ import {
   refreshLearnerTokenSuccess,
 } from "../store/authLearnerSlice";
 
+import {
+  employerLogout,
+  refreshEmployerTokenSuccess,
+} from "../store/authEmployerSlice";
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL,
 });
@@ -43,6 +48,11 @@ api.interceptors.request.use((config) => {
     if (state.authIssuer.isAuthenticated) {
       token = state.authIssuer.accessToken;
     }
+  } else if (url.startsWith('/employer') || url.startsWith('/auth/employer')) {
+    // Prioritize Employer token for employer-specific routes
+    if (state.authEmployer.isAuthenticated) {
+      token = state.authEmployer.accessToken;
+    }
   }
 
   // Fallback: If no specific URL match or token not found yet, use default priority
@@ -50,9 +60,11 @@ api.interceptors.request.use((config) => {
     const active =
       state.authIssuer.isAuthenticated
         ? state.authIssuer
-        : state.authLearner.isAuthenticated
-          ? state.authLearner
-          : null;
+        : state.authEmployer.isAuthenticated
+          ? state.authEmployer
+          : state.authLearner.isAuthenticated
+            ? state.authLearner
+            : null;
 
     if (active?.accessToken) {
       token = active.accessToken;
@@ -79,22 +91,28 @@ api.interceptors.response.use(
     const state = store.getState();
     const url = original.url || '';
 
-    // Determine which token to refresh based on URL, similar to request interceptor
     let isIssuer = false;
+    let isEmployer = false;
 
     if (url.startsWith('/issuer') || url.startsWith('/auth/issuer')) {
       isIssuer = true;
+    } else if (url.startsWith('/employer') || url.startsWith('/auth/employer')) {
+      isEmployer = true;
     } else if (url.startsWith('/learner') || url.startsWith('/auth/learner') || url.startsWith('/ai')) {
       isIssuer = false;
+      isEmployer = false;
     } else {
-      // Fallback for ambiguous URLs
+      // Fallback
       isIssuer = state.authIssuer.isAuthenticated;
+      isEmployer = state.authEmployer.isAuthenticated;
     }
 
-    const active = isIssuer ? state.authIssuer : state.authLearner;
+    const active = isIssuer ? state.authIssuer : (isEmployer ? state.authEmployer : state.authLearner);
 
     if (!active.refreshToken) {
-      isIssuer ? store.dispatch(issuerLogout()) : store.dispatch(learnerLogout());
+      if (isIssuer) store.dispatch(issuerLogout());
+      else if (isEmployer) store.dispatch(employerLogout());
+      else store.dispatch(learnerLogout());
       return Promise.reject(error);
     }
 
@@ -113,17 +131,24 @@ api.interceptors.response.use(
     try {
       const refreshUrl = isIssuer
         ? "/auth/issuer/refresh"
-        : "/auth/learner/refresh";
+        : (isEmployer ? "/auth/employer/refresh" : "/auth/learner/refresh");
 
       const res = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}${refreshUrl}`,
         { refreshToken: active.refreshToken }
       );
 
-      const newAccessToken = res.data.data.accessToken;
+      // Adjust based on response structure. Usually res.data.data.accessToken or res.data.accessToken
+      // Learner: res.data.data.accessToken (based on other code)
+      // Employer service return tokens object directly in data? Controller says res.json({ success: true, data: tokens })
+      // Tokens object has { accessToken, refreshToken }. We might need to update both?
+      // For now assume standard access token update.
+      const newAccessToken = res.data.data.accessToken || res.data.data;
 
       if (isIssuer) {
         store.dispatch(refreshIssuerTokenSuccess(newAccessToken));
+      } else if (isEmployer) {
+        store.dispatch(refreshEmployerTokenSuccess(newAccessToken));
       } else {
         store.dispatch(refreshLearnerTokenSuccess(newAccessToken));
       }
@@ -134,7 +159,9 @@ api.interceptors.response.use(
       return api(original);
     } catch (err) {
       processQueue(err, null);
-      isIssuer ? store.dispatch(issuerLogout()) : store.dispatch(learnerLogout());
+      if (isIssuer) store.dispatch(issuerLogout());
+      else if (isEmployer) store.dispatch(employerLogout());
+      else store.dispatch(learnerLogout());
       return Promise.reject(err);
     } finally {
       isRefreshing = false;

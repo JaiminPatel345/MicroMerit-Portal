@@ -5,6 +5,7 @@ import { store } from './store/index.ts';
 import Login from './pages/Login.tsx';
 import Dashboard from './pages/Dashboard.tsx';
 import Issuers from './pages/Issuers.tsx';
+import Employers from './pages/Employers.tsx';
 import Layout from './components/Layout.tsx';
 import ProtectedRoute from './components/ProtectedRoute.tsx';
 
@@ -28,6 +29,7 @@ function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="issuers" element={<Issuers />} />
+            <Route path="employers" element={<Employers />} />
           </Route>
 
           {/* Catch all - redirect to dashboard */}

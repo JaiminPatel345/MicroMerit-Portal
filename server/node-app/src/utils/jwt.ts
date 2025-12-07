@@ -4,8 +4,8 @@ import { AuthError } from './errors';
 export interface JWTPayload {
   id: number;
   email: string;
-  role: 'admin' | 'issuer' | 'learner';
-  type?: 'admin' | 'issuer' | 'learner' | 'registration'; // For backwards compatibility
+  role: 'admin' | 'issuer' | 'learner' | 'employer';
+  type?: 'admin' | 'issuer' | 'learner' | 'registration' | 'employer'; // For backwards compatibility
 }
 
 export interface TokenResponse {
