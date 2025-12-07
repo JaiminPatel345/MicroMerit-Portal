@@ -49,8 +49,19 @@ const CredentialDetails = () => {
                 const response = await fetch(credential.pdf_url);
                 const blob = await response.blob();
 
-                // Create a blob URL
-                const blobUrl = window.URL.createObjectURL(blob);
+                // Validate that we're getting a PDF, not an image
+                const contentType = blob.type.toLowerCase();
+                console.log('Downloaded file type:', contentType);
+
+                if (contentType.includes('image/')) {
+                    alert('Error: The server returned an image instead of a PDF. Please contact support.');
+                    console.error('Expected PDF but got:', contentType);
+                    return;
+                }
+
+                // Create a PDF blob with the correct MIME type
+                const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+                const blobUrl = window.URL.createObjectURL(pdfBlob);
 
                 // Create an anchor element and trigger download
                 const link = document.createElement('a');
@@ -64,8 +75,7 @@ const CredentialDetails = () => {
                 window.URL.revokeObjectURL(blobUrl);
             } catch (error) {
                 console.error('Download failed:', error);
-                // Fallback: open in new tab if download fails
-                window.open(credential.pdf_url, '_blank');
+                alert('Download failed. Please try again or contact support.');
             }
         }
     };
