@@ -59,13 +59,10 @@ const Header = () => {
 
   // ---------- Google Translate: load once + init ----------
   useEffect(() => {
-    // if script already present, do nothing
     if (document.querySelector('#google-translate-script')) return;
 
-    // Define the callback BEFORE loading the script
     window.googleTranslateElementInit = function () {
       try {
-        // Use InlineLayout.SIMPLE so widget renders as a select
         new window.google.translate.TranslateElement(
           {
             pageLanguage: 'en',
@@ -76,70 +73,41 @@ const Header = () => {
           'google_translate_element'
         );
       } catch (e) {
-        // silent failure if Translate API object not available
-        // console.error('Translate init failed', e);
       }
     };
 
-    // Inject the script
     const s = document.createElement('script');
     s.id = 'google-translate-script';
     s.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
     s.async = true;
     document.body.appendChild(s);
+  }, []);
 
-    // No cleanup for script — we want widget to persist across SPA nav
-  }, []); // run once
-
-  // ---------- Helper: wait for the .goog-te-combo to appear ----------
-  const waitForCombo = (timeout = 5000) => {
-    return new Promise((resolve) => {
-      const existing = document.querySelector('.goog-te-combo');
-      if (existing) return resolve(existing);
-
-      const start = Date.now();
-      const id = setInterval(() => {
-        const el = document.querySelector('.goog-te-combo');
-        if (el) {
-          clearInterval(id);
-          return resolve(el);
-        }
-        if (Date.now() - start > timeout) {
-          clearInterval(id);
-          return resolve(null);
-        }
-      }, 300);
-    });
+  // Cookie Helper
+  const setCookie = (name, value, days) => {
+    const d = new Date();
+    d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+    const expires = "expires=" + d.toUTCString();
+    document.cookie = name + "=" + value + ";" + expires + ";path=/";
   };
 
-  // Robust changeLanguage that waits & retries
-  const changeLanguage = async (langCode) => {
-    // open the dropdown UI so the widget loads if hidden — sometimes needed
+  const getCookie = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  };
+
+  // Robust changeLanguage via Cookies
+  const changeLanguage = (langCode) => {
     setLangOpen(false);
 
-    // wait for select element to exist
-    const combo = await waitForCombo(7000);
-    if (!combo) {
-      // last attempt: the widget might be in an iframe — try to find it there
-      // Note: due to cross-origin, it's often not accessible. Inform dev via console
-      console.warn('goog-te-combo not found. Google Translate widget may not have rendered yet.');
-      return;
-    }
+    // Set google translate cookie
+    // The format is usually /auto/targetLang or /sourceLang/targetLang
+    // We use /auto/langCode to let Google detect source
+    setCookie('googtrans', `/auto/${langCode}`, 1); // 1 day expiration purely for example, usually session or longer
 
-    try {
-      combo.value = langCode;
-      combo.dispatchEvent(new Event('change', { bubbles: true }));
-    } catch (e) {
-      console.warn('Failed to change language via goog-te-combo', e);
-    }
-
-    // some browsers require a tiny delay and a second trigger
-    setTimeout(() => {
-      const el = document.querySelector('.goog-te-combo');
-      if (el) {
-        el.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-    }, 300);
+    // Reload page to apply translation
+    window.location.reload();
   };
 
   // ---------- Search Debounce ----------

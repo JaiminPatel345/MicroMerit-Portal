@@ -40,9 +40,14 @@ const IssuerDashboard = () => {
         // Fetch Stats
         const statsRes = await issuerServices.getDashboardStats();
         if (statsRes.success) {
+          const statsData = statsRes.data;
+          // Handle both old and new structure for backward compatibility/robustness
+          const totalIssued = statsData.summary?.totalIssued ?? statsData.credentialsIssued ?? 0;
+          const activeRecipients = statsData.summary?.activeRecipients ?? statsData.activeRecipients ?? 0;
+
           setStats({
-            issued: statsRes.data.credentialsIssued,
-            recipients: statsRes.data.activeRecipients
+            issued: totalIssued,
+            recipients: activeRecipients
           });
         }
       } catch (error) {
