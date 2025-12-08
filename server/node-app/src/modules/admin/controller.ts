@@ -184,8 +184,9 @@ export class AdminController {
 
       const status = req.query.status as string | undefined;
       const is_blocked = req.query.is_blocked === 'true' ? true : req.query.is_blocked === 'false' ? false : undefined;
+      const source = req.query.source as 'connector' | 'platform' | undefined;
 
-      const issuers = await adminService.listIssuers({ status, is_blocked });
+      const issuers = await adminService.listIssuers({ status, is_blocked, source });
 
       sendSuccess(res, issuers, 'Issuers retrieved successfully');
     } catch (error: any) {
@@ -303,6 +304,30 @@ export class AdminController {
       sendError(res, error.message, 'Failed to reject', 400);
     }
   }
+
+  /**
+   * List credentials for admin
+   * GET /admin/credentials
+   */
+  async listCredentials(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        sendError(res, 'User not authenticated', 'Authentication required', 401);
+        return;
+      }
+
+      const source = req.query.source as 'connector' | 'platform' | undefined;
+      const limit = parseInt(req.query.limit as string) || 50;
+
+      const credentials = await adminService.listCredentials({ source, limit });
+
+      sendSuccess(res, credentials, 'Credentials retrieved successfully');
+    } catch (error: any) {
+      logger.error('List credentials failed', { error: error.message });
+      sendError(res, error.message, 'Failed to retrieve credentials', 400);
+    }
+  }
 }
 
 export const adminController = new AdminController();
+

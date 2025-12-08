@@ -356,7 +356,17 @@ export class CredentialIssuanceService {
             logger.info('Credential updated with blockchain info', {
                 credential_id,
                 tx_hash,
-                blockchain_status: 'confirmed'
+                blockchain_status: 'confirmed',
+                canonical_blockchain: canonicalJson.blockchain
+            });
+
+            // Verify the update
+            const updated = await credentialIssuanceRepository.findCredentialById(credential_id);
+            logger.info('Verified credential update', {
+                credential_id,
+                tx_hash_in_db: updated?.tx_hash,
+                blockchain_status_in_metadata: (updated?.metadata as any)?.blockchain_status,
+                metadata_keys: updated?.metadata ? Object.keys(updated.metadata as any) : []
             });
 
         } catch (error: any) {

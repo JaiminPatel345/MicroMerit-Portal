@@ -52,9 +52,14 @@ echo -e "${YELLOW}[3/4] Starting server-node...${NC}"
 NODE_APP_PID=$!
 
 # Start ai_groq_service
-echo -e "${MAGENTA}[4/4] Starting server-ai...${NC}"
+echo -e "${MAGENTA}[4/5] Starting server-ai...${NC}"
 (cd server/ai_groq_service && source .venv/bin/activate && uvicorn main:app --reload --port 8000 2>&1 | prefix_logs "${MAGENTA}" "server-ai") &
 AI_SERVICE_PID=$!
+
+# Start dummy-server
+echo -e "${CYAN}[5/5] Starting dummy-server...${NC}"
+(cd dummy-server && yarn dev 2>&1 | prefix_logs "${CYAN}" "dummy-server") &
+DUMMY_SERVER_PID=$!
 
 echo -e "\n${CYAN}All services started!${NC}"
 echo -e "${CYAN}Color Legend:${NC}"
@@ -62,10 +67,11 @@ echo -e "  ${GREEN}[client-main]${NC} - Main App"
 echo -e "  ${BLUE}[client-admin]${NC} - Admin Panel"
 echo -e "  ${YELLOW}[server-node]${NC} - Node Backend"
 echo -e "  ${MAGENTA}[server-ai]${NC} - AI Service"
+echo -e "  ${CYAN}[dummy-server]${NC} - Dummy Credential Providers"
 echo -e "\n${CYAN}Press Ctrl+C to stop all services${NC}\n"
 
 # Trap Ctrl+C and kill all background processes
-trap "echo -e '\n${RED}Stopping all services...${NC}'; kill $MAIN_APP_PID $ADMIN_PID $NODE_APP_PID $AI_SERVICE_PID 2>/dev/null; exit" INT
+trap "echo -e '\n${RED}Stopping all services...${NC}'; kill $MAIN_APP_PID $ADMIN_PID $NODE_APP_PID $AI_SERVICE_PID $DUMMY_SERVER_PID 2>/dev/null; exit" INT
 
 # Wait for all background processes
 wait
