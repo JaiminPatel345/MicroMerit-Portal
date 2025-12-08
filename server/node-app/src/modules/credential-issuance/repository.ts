@@ -52,6 +52,15 @@ export class CredentialIssuanceRepository {
         data_hash: string;
         metadata: any;
         status: string;
+        // External credential fields (optional)
+        certificate_code?: string | null;
+        sector?: string | null;
+        nsqf_level?: number | null;
+        max_hr?: number | null;
+        min_hr?: number | null;
+        awarding_bodies?: any;
+        occupation?: string | null;
+        tags?: any;
     }) {
         return await prisma.credential.create({
             data,

@@ -1,7 +1,7 @@
 import { credentialIssuanceService } from '../modules/credential-issuance/service';
 import { credentialIssuanceRepository } from '../modules/credential-issuance/repository';
 import { uploadToFilebase } from '../utils/filebase';
-import { writeToBlockchain } from '../utils/blockchain';
+import { writeToBlockchain } from '../services/blockchainClient';
 
 // Mock uuid module
 jest.mock('uuid', () => {
@@ -15,7 +15,7 @@ jest.mock('uuid', () => {
 
 jest.mock('../modules/credential-issuance/repository');
 jest.mock('../utils/filebase');
-jest.mock('../utils/blockchain');
+jest.mock('../services/blockchainClient');
 jest.mock('../utils/logger');
 
 describe('Credential Issuance Service', () => {
@@ -60,7 +60,7 @@ describe('Credential Issuance Service', () => {
                 learner_email: 'learner@example.com',
                 certificate_title: 'Web Development Certificate',
                 ipfs_cid: 'QmTest123',
-                tx_hash: '0xTxHash123',
+                tx_hash: null,
                 data_hash: 'hash123',
                 pdf_url: 'https://ipfs.filebase.io/ipfs/QmTest123',
                 status: 'issued',
@@ -73,7 +73,7 @@ describe('Credential Issuance Service', () => {
             expect(result.learner_id).toBe(42);
             expect(result.status).toBe('issued');
             expect(result.ipfs_cid).toBe('QmTest123');
-            expect(result.tx_hash).toBe('0xTxHash123');
+            expect(result.tx_hash).toBeNull();
             expect(credentialIssuanceRepository.createCredential).toHaveBeenCalled();
         });
     });
@@ -111,7 +111,7 @@ describe('Credential Issuance Service', () => {
                 learner_email: 'new.learner@example.com',
                 certificate_title: 'Certificate of Completion',
                 ipfs_cid: 'QmTest456',
-                tx_hash: '0xTxHash456',
+                tx_hash: null,
                 data_hash: 'hash456',
                 pdf_url: 'https://ipfs.filebase.io/ipfs/QmTest456',
                 status: 'unclaimed',

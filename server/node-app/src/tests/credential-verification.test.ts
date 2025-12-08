@@ -1,10 +1,10 @@
 import { credentialVerificationService } from '../modules/credential-verification/service';
 import { credentialVerificationRepository } from '../modules/credential-verification/repository';
-import { verifyBlockchainTransaction } from '../utils/blockchain';
+import { verifyBlockchainTransaction } from '../services/blockchainClient';
 import { computeDataHash } from '../utils/canonicalJson';
 
 jest.mock('../modules/credential-verification/repository');
-jest.mock('../utils/blockchain');
+jest.mock('../services/blockchainClient');
 jest.mock('../utils/logger');
 jest.mock('../utils/canonicalJson', () => ({
     ...jest.requireActual('../utils/canonicalJson'),

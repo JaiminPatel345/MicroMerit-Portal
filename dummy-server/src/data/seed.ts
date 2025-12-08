@@ -379,9 +379,9 @@ function generateCredentials(): MockCredential[] {
                 nsqf_level: qual.level,
                 max_hr: qual.maxHours,
                 min_hr: qual.minHours,
-                awarding_body: qual.awardingBody,
-                certifying_body: qual.certifyingBody,
+                awarding_bodies: [qual.awardingBody],
                 occupation: qual.occupation,
+                tags: [provider, 'nsqf', 'skill-india'],
                 description: qual.description,
                 provider,
             });
@@ -446,9 +446,9 @@ function generateDynamicCredential(provider: 'nsdc' | 'udemy' | 'jaimin'): MockC
         nsqf_level: qual.level,
         max_hr: qual.maxHours,
         min_hr: qual.minHours,
-        awarding_body: qual.awardingBody,
-        certifying_body: qual.certifyingBody,
+        awarding_bodies: [qual.awardingBody],
         occupation: qual.occupation,
+        tags: [provider, 'nsqf', 'skill-india', 'dynamic'],
         description: qual.description,
         provider,
     };

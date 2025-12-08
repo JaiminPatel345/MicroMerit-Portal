@@ -96,9 +96,10 @@ export class JaiminConnector extends BaseConnector {
             nsqf_level: payload.skill_level,
             max_hr: payload.duration_hours,
             min_hr: payload.duration_hours,
-            awarding_bodies: payload.issued_by ? [payload.issued_by] : ['Jaimin Pvt Ltd'],
-            occupation: payload.industry_sector,
-            tags: ['jaimin', 'corporate-training'],
+            awarding_bodies: Array.isArray(payload.issued_by) ? payload.issued_by : (payload.issued_by ? [payload.issued_by] : ['Jaimin Pvt Ltd']),
+            occupation: payload.role || payload.industry_sector,
+            tags: payload.tags || ['jaimin', 'corporate-training'],
+            certificate_url: payload.certificate_url, // Capture the PDF/certificate URL if provided
             external_id: payload.cert_id,
             raw_data: payload,
         };
