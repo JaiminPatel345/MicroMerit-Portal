@@ -1,6 +1,7 @@
 import app from './app';
 import { logger } from './utils/logger';
 import { connectPrisma, disconnectPrisma } from './utils/prisma';
+import { mockIntegrationService } from './modules/mock-integration/service';
 
 const PORT = process.env.PORT || 3000;
 
@@ -23,6 +24,12 @@ const startServer = async () => {
       logger.info(`Server is running on port ${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`Health check: http://localhost:${PORT}/health`);
+
+      // Start 24h Scheduler
+      setInterval(() => {
+        logger.info('Running 24h Credential Sync Scheduler');
+        mockIntegrationService.syncAllUsers();
+      }, 24 * 60 * 60 * 1000);
     });
   } catch (error) {
     logger.error('Failed to start server', { error });

@@ -140,9 +140,14 @@ model SkillKnowledgeBase {
   description     String?
   skill_text      String?
   keywords        String[]
-  source_type     String   // "QP" | "NOS" | "Skill"
-  created_at      DateTime @default(now())
-
+  sub_sector         String?
+  certifying_body    String?
+  progression_pathways String? // For stackable roadmap
+  credits_breakdown  Json?    // Theory/Practical/OJT hours
+  notional_hours     String?
+  source_type        String   // "QP" | "NOS" | "Skill"
+  created_at         DateTime @default(now())
+ 
   @@index([qp_code])
   @@index([nos_code])
   @@index([nsqf_level])

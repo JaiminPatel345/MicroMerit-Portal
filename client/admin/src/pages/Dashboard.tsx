@@ -3,10 +3,27 @@ import { formatDate } from '../utils/dateUtils';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks.ts';
 import { fetchIssuers } from '../store/issuerSlice.ts';
+import { forceSync } from '../api/integrationAPI';
+import { useState } from 'react';
 
 const Dashboard = () => {
     const dispatch = useAppDispatch();
     const { issuers, loading } = useAppSelector((state) => state.issuer);
+    const [syncing, setSyncing] = useState(false);
+
+    const handleForceSync = async () => {
+        if (!confirm('This will trigger a sync for ALL learners. Continue?')) return;
+        setSyncing(true);
+        try {
+            const res = await forceSync();
+            alert(`Sync Complete: ${res.message || 'Success'}`);
+        } catch (error) {
+            console.error(error);
+            alert('Sync failed. Check console.');
+        } finally {
+            setSyncing(false);
+        }
+    };
 
     useEffect(() => {
         dispatch(fetchIssuers());
@@ -230,6 +247,33 @@ const Dashboard = () => {
                             <p className="text-sm text-gray-600">View and edit all employers</p>
                         </div>
                     </Link>
+
+                    <div
+                        onClick={handleForceSync}
+                        className={`p-6 border border-gray-100 rounded-xl hover:shadow-md hover:border-teal-200 bg-gradient-to-br from-teal-50 to-white transition-all duration-300 group cursor-pointer ${syncing ? 'opacity-70 pointer-events-none' : ''}`}
+                    >
+                        <div className="flex flex-col h-full bg-white bg-opacity-60 rounded-lg p-2">
+                            <div className="flex items-center mb-3">
+                                <div className="bg-teal-100 p-3 rounded-xl group-hover:scale-110 transition-transform">
+                                    <svg
+                                        className={`w-6 h-6 text-teal-600 ${syncing ? 'animate-spin' : ''}`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                        />
+                                    </svg>
+                                </div>
+                                <h3 className="ml-3 font-bold text-gray-900">{syncing ? 'Syncing...' : 'Force System Sync'}</h3>
+                            </div>
+                            <p className="text-sm text-gray-600">Manually trigger credential sync for all users</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 

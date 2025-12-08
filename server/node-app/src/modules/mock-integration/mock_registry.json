@@ -1,0 +1,90 @@
+
+[
+  {
+    "email": "learner@example.com",
+    "credentials": [
+      {
+        "certificate_title": "Software Developer",
+        "qp_code": "MSME/SSC/Q3901",
+        "issuer_name": "MSME Technology Centre",
+        "issued_at": "2024-01-15T00:00:00.000Z",
+        "metadata": {
+            "grade": "A",
+            "score": 85
+        }
+      },
+      {
+        "certificate_title": "Data Scientist",
+        "qp_code": "SSC/Q8105",
+        "issuer_name": "NASSCOM",
+        "issued_at": "2023-08-10T00:00:00.000Z",
+        "metadata": {
+            "grade": "A+",
+            "score": 92
+        }
+      },
+      {
+        "certificate_title": "Cloud Computing Specialist",
+        "qp_code": "SSC/Q8301",
+        "issuer_name": "Future Skills Prime",
+        "issued_at": "2023-12-05T00:00:00.000Z",
+        "metadata": {
+            "grade": "O",
+            "score": 95
+        }
+      },
+      {
+        "certificate_title": "Cyber Security Assistant",
+        "qp_code": "NIE/SSC/Q0904",
+        "issuer_name": "NIELIT",
+        "issued_at": "2024-02-20T00:00:00.000Z",
+        "metadata": {
+            "grade": "A",
+            "score": 88
+        }
+      },
+      {
+        "certificate_title": "Security Assistant",
+        "qp_code": "NIE/SSC/Q0904",
+        "issuer_name": "NIELIT",
+        "issued_at": "2024-02-20T00:00:00.000Z",
+        "metadata": {
+            "grade": "A",
+            "score": 88
+        }
+      },
+      {
+        "certificate_title": "AI - Business Intelligence Analyst",
+        "qp_code": "2020/ITES/ITSSC/04330", 
+        "issuer_name": "SSC NASSCOM",
+        "issued_at": "2024-01-15T00:00:00.000Z",
+        "metadata": {
+            "grade": "O",
+            "score": 92
+        }
+      },
+      {
+        "certificate_title": "Certificate Course in Coding Skills",
+        "qp_code": "2020/ITES/ASAP/03802", 
+        "issuer_name": "ASAP Kerala",
+        "issued_at": "2023-11-10T00:00:00.000Z",
+        "metadata": {
+            "grade": "A+",
+            "score": 90
+        }
+      }
+    ]
+  },
+  {
+    "email": "demo@example.com", 
+    "credentials": [
+       {
+        "certificate_title": "Cyber Security Assistant",
+        "qp_code": "NIE/SSC/Q0904",
+        "issuer_name": "NIELIT",
+        "issued_at": "2023-11-20T00:00:00.000Z",
+        "metadata": {}
+       }
+    ]
+  }
+]

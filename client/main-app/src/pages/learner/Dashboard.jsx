@@ -9,10 +9,12 @@ import {
     User,
     ArrowRight,
     Shield,
-    Zap
+    Zap,
+    Link2,
+    RefreshCw
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { learnerApi } from '../../services/authServices';
+import { learnerApi, learnerIntegrationApi } from '../../services/authServices';
 
 const Dashboard = () => {
     const learner = useSelector(state => state.authLearner.learner);
@@ -25,11 +27,17 @@ const Dashboard = () => {
     const [recentCertificates, setRecentCertificates] = useState([]);
     const [topSkills, setTopSkills] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [integrationStatus, setIntegrationStatus] = useState({ digilocker: false, sip: false });
+    const [syncing, setSyncing] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const dashboardRes = await learnerApi.getDashboard();
+                const [dashboardRes, integrationRes] = await Promise.all([
+                  learnerApi.getDashboard(),
+                  learnerIntegrationApi.getStatus()
+                ]);
+
                 const data = dashboardRes.data?.data || {};
 
                 setRecentCertificates(data.recentCredentials || []);
@@ -40,6 +48,10 @@ const Dashboard = () => {
                     totalSkillsVerified: data.totalSkillsVerified || 0,
                     topSkill: data.topSkills?.[0]?.skill || 'None'
                 });
+                
+                if (integrationRes.data.success) {
+                    setIntegrationStatus(integrationRes.data.data);
+                }
             } catch (error) {
                 console.error("Failed to fetch dashboard data", error);
             } finally {
@@ -48,6 +60,44 @@ const Dashboard = () => {
         };
         fetchData();
     }, []);
+
+    const handleConnect = async (type) => {
+        try {
+            if (type === 'digilocker') {
+                await learnerIntegrationApi.connectDigiLocker();
+                setIntegrationStatus(prev => ({ ...prev, digilocker: true }));
+            } else {
+                await learnerIntegrationApi.connectSIP();
+                setIntegrationStatus(prev => ({ ...prev, sip: true }));
+            }
+        } catch (error) {
+            console.error("Connection failed", error);
+        }
+    };
+
+    const handleSync = async () => {
+        setSyncing(true);
+        try {
+            const res = await learnerIntegrationApi.syncCredentials();
+            if (res.data.success && res.data.data.synced > 0) {
+               // Refresh dashboard data to show new certs
+               const dashboardRes = await learnerApi.getDashboard();
+               const data = dashboardRes.data?.data || {};
+               setRecentCertificates(data.recentCredentials || []);
+                setStats({
+                    totalCredentials: data.totalCredentials || 0,
+                    nsqfAlignedCount: data.nsqfAlignedCount || 0,
+                    totalSkillsVerified: data.totalSkillsVerified || 0,
+                    topSkill: data.topSkills?.[0]?.skill || 'None'
+                });
+                setTopSkills(data.topSkills || []);
+            }
+        } catch (error) {
+            console.error("Sync failed", error);
+        } finally {
+            setSyncing(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -108,6 +158,72 @@ const Dashboard = () => {
                         subtext="Most Verified"
                         color="bg-green-50"
                     />
+                </div>
+
+                {/* Integration & Sync Section */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">Linked Accounts</h2>
+                            <p className="text-gray-500 text-sm mt-1">Connect external platforms to auto-sync credentials</p>
+                        </div>
+                        <button
+                            onClick={handleSync}
+                            disabled={syncing || (!integrationStatus.digilocker && !integrationStatus.sip)}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-chill-600 text-white rounded-lg hover:bg-blue-chill-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium shadow-sm"
+                        >
+                            <RefreshCw size={18} className={syncing ? "animate-spin" : ""} />
+                            {syncing ? "Syncing..." : "Sync Credentials"}
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                       {/* DigiLocker Card */}
+                       <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-blue-chill-200 transition-colors bg-gray-50/50">
+                            <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-bold">DL</div>
+                                <div>
+                                    <h3 className="font-semibold text-gray-900">DigiLocker</h3>
+                                    <p className="text-xs text-gray-500">Government of India</p>
+                                </div>
+                            </div>
+                            {integrationStatus.digilocker ? (
+                                <span className="flex items-center gap-1.5 text-green-600 text-sm font-medium bg-green-50 px-3 py-1 rounded-full">
+                                    <CheckCircle size={14} /> Connected
+                                </span>
+                            ) : (
+                                <button
+                                    onClick={() => handleConnect('digilocker')}
+                                    className="text-sm font-medium text-blue-chill-600 hover:text-blue-chill-700 hover:bg-blue-chill-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                                >
+                                    <Link2 size={16} /> Connect
+                                </button>
+                            )}
+                       </div>
+
+                       {/* SIP Card */}
+                       <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-orange-200 transition-colors bg-gray-50/50">
+                            <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600 font-bold">SIP</div>
+                                <div>
+                                    <h3 className="font-semibold text-gray-900">Skill India Portal</h3>
+                                    <p className="text-xs text-gray-500">NSDC</p>
+                                </div>
+                            </div>
+                            {integrationStatus.sip ? (
+                                <span className="flex items-center gap-1.5 text-green-600 text-sm font-medium bg-green-50 px-3 py-1 rounded-full">
+                                    <CheckCircle size={14} /> Connected
+                                </span>
+                            ) : (
+                                <button
+                                    onClick={() => handleConnect('sip')}
+                                    className="text-sm font-medium text-blue-chill-600 hover:text-blue-chill-700 hover:bg-blue-chill-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                                >
+                                    <Link2 size={16} /> Connect
+                                </button>
+                            )}
+                       </div>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

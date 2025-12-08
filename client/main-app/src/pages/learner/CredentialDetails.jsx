@@ -17,7 +17,8 @@ import {
     Copy,
     ChevronDown,
     ChevronUp,
-    Globe
+    Globe,
+    AlertCircle
 } from 'lucide-react';
 import { learnerApi } from '../../services/authServices';
 
@@ -62,13 +63,49 @@ const CredentialDetails = () => {
                 }
             } catch (err) {
                 console.error(err);
-                setError("Failed to load credential details");
+                if (err.response && err.response.status === 404) {
+                    setError('Credential not found. It may have been updated or removed.');
+                } else {
+                    setError('Failed to load credential details.');
+                }
             } finally {
                 setLoading(false);
             }
         };
-        fetchCredential();
+
+        if (id) {
+            fetchCredential();
+        }
     }, [id]);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 pt-20 flex justify-center items-center">
+                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gray-50 pt-20 p-8">
+                <div className="max-w-md mx-auto bg-white p-6 rounded-xl shadow-sm text-center">
+                     <div className="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <AlertCircle className="text-red-500" size={24} />
+                     </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Unavailable</h3>
+                    <p className="text-gray-600 mb-6">{error}</p>
+                    <button
+                        onClick={() => navigate('/learner/dashboard')}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        Return to Dashboard
+                    </button>
+                </div>
+            </div>
+        );
+    }
+    if (!credential) return null;
 
     const handleDownloadPDF = async () => {
         if (credential?.pdf_url) {
@@ -251,6 +288,18 @@ const CredentialDetails = () => {
                                         <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-sm font-medium">
                                             {credential.issuer?.name}
                                         </span>
+                                        {/* Source Badge */}
+                                        {credential.metadata?.source && (
+                                            <span className={`px-2 py-0.5 rounded text-xs font-medium border ${
+                                                credential.metadata.source === 'DigiLocker' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                                                credential.metadata.source === 'SIP' ? 'bg-orange-100 text-orange-800 border-orange-200' :
+                                                'bg-gray-100 text-gray-800 border-gray-200'
+                                            }`}>
+                                                {credential.metadata.source === 'DigiLocker' && 'DigiLocker Verified'}
+                                                {credential.metadata.source === 'SIP' && 'SIP Partner'}
+                                                {credential.metadata.source !== 'DigiLocker' && credential.metadata.source !== 'SIP' && credential.metadata.source}
+                                            </span>
+                                        )}
                                         <span className="text-gray-300">•</span>
                                         <span className="text-sm">Issued {new Date(credential.issued_at).toLocaleDateString()}</span>
                                     </div>
@@ -439,6 +488,49 @@ const CredentialDetails = () => {
                                     <p className="text-gray-500 text-sm">AI analysis in progress or unavailable.</p>
                                 </div>
                             )}
+                            {/* Stackable Roadmap & Credits (New) */}
+                            {credential.metadata?.ai_extracted?.nsqf_alignment?.progression_pathways || credential.metadata?.ai_extracted?.nsqf_alignment?.credits_breakdown ? (
+                                <div className="mt-6 pt-6 border-t border-gray-100">
+                                    <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                        <Globe size={16} className="text-purple-500" /> Qualification Details
+                                    </h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {credential.metadata.ai_extracted.nsqf_alignment.progression_pathways && (
+                                            <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 col-span-2">
+                                                <span className="text-xs font-bold text-purple-700 uppercase tracking-wide block mb-1">
+                                                    Career Progression
+                                                </span>
+                                                <p className="text-sm text-gray-700 whitespace-pre-line">
+                                                    {credential.metadata.ai_extracted.nsqf_alignment.progression_pathways}
+                                                </p>
+                                            </div>
+                                        )}
+                                        
+                                        {credential.metadata.ai_extracted.nsqf_alignment.notional_hours && (
+                                            <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                                <span className="text-xs font-bold text-gray-500 uppercase block">Notional Hours</span>
+                                                <span className="text-sm font-semibold text-gray-900">
+                                                    {credential.metadata.ai_extracted.nsqf_alignment.notional_hours}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {credential.metadata.ai_extracted.nsqf_alignment.credits_breakdown && (
+                                            <div className="col-span-2 mt-2">
+                                                 <span className="text-xs font-bold text-gray-500 uppercase block mb-2">Credits / Hours Distribution</span>
+                                                 <div className="flex gap-2 text-xs">
+                                                    {Object.entries(credential.metadata.ai_extracted.nsqf_alignment.credits_breakdown).map(([key, val]) => (
+                                                        <div key={key} className="px-3 py-1.5 bg-white border border-gray-200 rounded shadow-sm">
+                                                            <span className="text-gray-500 mr-1">{key}:</span>
+                                                            <span className="font-medium text-gray-900">{val}</span>
+                                                        </div>
+                                                    ))}
+                                                 </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : null}
                         </div>
 
                         {/* AI Insights & Job Recommendations */}
@@ -524,6 +616,7 @@ const CredentialDetails = () => {
             </div>
         </div>
     );
+
 };
 
 export default CredentialDetails;

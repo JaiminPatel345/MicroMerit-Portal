@@ -15,6 +15,7 @@ import credentialIssuanceRoutes from './modules/credential-issuance/routes';
 import credentialVerificationRoutes from './modules/credential-verification/routes';
 import aiRoutes from './modules/ai/ai.routes';
 import searchRoutes from './modules/search/routes';
+import { mockIntegrationRoutes } from './modules/mock-integration/routes';
 
 
 const app: Application = express();
@@ -81,6 +82,7 @@ app.use('/credentials', credentialVerificationRoutes); // New credential verific
 app.use('/pdf', pdfRoutes);
 app.use('/ai', aiRoutes); // AI-powered recommendations and OCR
 app.use('/search', searchRoutes); // Global search
+app.use('/integrations', mockIntegrationRoutes); // Mock DigiLocker/SIP integration
 
 // Root route
 app.get('/', (req, res) => {

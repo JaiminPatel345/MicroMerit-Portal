@@ -61,5 +61,12 @@ export const employerApi = {
   verifyEmail: (payload) => api.post('/auth/employer/verify-email', payload),
 };
 
+export const learnerIntegrationApi = {
+  connectDigiLocker: () => api.post('/integrations/digilocker/connect'),
+  connectSIP: () => api.post('/integrations/sip/connect'),
+  getStatus: () => api.get('/integrations/status'),
+  syncCredentials: () => api.post('/integrations/sync'),
+};
+
 
 
