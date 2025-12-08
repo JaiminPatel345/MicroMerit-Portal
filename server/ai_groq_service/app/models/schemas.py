@@ -32,6 +32,7 @@ class CertificateMetadata(BaseModel):
 class NSQFAlignment(BaseModel):
     """Alignment with NSQF standards"""
     aligned: bool = Field(description="Whether the certificate aligns with NSQF standards")
+    job_role: Optional[str] = Field(None, description="Job role name from NSQF knowledge base")
     qp_code: Optional[str] = Field(None, description="Qualification Pack code if aligned")
     nos_code: Optional[str] = Field(None, description="National Occupational Standards code if aligned")
     nsqf_level: Optional[int] = Field(None, description="NSQF level (1-10)")

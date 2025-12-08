@@ -192,6 +192,7 @@ Return JSON in this EXACT format:
   }},
   "nsqf_alignment": {{
     "aligned": true,
+    "job_role": "Software Developer",
     "qp_code": "QP123",
     "nos_code": null,
     "nsqf_level": 5,
@@ -212,7 +213,7 @@ Return JSON in this EXACT format:
 Rules:
 1. skills: Array of objects with name, category, proficiency_level, confidence (0.0-1.0)
 2. nsqf: Object with level (1-10), confidence (0.0-1.0), reasoning (string)
-3. nsqf_alignment: Object with aligned (bool), qp_code/nos_code (string or null), nsqf_level (int), confidence (float), reasoning (string). If no strong match in context, set aligned to false.
+3. nsqf_alignment: Object with aligned (bool), job_role (string or null), qp_code/nos_code (string or null), nsqf_level (int), confidence (float), reasoning (string). Extract job_role from the NSQF context matches. If no strong match in context, set aligned to false and job_role to null.
 4. keywords: Array of lowercase strings for search
 5. certificate_metadata: Extract available info (all fields optional)
 6. description: Brief 1-2 sentence summary
