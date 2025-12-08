@@ -7,26 +7,16 @@ import { logger } from '../../utils/logger';
 import { uploadImageBufferToS3 } from '../../utils/imageUpload'; // Assuming we reuse this for docs/logos
 
 export class EmployerService {
-    async register(data: EmployerRegistrationInput, docFile?: Express.Multer.File) {
+    async register(data: EmployerRegistrationInput) {
         const existing = await employerRepository.findByEmail(data.email);
         if (existing) {
             if (existing.status === 'unverified') {
-                // If unverified, we could resend OTP, but for security let's just throw or handle resend explicitly.
                 // For simplicity now, throw exist.
             }
             throw new Error('Employer with this email already exists');
         }
 
         const password_hash = await hashPassword(data.password);
-
-        let company_doc_url = null;
-        if (docFile) {
-            try {
-                company_doc_url = await uploadImageBufferToS3(docFile.buffer, docFile.mimetype, `documents/employer-${Date.now()}`);
-            } catch (e) {
-                logger.error('Failed to upload document', e);
-            }
-        }
 
         // Create employer with status 'unverified'
         const employer = await employerRepository.create({
@@ -39,13 +29,13 @@ export class EmployerService {
             industry_type: data.industry_type,
             company_size: data.company_size,
             contact_person: data.contact_person,
-            company_doc_url,
+            pan_number: data.pan_number,
             status: 'unverified', // Wait for OTP
         });
 
         // Generate and Send OTP
         const { generateOTP, hashOTP, getOTPExpiry } = require('../../utils/otp');
-        const { sendOTP } = require('../../utils/notification');
+        // const { sendOTP } = require('../../utils/notification');
 
         const otp = generateOTP(6);
         const otpHash = await hashOTP(otp);
@@ -76,10 +66,6 @@ export class EmployerService {
         if (employer.status !== 'unverified') throw new Error('Account already verified or processed');
 
         // Verify OTP
-        // Find latest session for this employer
-        // Ideally we select based on session ID, but if using email/otp:
-        // We can query prisma directly or add method to repo. 
-        // Let's use prisma raw or repo method.
         const { prisma } = require('../../utils/prisma');
         const session = await prisma.verification_session.findFirst({
             where: {
@@ -100,12 +86,21 @@ export class EmployerService {
         // Mark session verified
         await employerRepository.updateVerificationSession(session.id, { is_verified: true, verified_at: new Date() });
 
-        // Update Employer Status to 'pending' (Wait for Admin)
-        await employerRepository.updateStatus(employer.id, 'pending');
+        // Update Employer Status to 'active' (Approved instantly)
+        const updatedEmployer = await employerRepository.updateStatus(employer.id, 'active');
+
+        // Generate tokens directly so they can login immediately
+        const tokens = generateTokens({
+            id: updatedEmployer.id,
+            email: updatedEmployer.email,
+            role: 'employer',
+        });
 
         return {
             success: true,
-            message: 'Email verified. Account is now pending admin approval.'
+            message: 'Email verified. Account is now active.',
+            tokens,
+            employer: this.sanitize(updatedEmployer)
         };
     }
 
@@ -124,10 +119,7 @@ export class EmployerService {
             throw new Error('Email not verified. Please verify your email.');
         }
 
-        if (employer.status === 'pending') {
-            throw new Error('Account is pending admin approval. You will be notified once approved.');
-        }
-
+        // Removed pending check as approval is skipped, but kept rejected just in case
         if (employer.status === 'rejected') {
             throw new Error(`Account rejected. Reason: ${employer.rejected_reason}`);
         }

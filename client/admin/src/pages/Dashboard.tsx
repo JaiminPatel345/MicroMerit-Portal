@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { formatDate } from '../utils/dateUtils';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks.ts';
 import { fetchIssuers } from '../store/issuerSlice.ts';
@@ -135,7 +134,7 @@ const Dashboard = () => {
             </div>
 
             {/* Recent Issuers Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            {/* <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h2 className="text-lg font-bold text-gray-900">Recent Issuers</h2>
                     <Link to="/issuers" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
@@ -199,7 +198,7 @@ const Dashboard = () => {
                         </table>
                     </div>
                 )}
-            </div>
+            </div> */}
         </div>
     );
 };

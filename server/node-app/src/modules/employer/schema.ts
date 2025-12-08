@@ -10,6 +10,7 @@ export const employerRegistrationSchema = z.object({
     industry_type: z.string().optional(),
     company_size: z.string().optional(),
     contact_person: z.string().min(2, 'Contact person name is required'),
+    pan_number: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'Invalid PAN Card Number'),
 });
 
 export const employerLoginSchema = z.object({
