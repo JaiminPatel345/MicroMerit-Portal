@@ -13,9 +13,9 @@ export interface MockCredential {
     nsqf_level: number;
     max_hr: number;
     min_hr: number;
-    awarding_body: string;
-    certifying_body: string;
+    awarding_bodies: string[];
     occupation: string;
+    tags: string[];
     description: string;
     provider: 'nsdc' | 'udemy' | 'jaimin' | 'sih';
 }
@@ -33,7 +33,9 @@ export interface NSDCCredentialResponse {
         min: number;
         max: number;
     };
-    awarding_body: string;
+    awarding_bodies: string[];
+    occupation: string;
+    tags: string[];
     issue_date: string;
     certificate_url: string;
 }
@@ -48,12 +50,19 @@ export interface UdemyCredentialResponse {
         description: string;
         category: string;
         estimated_hours: number;
+        code: string; // added
     };
     user: {
         email: string;
         display_name: string;
     };
     certificate_url: string;
+    // Extra fields usually in a details call, but we'll include here for mock simplicity
+    metadata?: {
+        awarding_bodies: string[];
+        tags: string[];
+        level?: number;
+    };
 }
 
 // Jaimin Pvt Ltd response format
@@ -67,7 +76,9 @@ export interface JaiminCredentialResponse {
     skill_level: number;
     duration_hours: number;
     completed_on: string;
-    issued_by: string;
+    issued_by: string[]; // changed to array
+    role: string; // occupation
+    tags: string[];
 }
 
 // SIH (Smart India Hackathon) response format

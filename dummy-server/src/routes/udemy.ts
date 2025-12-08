@@ -90,12 +90,18 @@ router.get('/api/v1/certificates', verifyOAuthToken, (req: Request, res: Respons
             description: c.description,
             category: c.sector,
             estimated_hours: c.max_hr,
+            code: c.certificate_code,
         },
         user: {
             email: c.learner_email,
             display_name: c.learner_name,
         },
         certificate_url: `https://udemy.example.com/certificate/${c.id}`,
+        metadata: {
+            awarding_bodies: c.awarding_bodies,
+            tags: c.tags,
+            level: c.nsqf_level,
+        },
     }));
 
     res.json({
@@ -128,12 +134,18 @@ router.get('/api/v1/certificates/:id', verifyOAuthToken, (req: Request, res: Res
             description: credential.description,
             category: credential.sector,
             estimated_hours: credential.max_hr,
+            code: credential.certificate_code,
         },
         user: {
             email: credential.learner_email,
             display_name: credential.learner_name,
         },
         certificate_url: `https://udemy.example.com/certificate/${credential.id}`,
+        metadata: {
+            awarding_bodies: credential.awarding_bodies,
+            tags: credential.tags,
+            level: credential.nsqf_level,
+        },
     };
 
     res.json(udemyCredential);

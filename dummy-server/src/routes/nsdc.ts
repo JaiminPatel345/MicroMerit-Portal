@@ -84,7 +84,9 @@ router.get('/credentials', verifyToken, (req: Request, res: Response) => {
             min: c.min_hr,
             max: c.max_hr,
         },
-        awarding_body: c.awarding_body,
+        awarding_bodies: c.awarding_bodies,
+        occupation: c.occupation,
+        tags: c.tags,
         issue_date: c.issued_at.toISOString(),
         certificate_url: `https://nsdc.example.com/cert/${c.id}`,
     }));
@@ -128,7 +130,9 @@ router.get('/credentials/:id', verifyToken, (req: Request, res: Response) => {
             min: credential.min_hr,
             max: credential.max_hr,
         },
-        awarding_body: credential.awarding_body,
+        awarding_bodies: credential.awarding_bodies,
+        occupation: credential.occupation,
+        tags: credential.tags,
         issue_date: credential.issued_at.toISOString(),
         certificate_url: `https://nsdc.example.com/cert/${credential.id}`,
     };

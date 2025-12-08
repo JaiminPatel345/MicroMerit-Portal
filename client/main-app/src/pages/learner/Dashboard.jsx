@@ -124,32 +124,34 @@ const Dashboard = () => {
                         <div className="space-y-4">
                             {recentCertificates.length > 0 ? (
                                 recentCertificates.map((cert) => (
-                                    <motion.div
+                                    <Link 
+                                        to={`/credential/${cert.id}`} 
                                         key={cert.id}
-                                        whileHover={{ scale: 1.01 }}
-                                        className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                                        className="block"
                                     >
-                                        <div className="flex items-center gap-4">
-                                            <div className="h-12 w-12 bg-blue-chill-50 rounded-lg flex items-center justify-center text-blue-chill-600 font-bold text-xl">
-                                                {cert.certificate_title?.[0] || 'C'}
+                                        <motion.div
+                                            whileHover={{ scale: 1.01 }}
+                                            className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-blue-chill-100 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="h-12 w-12 bg-blue-chill-50 rounded-lg flex items-center justify-center text-blue-chill-600 font-bold text-xl">
+                                                    {cert.certificate_title?.[0] || 'C'}
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-semibold text-gray-900">{cert.certificate_title}</h3>
+                                                    <p className="text-sm text-gray-500">Issued by {cert.issuer?.name || 'Unknown Issuer'}</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h3 className="font-semibold text-gray-900">{cert.certificate_title}</h3>
-                                                <p className="text-sm text-gray-500">Issued by {cert.issuer?.name || 'Unknown Issuer'}</p>
+                                            <div className="flex items-center gap-3">
+                                                <span className="px-3 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full border border-green-100">
+                                                    Verified
+                                                </span>
+                                                <div className="p-2 text-gray-400 group-hover:text-blue-chill-600 transition-colors">
+                                                    <ArrowRight size={20} />
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <span className="px-3 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full border border-green-100">
-                                                Verified
-                                            </span>
-                                            <Link
-                                                to={`/credential/${cert.id}`}
-                                                className="p-2 text-gray-400 hover:text-blue-chill-600 transition-colors"
-                                            >
-                                                <ArrowRight size={20} />
-                                            </Link>
-                                        </div>
-                                    </motion.div>
+                                        </motion.div>
+                                    </Link>
                                 ))
                             ) : (
                                 <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
