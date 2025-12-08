@@ -4,6 +4,7 @@ import { asyncHandler } from '../../middleware/error';
 import { uploadPdf, pdfUpload } from '../../utils/pdfUpload';
 import { authenticateIssuer } from '../../middleware/auth';
 import { validateApiKey } from '../../middleware/apiKey';
+import { convertImageToPdf } from '../../middleware/imageConverter';
 
 const router = Router();
 
@@ -52,6 +53,7 @@ router.post(
         return authenticateIssuer(req, res, next);
     },
     uploadPdf,
+    convertImageToPdf,
     asyncHandler(credentialIssuanceController.issueCredential.bind(credentialIssuanceController))
 );
 
@@ -63,6 +65,7 @@ router.post(
     '/analyze',
     authenticateIssuer,
     uploadPdf,
+    convertImageToPdf,
     asyncHandler(credentialIssuanceController.analyzeCredential.bind(credentialIssuanceController))
 );
 
@@ -84,6 +87,7 @@ router.post(
     '/api/issue',
     validateApiKey,
     (pdfUpload.single('file') as any),
+    convertImageToPdf,
     asyncHandler(credentialIssuanceController.issueCredentialApi.bind(credentialIssuanceController))
 );
 
