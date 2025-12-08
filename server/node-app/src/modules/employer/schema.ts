@@ -9,7 +9,7 @@ export const employerRegistrationSchema = z.object({
     company_address: z.string().optional(),
     industry_type: z.string().optional(),
     company_size: z.string().optional(),
-    contact_person: z.string().optional(),
+    contact_person: z.string().min(2, 'Contact person name is required'),
 });
 
 export const employerLoginSchema = z.object({
