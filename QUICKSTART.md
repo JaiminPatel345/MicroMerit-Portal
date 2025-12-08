@@ -254,6 +254,41 @@ yarn dev
 # Frontend runs on: http://localhost:5173
 ```
 
+
+### Step 6: Setup Blockchain Service (TypeScript)
+
+```bash
+cd server/blockchain
+
+# Install dependencies
+yarn install
+
+# Create .env file
+cp .env.example .env
+
+# Edit .env
+nano .env
+```
+
+Configure `.env`:
+```bash
+# Blockchain
+SEPOLIA_RPC_URL=your_sepolia_rpc_url
+```
+
+Start blockchain service:
+```bash
+# Development mode
+yarn dev
+
+# Blockchain Service runs on: http://localhost:3001
+```
+
+**To run with docker**
+```bash
+docker compose up
+```
+
 ---
 
 ## Verify Installation
