@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { jsPDF } from 'jspdf';
 import {
     CheckCircle,
     Shield,
@@ -76,7 +77,50 @@ const PublicCredential = () => {
             try {
                 const response = await fetch(credential.pdf_url);
                 const blob = await response.blob();
-                const blobUrl = window.URL.createObjectURL(blob);
+
+                // Get content type
+                const contentType = blob.type.toLowerCase();
+
+                let pdfBlob;
+                
+                if (contentType.includes('image/')) {
+                    // Convert image to PDF
+                    console.log('Converting image to PDF...');
+                    
+                    // Create image element to get dimensions
+                    const img = new Image();
+                    const imageUrl = URL.createObjectURL(blob);
+                    
+                    await new Promise((resolve, reject) => {
+                        img.onload = () => resolve();
+                        img.onerror = reject;
+                        img.src = imageUrl;
+                    });
+                    
+                    // Create PDF with jsPDF
+                    const pdf = new jsPDF({
+                        orientation: img.width > img.height ? 'landscape' : 'portrait',
+                        unit: 'px',
+                        format: [img.width, img.height]
+                    });
+                    
+                    // Add image to PDF (fill entire page)
+                    pdf.addImage(img, 'JPEG', 0, 0, img.width, img.height);
+                    
+                    // Get PDF as blob
+                    pdfBlob = pdf.output('blob');
+                    
+                    // Clean up
+                    URL.revokeObjectURL(imageUrl);
+                } else if (contentType.includes('pdf')) {
+                    // Already a PDF
+                    pdfBlob = blob;
+                } else {
+                    // Unknown type, try as PDF
+                    pdfBlob = blob;
+                }
+
+                const blobUrl = window.URL.createObjectURL(pdfBlob);
                 const link = document.createElement('a');
                 link.href = blobUrl;
                 link.download = `${credential.certificate_title}.pdf`;
@@ -137,14 +181,32 @@ const PublicCredential = () => {
                     {/* Left Column: Certificate Preview & Actions */}
                     <div className="lg:col-span-1 space-y-6">
                         <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100">
-                            {/* PDF Preview */}
+                            {/* Document Preview (PDF or Image) */}
                             <div className="aspect-[1/1.414] bg-gray-100 rounded-lg flex items-center justify-center relative overflow-hidden group">
                                 {credential.pdf_url ? (
-                                    <iframe
-                                        src={`${credential.pdf_url}#view=FitH&toolbar=0&navpanes=0&scrollbar=0`}
-                                        className="w-full h-full border-0"
-                                        title="Certificate Preview"
-                                    />
+                                    (() => {
+                                        // Check if URL suggests an image
+                                        const url = credential.pdf_url.toLowerCase();
+                                        const isImage = url.includes('.png') || url.includes('.jpg') || url.includes('.jpeg') || url.includes('.webp');
+                                        
+                                        if (isImage) {
+                                            return (
+                                                <img 
+                                                    src={credential.pdf_url} 
+                                                    alt="Certificate Preview"
+                                                    className="w-full h-full object-contain"
+                                                />
+                                            );
+                                        } else {
+                                            return (
+                                                <iframe
+                                                    src={`${credential.pdf_url}#view=FitH&toolbar=0&navpanes=0&scrollbar=0`}
+                                                    className="w-full h-full border-0"
+                                                    title="Certificate Preview"
+                                                />
+                                            );
+                                        }
+                                    })()
                                 ) : (
                                     <div className="text-center p-6">
                                         <FileText size={48} className="text-gray-300 mx-auto mb-2" />
