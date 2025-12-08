@@ -177,8 +177,8 @@ model employer {
   email             String      @unique
   phone             String?
   password_hash     String
-  company_doc_url   String?      // Uploaded proof document - made optional for initial flexibility or filebase upload
-  status            String      @default("pending") // pending | approved | rejected
+  pan_number      String?      @unique      // Added PAN number for verification (Optional for migration compatibility)
+  status            String      @default("active") // pending | approved | rejected - Changed default to active
   approved_at       DateTime?
   rejected_reason   String?
   created_at        DateTime    @default(now())

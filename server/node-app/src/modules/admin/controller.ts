@@ -282,28 +282,6 @@ export class AdminController {
     }
   }
 
-  async approveEmployer(req: Request, res: Response): Promise<void> {
-    try {
-      if (!req.user) return sendError(res, 'Unauthorized', 'Unauthorized', 401);
-      const id = Number(req.params.id);
-      const result = await adminService.approveEmployer(id);
-      sendSuccess(res, result, 'Employer approved');
-    } catch (error: any) {
-      sendError(res, error.message, 'Failed to approve', 400);
-    }
-  }
-
-  async rejectEmployer(req: Request, res: Response): Promise<void> {
-    try {
-      if (!req.user) return sendError(res, 'Unauthorized', 'Unauthorized', 401);
-      const id = Number(req.params.id);
-      const { reason } = req.body;
-      const result = await adminService.rejectEmployer(id, reason);
-      sendSuccess(res, result, 'Employer rejected');
-    } catch (error: any) {
-      sendError(res, error.message, 'Failed to reject', 400);
-    }
-  }
 
   /**
    * List credentials for admin

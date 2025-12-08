@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { formatDate } from '../utils/dateUtils';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks.ts';
 import { fetchIssuers } from '../store/issuerSlice.ts';
@@ -8,7 +7,7 @@ import { fetchSyncStatus } from '../store/externalSyncSlice.ts';
 const Dashboard = () => {
     const dispatch = useAppDispatch();
     const { issuers, loading } = useAppSelector((state) => state.issuer);
-    const { viewMode, syncStatus } = useAppSelector((state) => state.externalSync);
+    const { viewMode } = useAppSelector((state) => state.externalSync);
 
     useEffect(() => {
         dispatch(fetchIssuers());

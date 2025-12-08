@@ -10,8 +10,6 @@ import {
 } from '../store/employerSlice.ts';
 import type { EmployerStatus, EmployerProfile } from '../api/employerAPI.ts';
 import EmployerDetailsModal from '../components/EmployerDetailsModal.tsx';
-import EmployerRejectModal from '../components/EmployerRejectModal.tsx';
-import EmployerApproveModal from '../components/EmployerApproveModal.tsx';
 
 const Employers = () => {
     const dispatch = useAppDispatch();
@@ -19,11 +17,8 @@ const Employers = () => {
     const { employers, loading, error, pagination } = useAppSelector((state) => state.employer);
 
     const [showDetailsModal, setShowDetailsModal] = useState(false);
-    const [showRejectModal, setShowRejectModal] = useState(false);
-    const [showApproveModal, setShowApproveModal] = useState(false);
-    const [selectedEmployerForAction, setSelectedEmployerForAction] = useState<EmployerProfile | null>(
-        null
-    );
+    
+    // Removed unused state for approve/reject
 
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<EmployerStatus | ''>('');
@@ -54,19 +49,16 @@ const Employers = () => {
         setSearchTerm(e.target.value);
     }
 
-    const handleApprove = (employer: EmployerProfile) => {
-        setSelectedEmployerForAction(employer);
-        setShowApproveModal(true);
-    };
-
-    const handleReject = (employer: EmployerProfile) => {
-        setSelectedEmployerForAction(employer);
-        setShowRejectModal(true);
-    };
+    // Removed handleApprove/handleReject
 
     const handleViewDetails = (employer: EmployerProfile) => {
-        dispatch(setSelectedEmployer(employer));
-        setShowDetailsModal(true);
+        // dispatch(setSelectedEmployer(employer)); // If setSelectedEmployer is needed for details modal
+        // assuming setSelectedEmployer is used by details modal? 
+        // Logic shows details modal calls specific API or uses selected? 
+        // Based on original code: dispatch(setSelectedEmployer(employer)); setShowDetailsModal(true);
+        // I should keep it.
+         dispatch(setSelectedEmployer(employer));
+         setShowDetailsModal(true);
     };
 
     return (
@@ -240,24 +232,6 @@ const Employers = () => {
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                                 </button>
 
-                                                {employer.status === 'pending' && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => handleApprove(employer)}
-                                                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all"
-                                                            title="Approve"
-                                                        >
-                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleReject(employer)}
-                                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                                            title="Reject"
-                                                        >
-                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                                                        </button>
-                                                    </>
-                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -304,28 +278,6 @@ const Employers = () => {
 
             {/* Modals */}
             <EmployerDetailsModal isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} />
-
-            {selectedEmployerForAction && (
-                <>
-                    <EmployerRejectModal
-                        isOpen={showRejectModal}
-                        onClose={() => {
-                            setShowRejectModal(false);
-                            setSelectedEmployerForAction(null);
-                        }}
-                        employer={selectedEmployerForAction}
-                    />
-
-                    <EmployerApproveModal
-                        isOpen={showApproveModal}
-                        onClose={() => {
-                            setShowApproveModal(false);
-                            setSelectedEmployerForAction(null);
-                        }}
-                        employer={selectedEmployerForAction}
-                    />
-                </>
-            )}
         </div>
     );
 };
