@@ -7,6 +7,7 @@ import { useRef } from 'react';
 const EmployerSignup = () => {
     const [formData, setFormData] = useState({
         company_name: '',
+        contact_person: '',
         email: '',
         password: '',
         phone: '',
@@ -212,6 +213,11 @@ const EmployerSignup = () => {
                 )}
 
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Employer Name</label>
+                        <input name="contact_person" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-chill-500 outline-none" onChange={handleChange} placeholder="Your Full Name" />
+                    </div>
+
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
                         <input name="company_name" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-chill-500 outline-none" onChange={handleChange} />
