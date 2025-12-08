@@ -1,7 +1,8 @@
 import axiosInstance from './axiosInstance';
 
 export type IssuerStatus = 'pending' | 'approved' | 'rejected';
-export type IssuerType = 'university' | 'school' | 'training_center' | 'government' | 'corporate' | 'other';
+export type IssuerType = 'university' | 'school' | 'training_center' | 'government' | 'corporate' | 'online_platform' | 'other';
+export type IssuerSource = 'platform' | 'connector';
 
 export interface IssuerProfile {
     id: number;
@@ -10,6 +11,7 @@ export interface IssuerProfile {
     type: IssuerType;
     status: IssuerStatus;
     is_blocked: boolean;
+    source?: IssuerSource; // 'platform' for signup issuers, 'connector' for external providers
     logo_url?: string | null;
     website_url?: string | null;
     phone?: string | null;
@@ -24,6 +26,7 @@ export interface IssuerProfile {
 export interface IssuerFilters {
     status?: IssuerStatus;
     is_blocked?: boolean;
+    source?: IssuerSource;
 }
 
 export interface RejectIssuerPayload {
@@ -39,6 +42,7 @@ export const issuerAPI = {
         const params = new URLSearchParams();
         if (filters?.status) params.append('status', filters.status);
         if (filters?.is_blocked !== undefined) params.append('is_blocked', String(filters.is_blocked));
+        if (filters?.source) params.append('source', filters.source);
 
         const response = await axiosInstance.get(`/admin/issuers?${params.toString()}`);
         return response.data;

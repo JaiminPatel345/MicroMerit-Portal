@@ -1,6 +1,7 @@
 import app from './app';
 import { logger } from './utils/logger';
 import { connectPrisma, disconnectPrisma } from './utils/prisma';
+import { externalCredentialSyncScheduler } from './modules/external-credential-sync';
 
 const PORT = process.env.PORT || 3000;
 
@@ -10,19 +11,25 @@ let server: any;
 const startServer = async () => {
   try {
     // Connect to database first
-    try{
+    try {
       await connectPrisma();
-    }catch(error){
+    } catch (error) {
       logger.error('Failed to connect to the database', { error });
       console.error('Failed to connect to the database, make sure postgreSQL is running and accessible', { error });
       process.exit(1);
     }
-    
+
     // Start the server only if database connection is successful
     server = app.listen(PORT, () => {
       logger.info(`Server is running on port ${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`Health check: http://localhost:${PORT}/health`);
+
+      // Start external credential sync scheduler if enabled
+      if (process.env.ENABLE_EXTERNAL_SYNC === 'true') {
+        externalCredentialSyncScheduler.start();
+        logger.info('External credential sync scheduler started');
+      }
     });
   } catch (error) {
     logger.error('Failed to start server', { error });
@@ -36,10 +43,13 @@ startServer();
 // Graceful shutdown
 const gracefulShutdown = async (signal: string) => {
   logger.info(`${signal} received. Starting graceful shutdown...`);
-  
+
+  // Stop the scheduler first
+  externalCredentialSyncScheduler.stop();
+
   server.close(async () => {
     logger.info('HTTP server closed');
-    
+
     try {
       await disconnectPrisma();
       logger.info('Database connections closed');

@@ -111,5 +111,13 @@ resourceRouter.get(
   asyncHandler(adminController.getAnalytics.bind(adminController))
 );
 
+// Credentials management
+resourceRouter.get(
+  '/credentials',
+  authenticateToken,
+  requireAdmin,
+  asyncHandler(adminController.listCredentials.bind(adminController))
+);
+
 export { authRouter as adminAuthRoutes, resourceRouter as adminResourceRoutes };
 export default authRouter; // Default export for backward compatibility

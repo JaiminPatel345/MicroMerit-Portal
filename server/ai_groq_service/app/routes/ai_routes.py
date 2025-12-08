@@ -195,3 +195,39 @@ async def health_check():
         "mock": groq_service.mock_mode,
         "key_loaded": groq_service.client is not None
     }
+
+from fastapi.responses import StreamingResponse
+from app.services.pdf_service import pdf_service
+import io
+
+@router.post("/append-qr")
+async def append_qr(
+    file: UploadFile = File(...),
+    qr_data: str = Form(...)
+):
+    """
+    Appends a new page with a QR code and 'MicroMerit' branding to the uploaded PDF.
+    Returns the modified PDF as a downloadable file.
+    """
+    try:
+        # Read file content
+        file_bytes = await file.read()
+        
+        # Check if file is PDF
+        if file.content_type != "application/pdf" and not file.filename.lower().endswith('.pdf'):
+             raise HTTPException(status_code=400, detail="File must be a PDF")
+
+        # Process PDF
+        modified_pdf_bytes = pdf_service.append_qr_page(file_bytes, qr_data)
+        
+        # Create streaming response
+        return StreamingResponse(
+            io.BytesIO(modified_pdf_bytes),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=modified_{file.filename}"}
+        )
+    except Exception as e:
+        logger.error(f"Error appending QR code: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to process PDF: {str(e)}")
+
+
