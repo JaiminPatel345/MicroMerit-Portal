@@ -125,6 +125,7 @@ const LearnerHeader = () => {
               <Link to="/wallet" className={isActive('/wallet')}>Wallet</Link>
               <Link to="/roadmap" className={isActive('/roadmap')}>Roadmap</Link>
               <Link to="/skills" className={isActive('/skills')}>Skill Profile</Link>
+              <Link to="/verify" className={isActive('/verify')}>Verify</Link>
             </nav>
           </div>
 
