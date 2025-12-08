@@ -225,7 +225,7 @@ export class AdminService {
   /**
    * List all issuers with optional filters
    */
-  async listIssuers(filters?: { status?: string; is_blocked?: boolean }): Promise<Omit<issuer, 'password_hash'>[]> {
+  async listIssuers(filters?: { status?: string; is_blocked?: boolean; source?: 'connector' | 'platform' }): Promise<Omit<issuer, 'password_hash'>[]> {
     const issuers = await issuerRepository.findAll(filters);
     return issuers.map(issuer => this.sanitizeIssuer(issuer));
   }
@@ -357,6 +357,50 @@ export class AdminService {
 
     return rejectedEmployer;
   }
+
+  /**
+   * List credentials with optional source filter
+   */
+  async listCredentials(filters: { source?: 'connector' | 'platform'; limit?: number }) {
+    // Get connector issuer IDs from environment
+    const connectorIssuerIds: number[] = [];
+    if (process.env.NSDC_ISSUER_ID) connectorIssuerIds.push(parseInt(process.env.NSDC_ISSUER_ID, 10));
+    if (process.env.UDEMY_ISSUER_ID) connectorIssuerIds.push(parseInt(process.env.UDEMY_ISSUER_ID, 10));
+    if (process.env.JAIMIN_ISSUER_ID) connectorIssuerIds.push(parseInt(process.env.JAIMIN_ISSUER_ID, 10));
+
+    const where: any = {};
+
+    // Filter by source
+    if (filters.source === 'connector' && connectorIssuerIds.length > 0) {
+      where.issuer_id = { in: connectorIssuerIds };
+    } else if (filters.source === 'platform' && connectorIssuerIds.length > 0) {
+      where.issuer_id = { notIn: connectorIssuerIds };
+    }
+
+    const credentials = await prisma.credential.findMany({
+      where,
+      orderBy: { issued_at: 'desc' },
+      take: filters.limit || 50,
+      include: {
+        issuer: {
+          select: {
+            id: true,
+            name: true,
+            logo_url: true,
+          },
+        },
+        learner: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return credentials;
+  }
 }
 
 export const adminService = new AdminService();
+
