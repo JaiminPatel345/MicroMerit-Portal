@@ -16,6 +16,10 @@ import credentialVerificationRoutes from './modules/credential-verification/rout
 import aiRoutes from './modules/ai/ai.routes';
 import searchRoutes from './modules/search/routes';
 
+// External credential sync routes (feature-flagged)
+import { webhookRoutes, adminSyncRoutes } from './modules/external-credential-sync';
+import { featureFlags } from './infrastructure/config/feature-flags';
+
 
 const app: Application = express();
 
@@ -81,6 +85,12 @@ app.use('/credentials', credentialVerificationRoutes); // New credential verific
 app.use('/pdf', pdfRoutes);
 app.use('/ai', aiRoutes); // AI-powered recommendations and OCR
 app.use('/search', searchRoutes); // Global search
+
+// External credential sync routes (feature-flagged)
+if (featureFlags.externalSyncEnabled) {
+  app.use('/webhooks', webhookRoutes);
+  app.use('/admin/sync', adminSyncRoutes);
+}
 
 // Root route
 app.get('/', (req, res) => {

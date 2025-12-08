@@ -27,8 +27,18 @@ model issuer {
   is_blocked                 Boolean          @default(false)
   blocked_reason             String?
   created_at                 DateTime         @default(now())
+  
+  // External credential sync fields
+  registry_id                String?          // External provider ID
+  last_sync_at               DateTime?        // Last credential sync timestamp
+  accept_external            Boolean          @default(true)  // Accept external credentials
+  reissue_local_vc           Boolean          @default(false) // Re-issue as local VC
+  
   credentials                Credential[]
   apiKeys                    issuer_api_key[]
+  publicKeys                 IssuerPublicKeys[]
+
+  @@index([registry_id])
 }
 
 model issuer_api_key {
@@ -114,6 +124,17 @@ model Credential {
   status            String   @default("issued")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  
+  // External credential fields
+  is_external              Boolean  @default(false)
+  provider_credential_id   String?  // Original ID from external provider
+  signature_verified       Boolean  @default(false)
+  verification_method      String?  // JWS, HMAC, PDF_DSC, etc.
+  encrypted_raw_payload    String?  // Encrypted original signed payload
+  match_confidence         Float?   // 0.0 to 1.0
+  match_type               String?  // email, phone, fuzzy, etc.
+  processed_at             DateTime?
+  
   issuer            issuer   @relation(fields: [issuer_id], references: [id])
   learner           learner? @relation(fields: [learner_id], references: [id])
 
@@ -124,6 +145,8 @@ model Credential {
   @@index([ipfs_cid])
   @@index([tx_hash])
   @@index([status])
+  @@index([is_external])
+  @@index([provider_credential_id])
 
   @@index([metadata(ops: JsonbPathOps)], type: Gin) // GIN index for JSON queries (skills/keywords search)
   @@index([certificate_title])
@@ -194,4 +217,44 @@ model employer_activity_log {
   created_at     DateTime   @default(now())
 
   employer       employer @relation(fields: [employer_id], references: [id])
+}
+
+// =====================================
+// External Credential Sync Tables
+// =====================================
+
+// Cached JWKS for issuers (for signature verification)
+model IssuerPublicKeys {
+  id               Int      @id @default(autoincrement())
+  issuer_id        Int
+  jwk_set_url      String
+  cached_jwks      Json     // Cached JWKS document
+  last_fetched_at  DateTime @default(now())
+  issuer           issuer   @relation(fields: [issuer_id], references: [id])
+
+  @@unique([issuer_id, jwk_set_url])
+  @@index([issuer_id])
+}
+
+// Credentials imported from external sources (NSDC, DigiLocker)
+// Idempotency tracking for processed jobs
+model ProcessedJob {
+  idempotency_key String   @id
+  processed_at    DateTime @default(now())
+
+  @@index([processed_at])
+}
+
+// Dead Letter Queue for failed jobs
+model DLQ {
+  id         String   @id @default(uuid())
+  job_type   String              // Queue type
+  job_id     String              // Original job ID
+  reason     String              // Failure reason
+  attempts   Int      @default(0)
+  payload    Json                // Job payload for retry
+  created_at DateTime @default(now())
+
+  @@index([job_type])
+  @@index([created_at])
 }

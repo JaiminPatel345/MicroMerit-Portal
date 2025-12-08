@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
-import { Outlet, useNavigate } from 'react-router';
+import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks.ts';
 import { logout, getProfile } from '../store/authSlice.ts';
 
 const Layout = () => {
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
+    const location = useLocation();
     const { user, isAuthenticated } = useAppSelector((state) => state.auth);
 
     useEffect(() => {
@@ -24,6 +25,13 @@ const Layout = () => {
     if (!isAuthenticated) {
         return null;
     }
+
+    const navLinks = [
+        { to: '/dashboard', label: 'Dashboard' },
+        { to: '/issuers', label: 'Issuers' },
+        { to: '/employers', label: 'Employers' },
+        { to: '/credential-sync', label: 'Credential Sync' },
+    ];
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -52,6 +60,23 @@ const Layout = () => {
                                 <h1 className="text-xl font-bold text-gray-900">MicroMerit Portal</h1>
                                 <p className="text-xs text-gray-500">Admin Dashboard</p>
                             </div>
+
+                            {/* Navigation Links */}
+                            <nav className="ml-10 flex space-x-4">
+                                {navLinks.map((link) => (
+                                    <Link
+                                        key={link.to}
+                                        to={link.to}
+                                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === link.to ||
+                                                (link.to !== '/dashboard' && location.pathname.startsWith(link.to))
+                                                ? 'bg-primary-100 text-primary-700'
+                                                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                            }`}
+                                    >
+                                        {link.label}
+                                    </Link>
+                                ))}
+                            </nav>
                         </div>
 
                         {/* User Menu */}

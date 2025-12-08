@@ -1,0 +1,11 @@
+
+> app@1.0.0 dev
+> tsx watch src/server.ts
+
+[2025-12-08T12:22:25.866Z] [INFO] S3 Service initialized with bucket: micromerit-sih25-jaimin
+[2025-12-08T12:22:25.901Z] [INFO] Prisma Client initialized
+prisma:query SELECT 1
+[2025-12-08T12:22:27.165Z] [INFO] Database connection established successfully
+[2025-12-08T12:22:27.167Z] [INFO] Server is running on port 3000
+[2025-12-08T12:22:27.167Z] [INFO] Environment: development
+[2025-12-08T12:22:27.167Z] [INFO] Health check: http://localhost:3000/health

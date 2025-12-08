@@ -287,7 +287,13 @@ export class LearnerRepository {
     };
 
     if (status && status !== 'all') {
-      where.status = status;
+      // Include both 'issued' and 'verified' when filtering for issued credentials
+      // External credentials use 'verified' status when signature is confirmed
+      if (status === 'issued') {
+        where.status = { in: ['issued', 'verified'] };
+      } else {
+        where.status = status;
+      }
     }
 
     if (issuerId) {
@@ -305,6 +311,7 @@ export class LearnerRepository {
       ];
     }
 
+    // Fetch all credentials (both regular and external with is_external flag)
     const [total, credentials] = await Promise.all([
       prisma.credential.count({ where }),
       prisma.credential.findMany({
@@ -324,8 +331,18 @@ export class LearnerRepository {
       }),
     ]);
 
+    // Transform credentials to add isExternal flag to metadata for frontend identification
+    const transformedCredentials = credentials.map((cred: any) => ({
+      ...cred,
+      metadata: {
+        ...(cred.metadata || {}),
+        isExternal: cred.is_external || false,
+        matchConfidence: cred.match_confidence,
+      },
+    }));
+
     return {
-      data: credentials,
+      data: transformedCredentials,
       pagination: {
         total,
         page,

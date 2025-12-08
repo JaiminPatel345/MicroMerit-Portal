@@ -6,6 +6,7 @@ import Login from './pages/Login.tsx';
 import Dashboard from './pages/Dashboard.tsx';
 import Issuers from './pages/Issuers.tsx';
 import Employers from './pages/Employers.tsx';
+import CredentialSync from './pages/CredentialSync.tsx';
 import Layout from './components/Layout.tsx';
 import ProtectedRoute from './components/ProtectedRoute.tsx';
 
@@ -30,6 +31,7 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="issuers" element={<Issuers />} />
             <Route path="employers" element={<Employers />} />
+            <Route path="credential-sync" element={<CredentialSync />} />
           </Route>
 
           {/* Catch all - redirect to dashboard */}

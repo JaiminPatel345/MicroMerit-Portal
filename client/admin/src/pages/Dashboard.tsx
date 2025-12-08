@@ -230,6 +230,33 @@ const Dashboard = () => {
                             <p className="text-sm text-gray-600">View and edit all employers</p>
                         </div>
                     </Link>
+
+                    <Link
+                        to="/credential-sync"
+                        className="p-6 border border-gray-100 rounded-xl hover:shadow-md hover:border-teal-200 bg-gradient-to-br from-teal-50 to-white transition-all duration-300 group"
+                    >
+                        <div className="flex flex-col h-full bg-white bg-opacity-60 rounded-lg p-2">
+                            <div className="flex items-center mb-3">
+                                <div className="bg-teal-100 p-3 rounded-xl group-hover:scale-110 transition-transform">
+                                    <svg
+                                        className="w-6 h-6 text-teal-600"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                        />
+                                    </svg>
+                                </div>
+                                <h3 className="ml-3 font-bold text-gray-900">Credential Sync</h3>
+                            </div>
+                            <p className="text-sm text-gray-600">Manage external credential imports</p>
+                        </div>
+                    </Link>
                 </div>
             </div>
 
