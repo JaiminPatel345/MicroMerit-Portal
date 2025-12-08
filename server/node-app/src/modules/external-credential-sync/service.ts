@@ -263,11 +263,22 @@ class ExternalCredentialSyncService {
             network,
             contract_address: contractAddress,
             ipfs_cid: null,
-            pdf_url: null,
+            pdf_url: canonical.certificate_url || null, // Use certificate URL if provided by external provider
             tx_hash: null,
             data_hash: null,
         });
         const dataHash = computeDataHash(canonicalJson);
+
+        // Store certificate_url from external provider as the pdf_url
+        const pdfUrl = canonical.certificate_url || null;
+        const ipfsCid = canonical.certificate_url || null; // Store URL as ipfs_cid for external credentials
+
+        logger.info('Creating external credential', {
+            credential_id: credentialId,
+            pdf_url: pdfUrl,
+            ipfs_cid: ipfsCid,
+            has_certificate_url: !!canonical.certificate_url
+        });
 
         // Create credential in database
         await credentialIssuanceRepository.createCredential({
@@ -277,12 +288,21 @@ class ExternalCredentialSyncService {
             issuer_id: issuerId,
             certificate_title: canonical.certificate_title,
             issued_at: canonical.issued_at,
-            ipfs_cid: null,
-            pdf_url: null,
+            ipfs_cid: ipfsCid,
+            pdf_url: pdfUrl,
             tx_hash: null,
             data_hash: dataHash,
             metadata,
             status,
+            // External credential fields
+            certificate_code: canonical.certificate_code || null,
+            sector: canonical.sector || null,
+            nsqf_level: canonical.nsqf_level || null,
+            max_hr: canonical.max_hr || null,
+            min_hr: canonical.min_hr || null,
+            awarding_bodies: canonical.awarding_bodies || null,
+            occupation: canonical.occupation || null,
+            tags: canonical.tags || null,
         });
 
         logger.info(`Created external credential`, {

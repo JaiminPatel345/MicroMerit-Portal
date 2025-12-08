@@ -91,10 +91,11 @@ export class NSDCConnector extends BaseConnector {
             nsqf_level: payload.nsqf_level,
             max_hr: payload.training_hours?.max,
             min_hr: payload.training_hours?.min,
-            awarding_bodies: payload.awarding_body ? [payload.awarding_body] : [],
+            awarding_bodies: payload.awarding_bodies || (payload.awarding_body ? [payload.awarding_body] : []),
             occupation: payload.occupation,
-            tags: ['nsdc', 'skill-india'],
+            tags: payload.tags || ['nsdc', 'skill-india'],
             description: payload.description,
+            certificate_url: payload.certificate_url, // Capture the PDF/certificate URL
             external_id: payload.credential_id,
             raw_data: payload,
         };
