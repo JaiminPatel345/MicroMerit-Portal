@@ -18,6 +18,16 @@ export async function writeToBlockchain(
     data_hash: string,
     ipfs_cid: string
 ): Promise<BlockchainWriteResult> {
+    // Validate ipfs_cid is not null or empty
+    if (!ipfs_cid || ipfs_cid.trim() === '') {
+        const error = new Error('IPFS CID is required and cannot be null or empty');
+        logger.error('Blockchain write failed - missing IPFS CID', {
+            credential_id,
+            error: error.message,
+        });
+        throw error;
+    }
+
     try {
         logger.info('Calling blockchain service - write', {
             credential_id,

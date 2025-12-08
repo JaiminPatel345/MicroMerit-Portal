@@ -8,6 +8,7 @@ import express, { Application, Request, Response } from 'express';
 import nsdcRoutes from './routes/nsdc.js';
 import udemyRoutes from './routes/udemy.js';
 import jaiminRoutes from './routes/jaimin.js';
+import sihRoutes from './routes/sih.js';
 import { getCredentials, getCredentialsByProvider } from './data/seed.js';
 
 const app: Application = express();
@@ -37,7 +38,7 @@ app.get('/health', (req: Request, res: Response) => {
         status: 'ok',
         message: 'Dummy credential server is running',
         timestamp: new Date().toISOString(),
-        providers: ['nsdc', 'udemy', 'jaimin'],
+        providers: ['nsdc', 'udemy', 'jaimin', 'sih'],
     });
 });
 
@@ -45,6 +46,7 @@ app.get('/health', (req: Request, res: Response) => {
 app.use('/nsdc', nsdcRoutes);
 app.use('/udemy', udemyRoutes);
 app.use('/jaimin', jaiminRoutes);
+app.use('/sih', sihRoutes);
 
 // Stats endpoint
 app.get('/stats', (req: Request, res: Response) => {
@@ -55,6 +57,7 @@ app.get('/stats', (req: Request, res: Response) => {
             nsdc: getCredentialsByProvider('nsdc').length,
             udemy: getCredentialsByProvider('udemy').length,
             jaimin: getCredentialsByProvider('jaimin').length,
+            sih: getCredentialsByProvider('sih').length,
         },
         test_users: [
             'test1@gmail.com',
@@ -90,6 +93,11 @@ app.get('/', (req: Request, res: Response) => {
                 cert: 'GET /jaimin/api/certs/:id',
                 verify: 'POST /jaimin/api/verify',
             },
+            sih: {
+                credentials: 'GET /sih/api/credentials?since=ISO_DATE&limit=20&offset=0',
+                credential: 'GET /sih/api/credentials/:id',
+                verify: 'POST /sih/api/verify',
+            },
         },
     });
 });
@@ -108,15 +116,17 @@ app.listen(PORT, () => {
     console.log('\nAvailable providers:');
     console.log('  - NSDC:   POST /nsdc/auth, GET /nsdc/credentials');
     console.log('  - Udemy:  POST /udemy/oauth/token, GET /udemy/api/v1/certificates');
-    console.log('  - Jaimin: GET /jaimin/api/certs (X-API-Key header required)\n');
+    console.log('  - Jaimin: GET /jaimin/api/certs (X-API-Key header required)');
+    console.log('  - SIH:    GET /sih/api/credentials (X-API-Key header required)\n');
 
     // Log stats
     const stats = {
         nsdc: getCredentialsByProvider('nsdc').length,
         udemy: getCredentialsByProvider('udemy').length,
         jaimin: getCredentialsByProvider('jaimin').length,
+        sih: getCredentialsByProvider('sih').length,
     };
-    console.log(`📊 Loaded credentials: NSDC=${stats.nsdc}, Udemy=${stats.udemy}, Jaimin=${stats.jaimin}`);
+    console.log(`📊 Loaded credentials: NSDC=${stats.nsdc}, Udemy=${stats.udemy}, Jaimin=${stats.jaimin}, SIH=${stats.sih}`);
 });
 
 export default app;

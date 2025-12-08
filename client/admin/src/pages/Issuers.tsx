@@ -71,7 +71,7 @@ const Issuers = () => {
         console.log('Detected provider ID:', providerId, 'for issuer name:', issuer.name);
 
         if (!providerId) {
-            toast.error(`Could not determine provider for "${issuer.name}". Name must contain nsdc, udemy, or jaimin.`);
+            toast.error(`Could not determine provider for "${issuer.name}". Name must contain nsdc, udemy, jaimin, or sih.`);
             return;
         }
 
@@ -118,6 +118,7 @@ const Issuers = () => {
         if (lowerName.includes('nsdc')) return 'nsdc';
         if (lowerName.includes('udemy')) return 'udemy';
         if (lowerName.includes('jaimin')) return 'jaimin';
+        if (lowerName.includes('sih')) return 'sih';
         return null;
     };
 
