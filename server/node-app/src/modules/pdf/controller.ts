@@ -59,9 +59,9 @@ export const downloadPdf = async (
     if (!credentialUid) {
       throw new Error('Credential UID is required');
     }
-    
+
     const { buffer, filename } = await service.downloadPdf(credentialUid);
-    
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(buffer);
