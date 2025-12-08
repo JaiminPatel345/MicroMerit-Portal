@@ -17,7 +17,7 @@ export interface MockCredential {
     certifying_body: string;
     occupation: string;
     description: string;
-    provider: 'nsdc' | 'udemy' | 'jaimin';
+    provider: 'nsdc' | 'udemy' | 'jaimin' | 'sih';
 }
 
 // NSDC response format
@@ -68,6 +68,20 @@ export interface JaiminCredentialResponse {
     duration_hours: number;
     completed_on: string;
     issued_by: string;
+}
+
+// SIH (Smart India Hackathon) response format
+export interface SIHCredentialResponse {
+    credential_id: string;
+    participant_email: string;
+    participant_name: string;
+    skill_title: string;
+    skill_code: string;
+    sector: string;
+    proficiency_level: number;
+    training_duration: number;
+    completion_date: string;
+    certifying_authority: string;
 }
 
 export interface PaginatedResponse<T> {

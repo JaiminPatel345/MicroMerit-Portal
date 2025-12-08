@@ -107,6 +107,7 @@ export class IssuerRepository {
     if (process.env.NSDC_ISSUER_ID) connectorIssuerIds.push(parseInt(process.env.NSDC_ISSUER_ID, 10));
     if (process.env.UDEMY_ISSUER_ID) connectorIssuerIds.push(parseInt(process.env.UDEMY_ISSUER_ID, 10));
     if (process.env.JAIMIN_ISSUER_ID) connectorIssuerIds.push(parseInt(process.env.JAIMIN_ISSUER_ID, 10));
+    if (process.env.SIH_ISSUER_ID) connectorIssuerIds.push(parseInt(process.env.SIH_ISSUER_ID, 10));
 
     const where: any = {};
     if (filters?.status) where.status = filters.status;

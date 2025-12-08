@@ -6,6 +6,7 @@ import { Connector, ProviderConfig } from './types';
 import { NSDCConnector } from './connectors/nsdc.connector';
 import { UdemyConnector } from './connectors/udemy.connector';
 import { JaiminConnector } from './connectors/jaimin.connector';
+import { SIHConnector } from './connectors/sih.connector';
 import { logger } from '../../utils/logger';
 
 /**
@@ -61,6 +62,21 @@ export function getProviderConfigs(): ProviderConfig[] {
         });
     }
 
+    // SIH (Smart India Hackathon) Provider
+    if (process.env.SIH_BASE_URL) {
+        configs.push({
+            id: 'sih',
+            name: 'SIH (Smart India Hackathon)',
+            issuer_id: parseInt(process.env.SIH_ISSUER_ID || '0'),
+            base_url: process.env.SIH_BASE_URL,
+            auth_type: 'api_key',
+            credentials: {
+                api_key: process.env.SIH_API_KEY || '',
+            },
+            enabled: process.env.SIH_ENABLED !== 'false',
+        });
+    }
+
     return configs;
 }
 
@@ -90,6 +106,8 @@ export function createConnectorFromConfig(config: ProviderConfig): Connector {
             return new UdemyConnector(config);
         case 'jaimin':
             return new JaiminConnector(config);
+        case 'sih':
+            return new SIHConnector(config);
         default:
             throw new Error(`Unknown provider: ${config.id}`);
     }

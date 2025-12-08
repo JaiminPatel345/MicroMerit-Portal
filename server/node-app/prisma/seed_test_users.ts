@@ -35,6 +35,12 @@ const PROVIDER_ISSUERS = [
         type: 'corporate',
         status: 'approved',
     },
+    {
+        name: 'SIH (Smart India Hackathon)',
+        email: 'sih@example.com',
+        type: 'government',
+        status: 'approved',
+    },
 ];
 
 async function main() {
@@ -97,6 +103,7 @@ async function main() {
     console.log(`NSDC_ISSUER_ID=${issuerIds['nsdc@example.com']}`);
     console.log(`UDEMY_ISSUER_ID=${issuerIds['udemy@example.com']}`);
     console.log(`JAIMIN_ISSUER_ID=${issuerIds['jaimin@example.com']}`);
+    console.log(`SIH_ISSUER_ID=${issuerIds['sih@example.com']}`);
 
     console.log('\n✅ Seeding complete!');
     console.log('\nTest user credentials:');
