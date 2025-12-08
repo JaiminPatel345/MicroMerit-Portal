@@ -85,6 +85,27 @@ const EmployerVerify = () => {
         return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     };
 
+    const handleFileUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const text = event.target.result;
+            // Split by newlines and commas to get potential IDs
+            const ids = text.split(/[\n,]+/)
+                .map(id => id.trim())
+                .filter(id => id); // Remove empty strings
+            
+            if (ids.length > 0) {
+                // Determine if we append or replace. Let's append if there's existing content.
+                const newContent = bulkIds ? `${bulkIds}\n${ids.join('\n')}` : ids.join('\n');
+                setBulkIds(newContent);
+            }
+        };
+        reader.readAsText(file);
+    };
+
     return (
         <div className="p-6 lg:p-10 max-w-6xl mx-auto space-y-8 min-h-screen bg-gray-50/50">
             <div>
@@ -252,7 +273,24 @@ const EmployerVerify = () => {
                 ) : (
                     <div className="max-w-3xl mx-auto pt-4">
                         <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Enter Credential IDs (one per line or comma-separated)</label>
+                            <div className="flex justify-between items-center mb-2">
+                                <label className="block text-sm font-medium text-gray-700">Enter Credential IDs (one per line or comma-separated)</label>
+                                <div className="relative">
+                                    <input
+                                        type="file"
+                                        accept=".csv,.txt"
+                                        onChange={handleFileUpload}
+                                        className="hidden"
+                                        id="csv-upload"
+                                    />
+                                    <label
+                                        htmlFor="csv-upload"
+                                        className="cursor-pointer text-sm text-blue-chill-600 hover:text-blue-chill-700 font-medium flex items-center gap-1"
+                                    >
+                                        <FileText size={16} /> Import from CSV
+                                    </label>
+                                </div>
+                            </div>
                             <textarea
                                 className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-chill-500 outline-none h-48 font-mono text-sm bg-gray-50"
                                 placeholder="CRED-12345&#10;CRED-67890&#10;CRED-54321"
