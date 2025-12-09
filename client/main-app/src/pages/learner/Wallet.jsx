@@ -18,6 +18,7 @@ const Wallet = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    const [sortBy, setSortBy] = useState('');
     const [durationFilter, setDurationFilter] = useState('all');
     const [tagFilter, setTagFilter] = useState([]);
     const [page, setPage] = useState(1);
@@ -79,7 +80,10 @@ const Wallet = () => {
                 page,
                 limit,
                 search: searchTerm,
+                limit,
+                search: searchTerm,
                 status: statusFilter,
+                sortBy: sortBy,
                 duration: isCustomDate ? undefined : durationFilter,
                 tag: tagFilter.join(','), // Send comma-separated string
                 startDate: apiStartDate,
@@ -95,7 +99,7 @@ const Wallet = () => {
 
         }, 300);
         return () => clearTimeout(timer);
-    }, [page, searchTerm, statusFilter, durationFilter, tagFilter, startDate, endDate, isCustomDate]);
+    }, [page, searchTerm, statusFilter, sortBy, durationFilter, tagFilter, startDate, endDate, isCustomDate]);
 
     // Popular tags for filtering
     const filterTags = [
@@ -135,20 +139,33 @@ const Wallet = () => {
 
                         {/* Dropdowns Group */}
                         <div className="flex flex-wrap gap-3">
-                            {/* Status Filter */}
-                            <div className="relative min-w-[140px]">
+                            {/* Status and Sort Filter */}
+                            <div className="relative min-w-[180px]">
                                 <select
                                     className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-2.5 px-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-blue-chill-500 text-sm font-medium transition-colors"
-                                    value={statusFilter}
+                                    value={sortBy ? `${sortBy}` : statusFilter || ""}
                                     onChange={(e) => {
-                                        setStatusFilter(e.target.value);
+                                        const val = e.target.value;
+                                        if (val === 'max_hr_desc' || val === 'min_hr_asc') {
+                                            setSortBy(val);
+                                            setStatusFilter('');
+                                        } else {
+                                            setStatusFilter(val);
+                                            setSortBy('');
+                                        }
                                         setPage(1);
                                     }}
                                 >
-                                    <option value="">All Status</option>
-                                    <option value="issued">Issued</option>
-                                    <option value="claimed">Claimed</option>
-                                    <option value="revoked">Revoked</option>
+                                    <option value="">All Status (Newest)</option>
+                                    <optgroup label="Filter by Status">
+                                        <option value="issued">Issued</option>
+                                        <option value="claimed">Claimed</option>
+                                        <option value="revoked">Revoked</option>
+                                    </optgroup>
+                                    <optgroup label="Sort by Duration">
+                                        <option value="max_hr_desc">Duration: High to Low</option>
+                                        <option value="min_hr_asc">Duration: Low to High</option>
+                                    </optgroup>
                                 </select>
                                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
                                     <ChevronDown size={16} />

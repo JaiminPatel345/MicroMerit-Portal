@@ -282,7 +282,8 @@ export class LearnerRepository {
     certificateTitle?: string,
     tags?: string[],
     startDate?: Date,
-    endDate?: Date
+    endDate?: Date,
+    sortBy?: string
   ) {
     const skip = (page - 1) * limit;
     const where: any = {
@@ -342,13 +343,20 @@ export class LearnerRepository {
       }
     }
 
+    let orderBy: any = { issued_at: 'desc' };
+    if (sortBy === 'max_hr_desc') {
+        orderBy = { max_hr: 'desc' };
+    } else if (sortBy === 'min_hr_asc') {
+        orderBy = { min_hr: 'asc' };
+    }
+
     const [total, credentials] = await Promise.all([
       prisma.credential.count({ where }),
       prisma.credential.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { issued_at: 'desc' },
+        orderBy,
         include: {
           issuer: {
             select: {

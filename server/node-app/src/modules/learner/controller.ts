@@ -247,6 +247,7 @@ export class LearnerController {
 
       const startDateParam = req.query.startDate as string;
       const endDateParam = req.query.endDate as string;
+      const sortBy = req.query.sortBy as string;
 
       if (duration) {
         const now = new Date();
@@ -263,7 +264,7 @@ export class LearnerController {
           endDate = new Date(endDateParam);
       }
 
-      const result = await learnerService.getMyCredentials(req.user.id, page, limit, search, status, tags, startDate, endDate);
+      const result = await learnerService.getMyCredentials(req.user.id, page, limit, search, status, tags, startDate, endDate, sortBy);
       sendSuccess(res, result, 'Credentials retrieved successfully');
     } catch (error: any) {
       logger.error('Get my credentials failed', { error: error.message });
