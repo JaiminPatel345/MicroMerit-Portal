@@ -238,8 +238,26 @@ export class LearnerController {
       const limit = parseInt(req.query.limit as string) || 10;
       const search = req.query.search as string;
       const status = req.query.status as string;
+      const sortBy = req.query.sortBy as string;
+      const duration = req.query.duration as string;
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
+      const tag = req.query.tag as string; // Expecting comma separated string
+      
+      const tagList = tag ? tag.split(',').map(t => t.trim()).filter(Boolean) : undefined;
 
-      const result = await learnerService.getMyCredentials(req.user.id, page, limit, search, status);
+      const result = await learnerService.getMyCredentials(
+        req.user.id, 
+        page, 
+        limit, 
+        search, 
+        status, 
+        sortBy,
+        duration,
+        startDate ? new Date(startDate) : undefined,
+        endDate ? new Date(endDate) : undefined,
+        tagList
+      );
       sendSuccess(res, result, 'Credentials retrieved successfully');
     } catch (error: any) {
       logger.error('Get my credentials failed', { error: error.message });

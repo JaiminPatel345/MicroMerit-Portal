@@ -279,7 +279,12 @@ export class LearnerRepository {
     search?: string,
     status?: string,
     issuerId?: number,
-    certificateTitle?: string
+    certificateTitle?: string,
+    sortBy?: string,
+    duration?: string,
+    startDate?: Date,
+    endDate?: Date,
+    tags?: string[]
   ) {
     const skip = (page - 1) * limit;
     const where: any = {
@@ -305,13 +310,60 @@ export class LearnerRepository {
       ];
     }
 
+    // Date Filters
+    if (startDate || endDate) {
+        where.issued_at = {};
+        if (startDate) where.issued_at.gte = startDate;
+        if (endDate) where.issued_at.lte = endDate;
+    } else if (duration && duration !== 'all' && duration !== 'custom') {
+        const months = parseInt(duration, 10);
+        if (!isNaN(months)) {
+             const date = new Date();
+             date.setMonth(date.getMonth() - months);
+             where.issued_at = { gte: date };
+        }
+    }
+
+    // Tag Filters (checking sector or occupation)
+    if (tags && tags.length > 0) {
+        if (!where.OR) where.OR = [];
+        // We want certificates where sector IN tags OR occupation IN tags
+        // But since where.OR is already used for search, we need to be careful.
+        // Prisma doesn't support nested ORs easily combined with AND at top level in older versions,
+        // but let's try strict AND grouping.
+        
+        const tagConditions = [
+             { sector: { in: tags, mode: 'insensitive' } },
+             { occupation: { in: tags, mode: 'insensitive' } }
+        ];
+
+        if (where.OR && where.OR.length > 0) {
+            // Both search AND tags must match
+             where.AND = [
+                 { OR: where.OR },
+                 { OR: tagConditions }
+             ];
+             delete where.OR; // Move existing OR to inside AND
+        } else {
+             where.OR = tagConditions;
+        }
+    }
+
+    // Sorting
+    let orderBy: any = { issued_at: 'desc' };
+    if (sortBy === 'max_hr_desc') {
+        orderBy = { max_hr: 'desc' };
+    } else if (sortBy === 'min_hr_asc') {
+        orderBy = { min_hr: 'asc' };
+    }
+
     const [total, credentials] = await Promise.all([
       prisma.credential.count({ where }),
       prisma.credential.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { issued_at: 'desc' },
+        orderBy,
         include: {
           issuer: {
             select: {

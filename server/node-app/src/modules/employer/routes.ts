@@ -65,6 +65,13 @@ resourceRouter.get(
     asyncHandler(employerController.searchCandidates.bind(employerController))
 );
 
+resourceRouter.post(
+    '/compare',
+    authenticateToken,
+    requireEmployer,
+    asyncHandler(employerController.compareCandidates.bind(employerController))
+);
+
 resourceRouter.get(
     '/dashboard',
     authenticateToken,

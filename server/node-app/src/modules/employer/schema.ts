@@ -39,11 +39,21 @@ export const bulkVerifySchema = z.object({
 // Candidate Search Schema
 export const candidateSearchSchema = z.object({
     keyword: z.string().optional(),
-    skills: z.union([z.string(), z.array(z.string())]).optional(), // Comma separated
+    skills: z.union([z.string(), z.array(z.string())]).transform(val =>
+        Array.isArray(val) ? val : val ? [val] : undefined
+    ).optional(),
     sector: z.string().optional(),
-    nsqf_level: z.string().or(z.number()).optional(),
+    nsqf_level: z.string().transform(val => parseInt(val, 10)).optional(),
     job_role: z.string().optional(),
-    issuer: z.string().optional(),
+    issuer: z.string().optional()
+});
+
+export const compareCandidatesSchema = z.object({
+    candidate_ids: z.array(z.number()),
+    context: z.object({
+        skills: z.array(z.string()).optional(),
+        sector: z.string().optional()
+    }).optional()
 });
 
 export const refreshTokenSchema = z.object({

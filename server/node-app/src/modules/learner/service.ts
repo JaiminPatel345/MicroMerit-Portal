@@ -651,9 +651,27 @@ export class LearnerService {
     page: number = 1,
     limit: number = 10,
     search?: string,
-    status?: string
+    status?: string,
+    sortBy?: string,
+    duration?: string,
+    startDate?: Date,
+    endDate?: Date,
+    tags?: string[]
   ) {
-    return learnerRepository.getLearnerCredentials(learnerId, page, limit, search, status);
+    return learnerRepository.getLearnerCredentials(
+      learnerId, 
+      page, 
+      limit, 
+      search, 
+      status, 
+      undefined, 
+      undefined,
+      sortBy,
+      duration,
+      startDate,
+      endDate,
+      tags
+    );
   }
   /**
    * Get public profile
