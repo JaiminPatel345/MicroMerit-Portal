@@ -2,6 +2,7 @@ import app from './app';
 import { logger } from './utils/logger';
 import { connectPrisma, disconnectPrisma } from './utils/prisma';
 import { externalCredentialSyncScheduler, externalCredentialSyncService } from './modules/external-credential-sync';
+import { blockchainWorker, blockchainQueue, shutdownBlockchainQueue } from './services/blockchainQueue';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
@@ -62,6 +63,14 @@ const gracefulShutdown = async (signal: string) => {
 
   // Stop the scheduler first
   externalCredentialSyncScheduler.stop();
+
+  // Shutdown blockchain queue and worker
+  try {
+    await shutdownBlockchainQueue();
+    logger.info('Blockchain queue shutdown complete');
+  } catch (error) {
+    logger.error('Error shutting down blockchain queue', { error });
+  }
 
   server.close(async () => {
     logger.info('HTTP server closed');

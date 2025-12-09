@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { logger } from '../utils/logger';
+import { queueBlockchainWrite, getBlockchainJobStatus } from './blockchainQueue';
 
 const BLOCKCHAIN_SERVICE_URL = process.env.BLOCKCHAIN_SERVICE_URL || 'http://localhost:3001';
 
@@ -11,7 +12,33 @@ export interface BlockchainWriteResult {
 }
 
 /**
- * Write credential data to blockchain via blockchain service
+ * Write credential data to blockchain via queue (recommended for production)
+ * This queues the blockchain write job and returns immediately
+ */
+export async function writeToBlockchainQueued(
+    credential_id: string,
+    data_hash: string,
+    ipfs_cid: string = ''
+): Promise<string> {
+    logger.info('Queueing blockchain write', {
+        credential_id,
+        has_ipfs: ipfs_cid && ipfs_cid.trim() !== '',
+    });
+
+    const jobId = await queueBlockchainWrite(credential_id, data_hash, ipfs_cid);
+
+    logger.info('Blockchain write queued successfully', {
+        credential_id,
+        jobId,
+    });
+
+    return jobId;
+}
+
+/**
+ * Write credential data to blockchain via blockchain service (synchronous)
+ * @deprecated Use writeToBlockchainQueued for better performance and reliability
+ * This method is kept for backward compatibility and testing
  */
 export async function writeToBlockchain(
     credential_id: string,
@@ -25,7 +52,7 @@ export async function writeToBlockchain(
         : ipfs_cid;
 
     try {
-        logger.info('Calling blockchain service - write', {
+        logger.info('Calling blockchain service - write (synchronous)', {
             credential_id,
             service_url: BLOCKCHAIN_SERVICE_URL,
             has_ipfs: ipfs_cid && ipfs_cid.trim() !== '',
@@ -66,6 +93,13 @@ export async function writeToBlockchain(
         // If blockchain service is down or fails, throw error
         throw new Error(`Blockchain service error: ${error.message}`);
     }
+}
+
+/**
+ * Get the status of a queued blockchain write job
+ */
+export async function getBlockchainWriteStatus(credential_id: string) {
+    return await getBlockchainJobStatus(credential_id);
 }
 
 /**
