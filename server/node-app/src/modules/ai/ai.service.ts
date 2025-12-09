@@ -27,6 +27,8 @@ export class AIService {
                     certificate_title: true,
                     metadata: true,
                     issued_at: true,
+                    sector: true,
+                    nsqf_level: true,
                     issuer: {
                         select: {
                             name: true
@@ -49,6 +51,8 @@ export class AIService {
                             certificate_title: cert.certificate_title,
                             issuer_name: cert.issuer.name,
                             issued_at: cert.issued_at,
+                            sector: cert.sector,
+                            nsqf_level: cert.nsqf_level,
                             metadata: {}
                         };
 

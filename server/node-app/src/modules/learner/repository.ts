@@ -302,45 +302,44 @@ export class LearnerRepository {
       where.certificate_title = { contains: certificateTitle, mode: 'insensitive' };
     }
 
+    // Combine all filters into an AND array to prevent overwriting
+    const andConditions: any[] = [];
+
+    // Date Filters (already partially handled, but ensure no conflict)
     if (startDate || endDate) {
-      where.issued_at = {};
-      if (startDate) where.issued_at.gte = startDate;
-      if (endDate) where.issued_at.lte = endDate;
+        const dateFilter: any = {};
+        if (startDate) dateFilter.gte = startDate;
+        if (endDate) dateFilter.lte = endDate;
+        andConditions.push({ issued_at: dateFilter });
     }
 
+    // Tag Filters (Interests/Sectors)
     if (tags && tags.length > 0) {
-      const tagConditions = tags.flatMap(t => [
-          { sector: { contains: t, mode: 'insensitive' } },
-          { tags: { array_contains: t } }
-      ]);
-      where.OR = tagConditions;
+        // Match ANY of the provided tags in either specific columns or the tags JSON array
+        const tagOrConditions = tags.flatMap(t => [
+            { sector: { contains: t, mode: 'insensitive' } },
+            { occupation: { contains: t, mode: 'insensitive' } },
+            // For JSON array 'tags', direct exact match inside array usually requires array_contains
+            // However, Prisma 'array_contains' is for string[] arrays (Postgres), JSON is 'equals' or 'path'
+            // If 'tags' is JSONB, we can use 'array_contains' if it's a simple list.
+            // Assuming simplified containment for now.
+             { tags: { array_contains: t } }
+        ]);
+        andConditions.push({ OR: tagOrConditions });
     }
 
+    // Search Filter
     if (search) {
-      // If we already have an OR for tag, we need to be careful not to overwrite it
-      // We can use AND to combine them
-      const searchCondition = {
-        OR: [
-            { certificate_title: { contains: search, mode: 'insensitive' } },
-            { issuer: { name: { contains: search, mode: 'insensitive' } } },
-        ]
-      };
+        andConditions.push({
+            OR: [
+                { certificate_title: { contains: search, mode: 'insensitive' } },
+                { issuer: { name: { contains: search, mode: 'insensitive' } } },
+            ]
+        });
+    }
 
-      if (where.OR) {
-        // If we have tags filter, we want (Tags Condition) AND (Search Condition)
-        // But Prisma 'where' structure with top-level OR and AND can be tricky.
-        // If we assign where.AND = [searchCondition], it preserves the top-level where.OR (Tags)
-        // effective query: (Tag1 OR Tag2) AND (Search1 OR Search2)
-        // This is usually what we want.
-        
-        // However, we must be careful if where.AND acts as an override or merge.
-        // In Prisma, 'AND' is an array. We should safely append if it exists (though here it doesn't).
-        where.AND = [
-            searchCondition
-        ];
-      } else {
-        where.OR = searchCondition.OR;
-      }
+    if (andConditions.length > 0) {
+        where.AND = andConditions;
     }
 
     let orderBy: any = { issued_at: 'desc' };

@@ -2,6 +2,8 @@ import logging
 import json
 from typing import List, Dict, Any
 from app.services.groq_service import groq_service
+from app.services.stackability_service import stackability_service
+from app.models.schemas import StackabilityRequest
 
 logger = logging.getLogger(__name__)
 
@@ -306,7 +308,81 @@ Focus on Indian job market and NSQF framework.
             Focus on the Indian job market and be specific.
             """
             
-            return self._call_llm(prompt)
+            # 1. Generate core roadmap using LLM
+            roadmap_response = self._call_llm(prompt)
+            
+            # 2. Enhance with Stackable Pathways using dedicated service
+            try:
+                # Find the most relevant credential (highest level or recent)
+                target_cert = None
+                max_level = 0
+                
+                for cert in certificates:
+                    meta = cert.get('metadata', {}) or {}
+                    
+                    # Try to get level from top-level or metadata
+                    level = cert.get('nsqf_level')
+                    if not level:
+                        level = meta.get('nos_data', {}).get('nsqf_level')
+                    if not level:
+                        level = meta.get('ai_extracted', {}).get('nsqf', {}).get('level')
+                        
+                    # Try to get QP code
+                    qp_code = meta.get('nos_data', {}).get('qp_code')
+                    
+                    if level:
+                        try:
+                            lvl_int = int(float(str(level).split()[0])) # Handle "Level 4" or "4.0" strings
+                            if lvl_int > max_level:
+                                max_level = lvl_int
+                                target_cert = cert
+                        except:
+                            pass
+                            
+                    elif qp_code and not target_cert:
+                        target_cert = cert
+                
+                if target_cert:
+                    meta = target_cert.get('metadata', {}) or {}
+                    nos_data = meta.get('nos_data', {})
+                    ai_data = meta.get('ai_extracted', {})
+                    
+                    # Get sector from top-level or metadata
+                    sector = target_cert.get('sector')
+                    if not sector:
+                        sector = meta.get('sector')
+                    if not sector:
+                         sector = ai_data.get('nsqf_alignment', {}).get('job_role')
+
+                    req = StackabilityRequest(
+                        code=nos_data.get('qp_code'),
+                        level=max_level if max_level > 0 else 1,
+                        sector_name=sector,
+                        skills=skills
+                    )
+                    
+                    stack_result = stackability_service.generate_stackable_path(req)
+                    
+                    if stack_result and 'pathways' in stack_result:
+                        # Map to frontend expected format
+                        roadmap_response['stackable_pathways'] = []
+                        for path in stack_result['pathways']:
+                             roadmap_response['stackable_pathways'].append({
+                                 "pathway_name": path.get('pathway_title'),
+                                 "description": path.get('description', 'Progression pathway based on your current skills.'),
+                                 "progress_percentage": path.get('progress_percentage', 0),
+                                 "next_credential": path.get('next_credential', 'Next Level Certification'),
+                                 "estimated_duration": path.get('estimated_duration', '3-6 months'),
+                                 "required_skills": [
+                                     {"skill": s.get('name'), "status": s.get('status')} 
+                                     for s in path.get('skills', [])
+                                 ]
+                             })
+            except Exception as e:
+                logger.error(f"Failed to append stackable pathways: {e}", exc_info=True)
+                pass
+
+            return roadmap_response
             
         except Exception as e:
             logger.error(f"Roadmap generation error: {e}")

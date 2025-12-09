@@ -41,6 +41,9 @@ class StackabilityService:
               "pathways": [
                 {{
                   "pathway_title": "Title (e.g. Full Stack Developer - NSQF Level 5)",
+                  "description": "Brief description of this career progression...",
+                  "next_credential": "Name of the next logical certification",
+                  "estimated_duration": "Estimated time to complete (e.g. 3-6 months)",
                   "progress_percentage": 50,
                   "skills": [
                     {{ "name": "Skill A", "credits_earned": 2, "credits_total": 2, "status": "completed" }},

@@ -77,7 +77,7 @@ const Roadmap = () => {
         );
     }
 
-    const { current_status, future_plans, conditional_paths, job_opportunities } = roadmapData;
+    const { current_status, future_plans, conditional_paths, job_opportunities, stackable_pathways } = roadmapData;
 
     return (
         <div className="min-h-screen bg-gray-50 p-6 lg:p-10 font-sans">
@@ -239,6 +239,81 @@ const Roadmap = () => {
                         )}
                     </div>
                 </div>
+
+                {/* Stackable Pathways (New Section) */}
+                {stackable_pathways && stackable_pathways.length > 0 && (
+                    <div className="pt-8 border-t border-gray-200">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 bg-indigo-100 text-indigo-700 rounded-lg">
+                                <TrendingUp size={20} />
+                            </div>
+                            <h2 className="text-xl font-bold text-gray-900">Stackable Pathways</h2>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {stackable_pathways.map((path, idx) => (
+                                <motion.div
+                                    key={idx}
+                                    whileHover={{ y: -4 }}
+                                    className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden group"
+                                >
+                                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                                        <TrendingUp size={100} />
+                                    </div>
+
+                                    <div className="flex justify-between items-start mb-4 relative z-10">
+                                        <div>
+                                            <h3 className="font-bold text-lg text-gray-900 mb-1">{path.pathway_name}</h3>
+                                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                                                <Clock size={14} />
+                                                <span>{path.estimated_duration}</span>
+                                            </div>
+                                        </div>
+                                        <div className="bg-indigo-50 text-indigo-700 text-xs font-bold px-2 py-1 rounded-full">
+                                            {path.progress_percentage}% Complete
+                                        </div>
+                                    </div>
+
+                                    <p className="text-gray-600 mb-4 text-sm relative z-10">{path.description}</p>
+
+                                    {/* Progress Bar */}
+                                    <div className="w-full bg-gray-100 rounded-full h-2 mb-4 relative z-10">
+                                        <div 
+                                            className="bg-indigo-500 h-2 rounded-full transition-all duration-1000"
+                                            style={{ width: `${path.progress_percentage}%` }}
+                                        ></div>
+                                    </div>
+
+                                    {/* Skills Breakdown */}
+                                    {path.required_skills && (
+                                        <div className="space-y-2 relative z-10">
+                                            <p className="text-xs font-semibold text-gray-500 uppercase">Required Skills</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {path.required_skills.map((skill, sIdx) => (
+                                                    <div 
+                                                        key={sIdx} 
+                                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs border ${
+                                                            skill.status === 'completed' 
+                                                            ? 'bg-green-50 border-green-100 text-green-700' 
+                                                            : 'bg-white border-gray-200 text-gray-600'
+                                                        }`}
+                                                    >
+                                                        {skill.status === 'completed' && <CheckCircle size={10} />}
+                                                        {skill.skill}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="mt-4 pt-4 border-t border-gray-100 relative z-10 flex items-center justify-between">
+                                        <span className="text-xs font-medium text-gray-500">Next Step:</span>
+                                        <span className="text-sm font-bold text-indigo-600">{path.next_credential}</span>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Future Opportunities (Full Width Bottom) */}
                 {job_opportunities && job_opportunities.length > 0 && (
