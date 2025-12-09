@@ -97,7 +97,17 @@ const EmployerSignup = () => {
                 setStep(2);
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'Registration failed');
+            // Extract user-friendly error message
+            let errorMessage = 'Registration failed. Please try again.';
+
+            if (err.response?.data?.message) {
+                // Use the backend's user-friendly message
+                errorMessage = err.response.data.message;
+            } else if (err.message) {
+                errorMessage = err.message;
+            }
+
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -115,18 +125,30 @@ const EmployerSignup = () => {
         setError('');
         try {
             const res = await employerApi.verifyEmail({ email: formData.email, otp: otpValue });
-            
-            // Assuming response now contains tokens for auto-login
-            if (res.data.tokens) {
-                 localStorage.setItem('accessToken', res.data.tokens.accessToken);
-                 localStorage.setItem('refreshToken', res.data.tokens.refreshToken);
-                 localStorage.setItem('role', 'employer'); // Just in case layout needs it
+
+            // Extract tokens from the response
+            if (res.data.success) {
+                const tokens = res.data.data?.tokens || res.data.tokens;
+
+                if (tokens) {
+                    localStorage.setItem('accessToken', tokens.accessToken);
+                    localStorage.setItem('refreshToken', tokens.refreshToken);
+                    localStorage.setItem('role', 'employer');
+                }
+
+                setStep(3); // Go to Mock PAN Verification Loader
+            }
+        } catch (err) {
+            // Extract user-friendly error message
+            let errorMessage = 'Verification failed. Please try again.';
+
+            if (err.response?.data?.message) {
+                errorMessage = err.response.data.message;
+            } else if (err.message) {
+                errorMessage = err.message;
             }
 
-            setStep(3); // Go to Mock PAN Verification Loader
-
-        } catch (err) {
-            setError(err.response?.data?.message || 'Verification failed');
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -138,8 +160,8 @@ const EmployerSignup = () => {
                 <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-lg border border-gray-100 text-center">
                     <div className="mb-6 flex justify-center">
                         <div className="w-16 h-16 bg-blue-chill-50 rounded-full flex items-center justify-center relative">
-                             <div className="absolute inset-0 rounded-full border-4 border-blue-chill-100 border-t-blue-chill-600 animate-spin"></div>
-                             <Check size={28} className="text-blue-chill-600 opacity-50" />
+                            <div className="absolute inset-0 rounded-full border-4 border-blue-chill-100 border-t-blue-chill-600 animate-spin"></div>
+                            <Check size={28} className="text-blue-chill-600 opacity-50" />
                         </div>
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Verifying PAN Details</h2>
@@ -178,7 +200,18 @@ const EmployerSignup = () => {
                         </p>
                     </div>
 
-                    {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 text-center">{error}</div>}
+
+                    {error && (
+                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-6 flex items-start gap-3">
+                            <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                            </svg>
+                            <div className="flex-1">
+                                <p className="font-medium">{error}</p>
+                            </div>
+                        </div>
+                    )}
+
 
                     <form onSubmit={handleVerifyOtp} className="space-y-6">
                         <div className="flex justify-center space-x-3 mb-6">
@@ -225,15 +258,22 @@ const EmployerSignup = () => {
                     <Link to="/" className="inline-block mb-4">
                         <img src={logo_1} alt="MicroMerit" className="h-20 w-auto mx-auto" />
                     </Link>
-                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Partner Registration</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Employee Registration</h1>
                     <p className="text-gray-500 mt-2 font-medium">Join as an Employer to verify credentials</p>
                 </div>
 
+
                 {error && (
-                    <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 text-center">
-                        {error}
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-6 flex items-start gap-3">
+                        <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                        <div className="flex-1">
+                            <p className="font-medium">{error}</p>
+                        </div>
                     </div>
                 )}
+
 
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="md:col-span-2">
@@ -257,32 +297,32 @@ const EmployerSignup = () => {
                     </div>
 
                     <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                            <input name="password" type="password" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-chill-500 outline-none" onChange={handleChange} />
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input name="password" type="password" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-chill-500 outline-none" onChange={handleChange} />
                     </div>
 
                     <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Company Address</label>
-                            <textarea name="company_address" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-chill-500 outline-none" rows="2" onChange={handleChange} />
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Company Address</label>
+                        <textarea name="company_address" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-chill-500 outline-none" rows="2" onChange={handleChange} />
                     </div>
 
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Corporate PAN Card Number</label>
-                         <div className="relative">
-                            <input 
-                                name="pan_number" 
-                                required 
+                        <div className="relative">
+                            <input
+                                name="pan_number"
+                                required
                                 maxLength={10}
-                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-chill-500 outline-none uppercase font-mono tracking-wider" 
+                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-chill-500 outline-none uppercase font-mono tracking-wider"
                                 placeholder="ABCDE1234F"
                                 value={formData.pan_number || ''}
                                 onChange={handleChange}
                             />
-                             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                                 <span className="text-xs font-bold border border-gray-400 rounded px-1">PAN</span>
                             </div>
                         </div>
-                         <p className="text-xs text-gray-500 mt-1">Found on your valid Permanent Account Number card.</p>
+                        <p className="text-xs text-gray-500 mt-1">Found on your valid Permanent Account Number card.</p>
                     </div>
 
                     <div className="md:col-span-2 mt-4">

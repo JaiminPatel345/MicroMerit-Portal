@@ -7,7 +7,8 @@ import { logger } from '../utils/logger';
 const writeSchema = z.object({
     credential_id: z.string().uuid(),
     data_hash: z.string().min(1),
-    ipfs_cid: z.string().min(1, { message: 'IPFS CID is required and cannot be empty' }),
+    // Allow placeholder value for external credentials without IPFS
+    ipfs_cid: z.string().min(1),
 });
 
 const verifySchema = z.object({

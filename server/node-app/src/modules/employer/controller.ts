@@ -22,7 +22,39 @@ export class EmployerController {
                 data: { email: result.email, id: result.id }
             });
         } catch (error: any) {
-            res.status(400).json({ success: false, message: error.message });
+            logger.error('Employer registration failed', { error: error.message, stack: error.stack });
+
+            // Handle different types of errors
+            let userMessage = 'Registration failed. Please try again.';
+            let statusCode = 400;
+
+            // Prisma errors
+            if (error.code === 'P2002') {
+                // Unique constraint violation
+                const field = error.meta?.target?.[0] || 'field';
+                if (field === 'email') {
+                    userMessage = 'An account with this email already exists.';
+                } else if (field === 'pan_number') {
+                    userMessage = 'This PAN number is already registered.';
+                } else {
+                    userMessage = `This ${field} is already registered.`;
+                }
+            } else if (error.code?.startsWith('P')) {
+                // Other Prisma errors
+                userMessage = 'Database error occurred. Please contact support if this persists.';
+                statusCode = 500;
+            } else if (error.name === 'ZodError') {
+                // Validation errors
+                userMessage = error.errors?.[0]?.message || 'Invalid input data.';
+            } else if (error.message) {
+                // Custom application errors
+                userMessage = error.message;
+            }
+
+            res.status(statusCode).json({
+                success: false,
+                message: userMessage
+            });
         }
     }
 
@@ -35,10 +67,34 @@ export class EmployerController {
 
             res.status(200).json({
                 success: true,
-                message: result.message
+                message: result.message,
+                data: {
+                    tokens: result.tokens,
+                    employer: result.employer
+                }
             });
         } catch (error: any) {
-            res.status(400).json({ success: false, message: error.message });
+            logger.error('Employer email verification failed', { error: error.message });
+
+            let userMessage = 'Verification failed. Please try again.';
+            let statusCode = 400;
+
+            if (error.message.includes('not found')) {
+                userMessage = 'Account not found. Please register first.';
+            } else if (error.message.includes('already verified')) {
+                userMessage = 'This account is already verified. Please login.';
+            } else if (error.message.includes('Invalid or expired')) {
+                userMessage = 'OTP has expired. Please request a new one.';
+            } else if (error.message.includes('Invalid OTP')) {
+                userMessage = 'Incorrect OTP. Please check and try again.';
+            } else if (error.message) {
+                userMessage = error.message;
+            }
+
+            res.status(statusCode).json({
+                success: false,
+                message: userMessage
+            });
         }
     }
 
@@ -90,15 +146,15 @@ export class EmployerController {
             if (!req.user) return sendError(res, 'Unauthorized');
             console.log('Verify Request Body:', req.body);
             const { credential_id, tx_hash, ipfs_cid } = req.body;
-            
+
             if (!credential_id && !tx_hash && !ipfs_cid) {
                 return sendError(res, 'Credential ID, Transaction Hash, or IPFS CID is required', 'Validation Error', 400);
             }
 
-            const verificationInput = { 
-                credential_id, 
-                tx_hash, 
-                ipfs_cid 
+            const verificationInput = {
+                credential_id,
+                tx_hash,
+                ipfs_cid
             };
 
             const result = await employerService.verifyCredential(req.user.id, verificationInput);

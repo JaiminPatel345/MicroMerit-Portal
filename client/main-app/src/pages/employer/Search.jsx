@@ -262,7 +262,11 @@ const EmployerSearch = () => {
                                 </div>
                             ))
                             : results.map((profile) => (
-                                <div key={profile.id} className="bg-white border boundary-transparent hover:border-blue-100 rounded-2xl p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col h-full">
+                                <Link
+                                    key={profile.id}
+                                    to={`/p/${profile.id}`}
+                                    className="bg-white border border-transparent hover:border-blue-100 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col h-full cursor-pointer"
+                                >
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="flex items-center gap-4">
                                             <div className="relative">
@@ -308,14 +312,11 @@ const EmployerSearch = () => {
                                             <span className="w-2 h-2 rounded-full bg-blue-400"></span>
                                             <span className="w-2 h-2 rounded-full bg-purple-400"></span>
                                         </div>
-                                        <Link
-                                            to={`/p/${profile.id}`}
-                                            className="text-sm font-semibold text-gray-900 hover:text-blue-600 flex items-center gap-2 group/link"
-                                        >
-                                            View Profile <Briefcase size={16} className="text-gray-400 group-hover/link:text-blue-600 transition-colors" />
-                                        </Link>
+                                        <span className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 flex items-center gap-2 transition-colors">
+                                            View Profile <Briefcase size={16} className="text-gray-400 group-hover:text-blue-600 transition-colors" />
+                                        </span>
                                     </div>
-                                </div>
+                                </Link>
                             ))}
 
                         {/* Empty State placeholder for initial load */}
