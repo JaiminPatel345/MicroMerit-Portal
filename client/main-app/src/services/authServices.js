@@ -62,6 +62,9 @@ export const employerApi = {
   extractIdFromDoc: (formData) => api.post('/employer/extract-id', formData, { 
     headers: { 'Content-Type': 'multipart/form-data' } 
   }),
+  bulkVerifyUpload: (formData) => api.post('/employer/bulk-verify-upload', formData, { 
+    headers: { 'Content-Type': 'multipart/form-data' } 
+  }),
 };
 
 

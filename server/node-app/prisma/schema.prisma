@@ -135,8 +135,8 @@ model Credential {
   @@index([metadata(ops: JsonbPathOps)], type: Gin)
   @@index([certificate_title])
   @@index([certificate_code])
-  @@index([sector])
   @@index([nsqf_level])
+  @@index([sector])
 }
 
 model SkillKnowledgeBase {

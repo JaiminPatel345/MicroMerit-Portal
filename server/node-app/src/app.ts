@@ -33,9 +33,15 @@ app.use(generalRateLimiter);
 // Apply signed URL middleware to automatically convert S3 URLs in responses
 app.use(addSignedUrlsMiddleware);
 
+// Request logging middleware
+app.use((req, res, next) => {
+  logger.info(`Incoming request: ${req.method} ${req.url}`);
+  next();
+});
+
 // CORS configuration
 app.use((req, res, next) => {
-  const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173', 'http://localhost:5174'];
+  const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173', 'http://localhost:5174', 'http://192.168.71.7:5173' ];
   const origin = req.headers.origin;
 
   if (origin && allowedOrigins.includes(origin)) {
