@@ -17,10 +17,13 @@ import { logger } from '../../utils/logger';
 import { aiService } from '../ai/ai.service';
 
 export class ExternalCredentialSyncService {
-    private possibleMaxHour: number;
+    private minHourLen: number;
+    private maxHourLen: number;
 
     constructor() {
-        this.possibleMaxHour = parseInt(process.env.POSSIBLE_MAX_HOUR || '1000');
+        // Support new env vars (MIN_HOUR_LEN, MAX_HOUR_LEN) with fallback to old POSSIBLE_MAX_HOUR
+        this.minHourLen = parseFloat(process.env.MIN_HOUR_LEN || '7.5');
+        this.maxHourLen = parseFloat(process.env.MAX_HOUR_LEN || process.env.POSSIBLE_MAX_HOUR || '30');
     }
 
     /**
@@ -149,10 +152,28 @@ export class ExternalCredentialSyncService {
         // Normalize to canonical format
         const canonical = connector.normalize(rawData);
 
-        // Check if hours exceeds threshold
-        if (canonical.max_hr && canonical.max_hr > this.possibleMaxHour) {
-            logger.debug(`Skipping credential with max_hr=${canonical.max_hr} > ${this.possibleMaxHour}`);
-            throw new Error('Hours exceed threshold');
+        // Validate course hours are within acceptable range
+        // Check max_hr if available, otherwise check min_hr
+        const courseHours = canonical.max_hr || canonical.min_hr;
+
+        if (courseHours !== null && courseHours !== undefined) {
+            if (courseHours > this.maxHourLen) {
+                logger.debug(`Skipping credential with hours=${courseHours} > MAX_HOUR_LEN=${this.maxHourLen}`, {
+                    credential_title: canonical.certificate_title,
+                    max_hr: canonical.max_hr,
+                    min_hr: canonical.min_hr
+                });
+                throw new Error(`Course hours (${courseHours}) exceed maximum allowed (${this.maxHourLen})`);
+            }
+
+            if (courseHours < this.minHourLen) {
+                logger.debug(`Skipping credential with hours=${courseHours} < MIN_HOUR_LEN=${this.minHourLen}`, {
+                    credential_title: canonical.certificate_title,
+                    max_hr: canonical.max_hr,
+                    min_hr: canonical.min_hr
+                });
+                throw new Error(`Course hours (${courseHours}) below minimum required (${this.minHourLen})`);
+            }
         }
 
         // Check for duplicates

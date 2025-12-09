@@ -16,6 +16,7 @@ class EmployerChatbotService:
         learner_credentials: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """
+        Be Froendly and polite , you can introduce yourself and your name is MicroBuddy.
         Answer employer's question about learner's skills based on certificates
         
         Args:
@@ -25,6 +26,8 @@ class EmployerChatbotService:
             
         Returns:
             Dictionary with answer, relevant skills, and confidence
+
+        Always be polite and friendly.
         """
         try:
             if not learner_credentials:
@@ -37,6 +40,8 @@ class EmployerChatbotService:
             
             # Build context from all credentials
             skills_context = self._build_skills_context(learner_credentials)
+            
+            logger.info(f"Built skills context with {len(learner_credentials)} credentials")
             
             prompt = self._build_chatbot_prompt(question, skills_context, learner_email)
             
@@ -51,16 +56,31 @@ class EmployerChatbotService:
                 }
             ]
             
-            response = groq_service.chat_completion(messages, temperature=0.3)
+            logger.info(f"Calling Groq service for employer chat...")
+            response = groq_service.chat_completion(messages, temperature=0.3, use_json_mode=True)
             
             if response:
-                result = json.loads(response)
-                return result
+                logger.info(f"Groq response received: {response[:200]}...")
+                try:
+                    result = json.loads(response)
+                    logger.info(f"Successfully parsed JSON response")
+                    return result
+                except json.JSONDecodeError as e:
+                    logger.error(f"JSON decode error: {e}")
+                    logger.error(f"Response was: {response}")
+                    # Try to extract a meaningful answer from the response
+                    return {
+                        "answer": response if isinstance(response, str) else "Unable to parse AI response.",
+                        "relevant_skills": [],
+                        "certificates_referenced": [],
+                        "confidence": 0.5
+                    }
             else:
+                logger.warning("No response from Groq service")
                 return self._default_response(question)
                 
         except Exception as e:
-            logger.error(f"Employer chatbot error: {e}")
+            logger.error(f"Employer chatbot error: {e}", exc_info=True)
             return self._default_response(question)
     
     def _build_skills_context(self, credentials: List[Dict[str, Any]]) -> str:

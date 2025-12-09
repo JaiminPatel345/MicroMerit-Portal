@@ -23,9 +23,9 @@ jest.mock('../services/blockchainClient', () => ({
     writeToBlockchainQueued: jest.fn().mockResolvedValue('job-id-123'),
 }));
 jest.mock('../utils/filebase', () => ({
-    uploadToFilebase: jest.fn().mockResolvedValue({ 
-        cid: 'QmMockIPFSCid123', 
-        gateway_url: 'https://ipfs.filebase.io/ipfs/QmMockIPFSCid123' 
+    uploadToFilebase: jest.fn().mockResolvedValue({
+        cid: 'QmMockIPFSCid123',
+        gateway_url: 'https://ipfs.filebase.io/ipfs/QmMockIPFSCid123'
     })
 }));
 jest.mock('axios');
@@ -47,6 +47,8 @@ const externalCredentialSyncService = new ExternalCredentialSyncService();
 describe('External Credential Sync Service', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        process.env.MIN_HOUR_LEN = '7.5';
+        process.env.MAX_HOUR_LEN = '30';
         process.env.POSSIBLE_MAX_HOUR = '1000';
 
         // Default valid issuer mock
@@ -196,22 +198,50 @@ describe('External Credential Sync Service', () => {
             expect(credentialIssuanceRepository.createCredential).not.toHaveBeenCalled();
         });
 
-        it('should skip processing if max_hr exceeds POSSIBLE_MAX_HOUR', async () => {
-            process.env.POSSIBLE_MAX_HOUR = '1000';
-            const unrealisticCredential = { ...mockCanonical, max_hr: 2000 };
+        it('should skip processing if max_hr exceeds MAX_HOUR_LEN', async () => {
+            process.env.MAX_HOUR_LEN = '30';
+            // Recreate service instance to pick up new env var
+            const testService = new ExternalCredentialSyncService();
+            const tooLongCredential = { ...mockCanonical, max_hr: 50 };
 
             const mockConnector = {
                 issuerId,
-                normalize: jest.fn().mockReturnValue(unrealisticCredential),
+                normalize: jest.fn().mockReturnValue(tooLongCredential),
                 verify: jest.fn().mockResolvedValue({ ok: true }),
                 providerId
             };
 
-            await expect(externalCredentialSyncService['processCredential'](mockConnector as any, {}))
-                .rejects.toThrow('Hours exceed threshold');
+            await expect(testService['processCredential'](mockConnector as any, {}))
+                .rejects.toThrow('exceed maximum allowed');
 
             expect(credentialIssuanceRepository.createCredential).not.toHaveBeenCalled();
-            expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('Skipping credential with max_hr=2000'));
+            expect(logger.debug).toHaveBeenCalledWith(
+                expect.stringContaining('Skipping credential with hours=50'),
+                expect.objectContaining({ credential_title: 'Test Certificate' })
+            );
+        });
+
+        it('should skip processing if hours are below MIN_HOUR_LEN', async () => {
+            process.env.MIN_HOUR_LEN = '7.5';
+            // Recreate service instance to pick up new env var
+            const testService = new ExternalCredentialSyncService();
+            const tooShortCredential = { ...mockCanonical, max_hr: 5, min_hr: 5 };
+
+            const mockConnector = {
+                issuerId,
+                normalize: jest.fn().mockReturnValue(tooShortCredential),
+                verify: jest.fn().mockResolvedValue({ ok: true }),
+                providerId
+            };
+
+            await expect(testService['processCredential'](mockConnector as any, {}))
+                .rejects.toThrow('below minimum required');
+
+            expect(credentialIssuanceRepository.createCredential).not.toHaveBeenCalled();
+            expect(logger.debug).toHaveBeenCalledWith(
+                expect.stringContaining('Skipping credential with hours=5'),
+                expect.objectContaining({ credential_title: 'Test Certificate' })
+            );
         });
     });
 });

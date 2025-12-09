@@ -206,7 +206,7 @@ export class EmployerController {
 
             // Import dynamically or assume aiService is globally available if imported at top
             const { aiService } = await import('../ai/ai.service');
-            
+
             const result = await aiService.extractCredentialId(req.file.buffer, req.file.originalname);
             console.log('Extraction Result:', result);
             sendSuccess(res, result, 'Extraction Complete');
@@ -312,6 +312,29 @@ export class EmployerController {
         } catch (error: any) {
             logger.error('Bulk Verify Upload Error:', error);
             return sendError(res, error.message, 'Bulk Verification Failed', 500);
+        }
+    }
+
+    async chatWithLearner(req: Request, res: Response) {
+        try {
+            if (!req.user) return sendError(res, 'Unauthorized');
+
+            const { learner_email, question } = req.body;
+
+            if (!learner_email || !question) {
+                return sendError(res, 'Learner email and question are required', 'Validation Error', 400);
+            }
+
+            const result = await employerService.chatWithLearnerProfile(
+                req.user.id,
+                learner_email,
+                question
+            );
+
+            sendSuccess(res, result, 'Chat Response Generated');
+        } catch (error: any) {
+            logger.error('Chat with learner error:', error);
+            sendError(res, error.message, 'Chat Failed', 500);
         }
     }
 }

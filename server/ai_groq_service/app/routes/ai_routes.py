@@ -116,7 +116,7 @@ async def get_recommendations(request: RecommendationRequest):
 
 
 @router.post("/employer-chat", response_model=EmployerChatResponse)
-async def employer_chat(request: EmployerChatRequest):
+async def employer_chat(request: dict):
     """
     Employer chatbot endpoint for querying learner skills
     
@@ -132,16 +132,21 @@ async def employer_chat(request: EmployerChatRequest):
     4. Provide confidence score
     """
     try:
-        # Note: Backend will fetch credentials and send with request
-        # For now, return placeholder - backend integration needed
-        logger.info(f"Employer chat request for {request.learner_email}: {request.question}")
+        learner_email = request.get("learner_email", "")
+        question = request.get("question", "")
+        credentials = request.get("credentials", [])
         
-        return {
-            "answer": "Backend integration needed. The employer chatbot will analyze learner certificates to answer your question.",
-            "relevant_skills": [],
-            "certificates_referenced": [],
-            "confidence": 0.0
-        }
+        logger.info(f"Employer chat request for {learner_email}: {question}")
+        logger.info(f"Received {len(credentials)} credentials for analysis")
+        
+        # Use the employer chatbot service to generate response
+        response = employer_chatbot_service.answer_employer_question(
+            learner_email=learner_email,
+            question=question,
+            learner_credentials=credentials
+        )
+        
+        return response
         
     except Exception as e:
         logger.error(f"Employer chat error: {e}")

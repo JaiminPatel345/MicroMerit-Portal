@@ -6,7 +6,8 @@ import {
     Search,
     TrendingUp,
     Clock,
-    CheckCircle
+    CheckCircle,
+    MessageCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -122,11 +123,15 @@ const EmployerDashboard = () => {
                     </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-blue-chill-900 to-blue-chill-800 p-6 rounded-xl shadow-lg text-white">
-                    <h3 className="font-semibold text-lg mb-2">Need Bulk Verification?</h3>
-                    <p className="text-blue-chill-100 text-sm mb-6">Upload a CSV file containing multiple credential IDs to verify them all at once. Save time and get a comprehensive report.</p>
-                    <Link to="/employer/verify" className="px-4 py-2 bg-white text-blue-chill-900 rounded-lg hover:bg-blue-50 transition-colors font-medium inline-block">
-                        Go to Bulk Verify
+                <div className="bg-gradient-to-br from-purple-600 to-indigo-700 p-6 rounded-xl shadow-lg text-white">
+                    <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                        <MessageCircle size={20} /> AI Assistant Available
+                    </h3>
+                    <p className="text-purple-100 text-sm mb-6">
+                        When viewing a learner's profile, use our AI chatbot to instantly query their credentials, skills, and qualifications. Ask natural language questions and get AI-powered insights!
+                    </p>
+                    <Link to="/employer/search" className="px-4 py-2 bg-white text-purple-700 rounded-lg hover:bg-purple-50 transition-colors font-medium inline-block">
+                        Find Candidates
                     </Link>
                 </div>
             </div>

@@ -4,12 +4,20 @@ import { useSelector } from "react-redux";
 import { learnerApi } from "../../services/authServices";
 import { motion } from "framer-motion";
 import { Pencil, Mail, MapPin, Copy, ShieldCheck, Check } from "lucide-react";
+import LearnerChatbot from "../../components/LearnerChatbot";
+
+
 
 export default function PublicProfile() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const learner = useSelector(state => state.authLearner.learner);
   const isAuthenticated = useSelector(state => state.authLearner.isAuthenticated);
+
+  // Check if viewing user is an employer
+  const employer = useSelector(state => state.authEmployer?.employer);
+  const isEmployerViewing = useSelector(state => state.authEmployer?.isAuthenticated);
+
   const [profile, setProfile] = useState(learner);
   const [certificates, setCertificates] = useState([]);
   const [stats, setStats] = useState(null);
@@ -20,6 +28,7 @@ export default function PublicProfile() {
   const [availableIssuers, setAvailableIssuers] = useState([]);
 
   const isOwner = isAuthenticated && learner?.id?.toString() === slug?.toString();
+
 
   const fetchProfile = async () => {
     try {
@@ -222,6 +231,14 @@ export default function PublicProfile() {
           </>
         )}
       </div>
+
+      {/* AI Chatbot for Employers */}
+      {isEmployerViewing && !isOwner && profile?.email && (
+        <LearnerChatbot
+          learnerEmail={profile.email}
+          learnerName={profile.name}
+        />
+      )}
 
     </div>
   );

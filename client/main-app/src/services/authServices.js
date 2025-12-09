@@ -81,12 +81,13 @@ export const employerApi = {
   bulkVerify: (payload) => api.post('/employer/verify/bulk', payload),
   searchCandidates: (params) => api.get('/employer/search', { params }),
   verifyEmail: (payload) => api.post('/auth/employer/verify-email', payload),
-  extractIdFromDoc: (formData) => api.post('/employer/extract-id', formData, { 
-    headers: { 'Content-Type': 'multipart/form-data' } 
+  extractIdFromDoc: (formData) => api.post('/employer/extract-id', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
   }),
-  bulkVerifyUpload: (formData) => api.post('/employer/bulk-verify-upload', formData, { 
-    headers: { 'Content-Type': 'multipart/form-data' } 
+  bulkVerifyUpload: (formData) => api.post('/employer/bulk-verify-upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  chatWithLearner: (payload) => api.post('/employer/chat', payload),
 };
 
 

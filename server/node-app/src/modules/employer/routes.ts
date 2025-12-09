@@ -93,4 +93,11 @@ resourceRouter.post(
     asyncHandler(employerController.bulkVerifyUpload.bind(employerController))
 );
 
+resourceRouter.post(
+    '/chat',
+    authenticateToken,
+    requireEmployer,
+    asyncHandler(employerController.chatWithLearner.bind(employerController))
+);
+
 export { authRouter as employerAuthRoutes, resourceRouter as employerResourceRoutes };

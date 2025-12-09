@@ -5,6 +5,10 @@ import { EmployerRegistrationInput, EmployerLoginInput, UpdateEmployerProfileInp
 import { credentialVerificationService } from '../credential-verification/service';
 import { logger } from '../../utils/logger';
 import { uploadImageBufferToS3 } from '../../utils/imageUpload'; // Assuming we reuse this for docs/logos
+import { aiService } from '../ai/ai.service';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export class EmployerService {
     async register(data: EmployerRegistrationInput) {
@@ -193,9 +197,9 @@ export class EmployerService {
         const results = await Promise.all(credentialIds.map(async (id) => {
             try {
                 const res = await credentialVerificationService.verifyCredential({ credential_id: id });
-                return { 
-                    id, 
-                    status: res.status, 
+                return {
+                    id,
+                    status: res.status,
                     valid: res.status === 'VALID',
                     credential: res.credential,
                     verified_fields: res.verified_fields,
@@ -226,6 +230,73 @@ export class EmployerService {
 
     async getDashboardStats(employerId: number) {
         return employerRepository.getStats(employerId);
+    }
+
+    /**
+     * Chat with AI about a learner's profile
+     * Fetches all learner credentials and uses AI to answer employer questions
+     */
+    async chatWithLearnerProfile(employerId: number, learnerEmail: string, question: string) {
+        try {
+            // Fetch all credentials for the learner
+            const credentials = await prisma.credential.findMany({
+                where: {
+                    learner_email: learnerEmail,
+                    status: 'issued'
+                },
+                include: {
+                    issuer: {
+                        select: {
+                            name: true,
+                            logo_url: true
+                        }
+                    }
+                }
+            });
+
+            if (!credentials || credentials.length === 0) {
+                return {
+                    answer: `No verified credentials found for ${learnerEmail}. Unable to assess skills and qualifications.`,
+                    relevant_skills: [],
+                    certificates_referenced: [],
+                    confidence: 0.0
+                };
+            }
+
+            // Transform credentials to AI-friendly format
+            const credentialsData = credentials.map(cred => {
+                const metadata = cred.metadata as any;
+                return {
+                    certificate_title: cred.certificate_title,
+                    issuer_name: cred.issuer.name,
+                    issued_at: cred.issued_at,
+                    metadata: {
+                        ai_extracted: metadata?.ai_extracted || {},
+                        issuer_name: cred.issuer.name
+                    }
+                };
+            });
+
+            // Call AI service with credentials
+            const response = await aiService.chatWithLearnerProfile(
+                learnerEmail,
+                question,
+                credentialsData
+            );
+
+            // Log the chat activity
+            await employerRepository.logActivity(employerId, 'ai_chat', undefined, {
+                learner_email: learnerEmail,
+                question: question.substring(0, 100), // Log first 100 chars
+                credentials_count: credentials.length
+            });
+
+            return response;
+
+        } catch (error: any) {
+            logger.error('Chat with learner profile error:', error);
+            throw new Error('Failed to process chat request: ' + error.message);
+        }
     }
 
     private sanitize(employer: any) {

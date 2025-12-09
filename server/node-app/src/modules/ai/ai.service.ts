@@ -38,7 +38,7 @@ export class AIService {
             // Send certificate data to AI service
             // Only send relevant data, exclude hashes, blockchain info, etc.
             const response = await axios.post(
-                `${this.aiServiceUrl}/recommendations`,
+                `${this.aiServiceUrl}/ai/recommendations`,
                 {
                     learner_email: learnerEmail,
                     certificates: certificates.map(cert => {
@@ -129,7 +129,7 @@ export class AIService {
             }
 
             const response = await axios.post(
-                `${this.aiServiceUrl}/process-ocr`,
+                `${this.aiServiceUrl}/ai/process-ocr`,
                 formData,
                 {
                     headers: formData.getHeaders(),
@@ -156,7 +156,7 @@ export class AIService {
      */
     async healthCheck(): Promise<any> {
         try {
-            const response = await axios.get(`${this.aiServiceUrl}/health`, {
+            const response = await axios.get(`${this.aiServiceUrl}/ai/health`, {
                 timeout: 5000
             });
             return response.data;
@@ -174,7 +174,7 @@ export class AIService {
     async generateRoadmap(certificates: any[], learnerProfile: any): Promise<any> {
         try {
             const response = await axios.post(
-                `${this.aiServiceUrl}/generate-roadmap`,
+                `${this.aiServiceUrl}/ai/generate-roadmap`,
                 {
                     certificates,
                     learner_profile: learnerProfile
@@ -197,7 +197,7 @@ export class AIService {
     async generateSkillProfile(certificates: any[]): Promise<any> {
         try {
             const response = await axios.post(
-                `${this.aiServiceUrl}/generate-skill-profile`,
+                `${this.aiServiceUrl}/ai/generate-skill-profile`,
                 {
                     certificates
                 },
@@ -222,7 +222,7 @@ export class AIService {
     async enrichCredentialMetadata(certificateTitle: string, nosData: any): Promise<any> {
         try {
             const response = await axios.post(
-                `${this.aiServiceUrl}/enrich-credential`,
+                `${this.aiServiceUrl}/ai/enrich-credential`,
                 {
                     certificate_title: certificateTitle,
                     nos_data: nosData
@@ -264,7 +264,7 @@ export class AIService {
             formData.append('file', fileBuffer, filename);
 
             const response = await axios.post(
-                `${this.aiServiceUrl}/extract-certificate-id`,
+                `${this.aiServiceUrl}/ai/extract-certificate-id`,
                 formData,
                 {
                     headers: formData.getHeaders(),
@@ -303,7 +303,7 @@ export class AIService {
             formData.append('file', fileBuffer, filename);
 
             const response = await axios.post(
-                `${this.aiServiceUrl}/extract-bulk-ids`,
+                `${this.aiServiceUrl}/ai/extract-bulk-ids`,
                 formData,
                 {
                     headers: formData.getHeaders(),
@@ -338,7 +338,7 @@ export class AIService {
     }): Promise<any> {
         try {
             const response = await axios.post(
-                `${this.aiServiceUrl}/stackability`,
+                `${this.aiServiceUrl}/ai/stackability`,
                 stackabilityRequest,
                 {
                     headers: { 'Content-Type': 'application/json' },
@@ -375,6 +375,50 @@ export class AIService {
             console.error('AI Service - Pathway Generation Error:', error.response?.data || error.message);
             // Return null on error
             return null;
+        }
+    }
+
+    /**
+     * Chat with AI about a learner's credentials
+     * Used by employers to ask questions about learner skills and qualifications
+     */
+    async chatWithLearnerProfile(learnerEmail: string, question: string, credentials: any[]): Promise<any> {
+        try {
+            console.log(`[AI Service] Chat request for ${learnerEmail}`);
+            console.log(`[AI Service] Question: ${question}`);
+            console.log(`[AI Service] Credentials count: ${credentials.length}`);
+
+            const response = await axios.post(
+                `${this.aiServiceUrl}/ai/employer-chat`,
+                {
+                    learner_email: learnerEmail,
+                    question,
+                    credentials
+                },
+                {
+                    headers: { 'Content-Type': 'application/json' },
+                    timeout: 30000
+                }
+            );
+
+            console.log(`[AI Service] Chat response received successfully`);
+            return response.data;
+        } catch (error: any) {
+            console.error('[AI Service] Employer Chat Error:', {
+                message: error.message,
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                url: `${this.aiServiceUrl}/ai/employer-chat`
+            });
+
+            // Return a default response on error
+            return {
+                answer: 'I am unable to process your question at this time. Please try again later.',
+                relevant_skills: [],
+                certificates_referenced: [],
+                confidence: 0.0
+            };
         }
     }
 }
