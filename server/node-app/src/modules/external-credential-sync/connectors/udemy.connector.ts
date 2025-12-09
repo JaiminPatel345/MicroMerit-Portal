@@ -42,8 +42,8 @@ export class UdemyConnector extends BaseConnector {
             const response = await this.httpClient.get('/api/v1/certificates', {
                 params: {
                     completed_after: since,
-                    page,
-                    page_size: 20,
+                    page: page,
+                    page_size: 1, // Fetch only 1 credential per sync
                 },
             });
 

@@ -79,6 +79,7 @@ export interface JaiminCredentialResponse {
     issued_by: string[]; // changed to array
     role: string; // occupation
     tags: string[];
+    certificate_url: string; // URL to download PDF certificate
 }
 
 // SIH (Smart India Hackathon) response format
@@ -93,6 +94,7 @@ export interface SIHCredentialResponse {
     training_duration: number;
     completion_date: string;
     certifying_authority: string;
+    certificate_url: string; // URL to download PDF certificate
 }
 
 export interface PaginatedResponse<T> {

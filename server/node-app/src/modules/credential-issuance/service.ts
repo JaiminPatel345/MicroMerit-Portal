@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { credentialIssuanceRepository } from './repository';
 import { skillKnowledgeBaseRepository } from '../skill-knowledge-base/repository';
 import { uploadToFilebase } from '../../utils/filebase';
-import { writeToBlockchain } from '../../services/blockchainClient';
+import { writeToBlockchainQueued } from '../../services/blockchainClient';
 import { buildCanonicalJson, computeDataHash } from '../../utils/canonicalJson';
 import { NotFoundError, ValidationError } from '../../utils/errors';
 import { logger } from '../../utils/logger';
@@ -194,19 +194,17 @@ export class CredentialIssuanceService {
             pre_verified: !!ai_extracted_data
         });
 
-        // Step 9: Process blockchain write asynchronously (don't wait for it)
-        this.processBlockchainAsync(
-            credential_id,
-            data_hash,
-            ipfs_cid,
-            network,
-            contract_address
-        ).catch(error => {
-            logger.error('Async blockchain processing failed', {
+        // Step 9: Queue blockchain write (processed by BullMQ worker)
+        try {
+            await writeToBlockchainQueued(credential_id, data_hash, ipfs_cid);
+            logger.info('Blockchain write queued successfully', { credential_id });
+        } catch (error: any) {
+            logger.error('Failed to queue blockchain write', {
                 credential_id,
                 error: error.message
             });
-        });
+            // Continue even if queueing fails - status remains 'pending'
+        }
 
         // Step 10: Process AI tasks asynchronously
         if (!ai_extracted_data) {
@@ -305,7 +303,8 @@ export class CredentialIssuanceService {
 
     /**
      * Process blockchain write asynchronously and update credential when complete
-     * This runs in background and doesn't block the response to user
+     * @deprecated This method is no longer used - blockchain writes are handled by BullMQ queue
+     * The queue worker in blockchainQueue.ts handles writing to blockchain and updating credentials
      */
     private async processBlockchainAsync(
         credential_id: string,
@@ -314,82 +313,19 @@ export class CredentialIssuanceService {
         network: string,
         contract_address: string
     ): Promise<void> {
+        // This method is deprecated - BullMQ queue handles blockchain writes now
+        logger.warn('processBlockchainAsync called but is deprecated - use queue instead', {
+            credential_id
+        });
+        
         try {
-            logger.info('Starting async blockchain processing', { credential_id });
-
-            // Write to blockchain
-            const blockchainResult = await writeToBlockchain(credential_id, data_hash, ipfs_cid);
-            const { tx_hash } = blockchainResult;
-
-            logger.info('Blockchain write complete (async)', {
-                credential_id,
-                tx_hash,
-                network,
-                contract_address
-            });
-
-            // Build updated canonical JSON with tx_hash
-            const canonicalJson = buildCanonicalJson({
-                credential_id,
-                learner_id: null, // Will be fetched from database if needed
-                learner_email: '', // Will be fetched from database if needed
-                issuer_id: 0, // Will be fetched from database if needed
-                certificate_title: '', // Not needed for blockchain update
-                issued_at: new Date(), // Not needed for blockchain update
-                network,
-                contract_address,
-                ipfs_cid,
-                pdf_url: '', // Will be in database already
-                tx_hash,
-                data_hash,
-            });
-
-            // Update credential with tx_hash and blockchain status
-            await credentialIssuanceRepository.updateCredential(credential_id, {
-                tx_hash,
-                metadata: {
-                    blockchain: canonicalJson.blockchain,
-                    blockchain_status: 'confirmed'
-                }
-            });
-
-            logger.info('Credential updated with blockchain info', {
-                credential_id,
-                tx_hash,
-                blockchain_status: 'confirmed',
-                canonical_blockchain: canonicalJson.blockchain
-            });
-
-            // Verify the update
-            const updated = await credentialIssuanceRepository.findCredentialById(credential_id);
-            logger.info('Verified credential update', {
-                credential_id,
-                tx_hash_in_db: updated?.tx_hash,
-                blockchain_status_in_metadata: (updated?.metadata as any)?.blockchain_status,
-                metadata_keys: updated?.metadata ? Object.keys(updated.metadata as any) : []
-            });
-
+            await writeToBlockchainQueued(credential_id, data_hash, ipfs_cid);
         } catch (error: any) {
-            logger.error('Async blockchain processing failed', {
+            logger.error('Failed to queue blockchain write in deprecated method', {
                 credential_id,
-                error: error.message,
-                stack: error.stack
+                error: error.message
             });
-
-            // Mark as failed in database
-            try {
-                await credentialIssuanceRepository.updateCredential(credential_id, {
-                    metadata: {
-                        blockchain_status: 'failed',
-                        blockchain_error: error.message
-                    }
-                });
-            } catch (updateError: any) {
-                logger.error('Failed to update blockchain status to failed', {
-                    credential_id,
-                    error: updateError.message
-                });
-            }
+            throw error;
         }
     }
 

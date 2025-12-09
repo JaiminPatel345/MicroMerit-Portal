@@ -3,6 +3,7 @@ import { credentialIssuanceService } from './service';
 import { issueCredentialSchema, aiExtractedDataSchema, verificationStatusSchema, nsqfVerificationSchema } from './schema';
 import { sendSuccess, sendError } from '../../utils/response';
 import { logger } from '../../utils/logger';
+import { getBlockchainWriteStatus } from '../../services/blockchainClient';
 
 /**
  * Controller for credential issuance operations
@@ -370,12 +371,23 @@ export class CredentialIssuanceController {
             const metadata = credential.metadata as any;
             const blockchain_status = metadata?.blockchain_status || 'unknown';
 
+            // Also check queue status for pending jobs
+            let queueStatus = null;
+            if (blockchain_status === 'pending' && !credential.tx_hash) {
+                try {
+                    queueStatus = await getBlockchainWriteStatus(credential_id);
+                } catch (error) {
+                    logger.warn('Failed to get queue status', { credential_id, error });
+                }
+            }
+
             sendSuccess(res, {
                 credential_id: credential.credential_id,
                 tx_hash: credential.tx_hash,
                 blockchain_status,
                 network: metadata?.blockchain?.network,
                 contract_address: metadata?.blockchain?.contract_address,
+                queue_status: queueStatus,
             }, 'Blockchain status retrieved successfully');
         } catch (error: any) {
             next(error);

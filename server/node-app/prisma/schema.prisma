@@ -48,19 +48,19 @@ model issuer_api_key {
 }
 
 model learner {
-  id                     Int          @id @default(autoincrement())
-  email                  String?      @unique
-  phone                  String?      @unique
+  id                     Int                  @id @default(autoincrement())
+  name                   String?
+  email                  String?              @unique
+  phone                  String?              @unique
   hashed_password        String?
   profileFolder          String?
   profileUrl             String?
   external_digilocker_id String?
-  status                 String       @default("active")
+  status                 String               @default("active")
   other_emails           String[]
-  created_at             DateTime     @default(now())
   dob                    DateTime?
   gender                 String?
-  name                   String?
+  created_at             DateTime             @default(now())
   credentials            Credential[]
   roadmap                LearnerRoadmap?
   skillProfile           LearnerSkillProfile?
@@ -78,7 +78,6 @@ model verification_session {
   session_type String
   learner_id   Int?
   issuer_id    Int?
-  employer_id  Int?
   email        String?
   phone        String?
   contact_type String?
@@ -88,6 +87,7 @@ model verification_session {
   metadata     Json?
   expires_at   DateTime
   created_at   DateTime  @default(now())
+  employer_id  Int?
 
   @@index([session_type])
   @@index([learner_id])
@@ -112,19 +112,16 @@ model Credential {
   data_hash         String
   metadata          Json
   status            String   @default("issued")
-  
-  // External credential fields
-  certificate_code  String?  // NPR code (e.g., "SSC/Q2601")
-  sector            String?  // Sector name (e.g., "Information Technology")
-  nsqf_level        Int?     // NSQF Level (1-10)
-  max_hr            Int?     // Maximum hours
-  min_hr            Int?     // Minimum hours
-  awarding_bodies   Json?    // Array of awarding body names
-  occupation        String?  // Occupation/job role
-  tags              Json?    // Tags array (e.g., ["digilocker", "nsdc"])
-  
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  awarding_bodies   Json?
+  certificate_code  String?
+  max_hr            Int?
+  min_hr            Int?
+  nsqf_level        Int?
+  occupation        String?
+  sector            String?
+  tags              Json?
   issuer            issuer   @relation(fields: [issuer_id], references: [id])
   learner           learner? @relation(fields: [learner_id], references: [id])
 
@@ -135,27 +132,26 @@ model Credential {
   @@index([ipfs_cid])
   @@index([tx_hash])
   @@index([status])
-
-  @@index([metadata(ops: JsonbPathOps)], type: Gin) // GIN index for JSON queries (skills/keywords search)
+  @@index([metadata(ops: JsonbPathOps)], type: Gin)
   @@index([certificate_title])
   @@index([certificate_code])
-  @@index([sector])
   @@index([nsqf_level])
+  @@index([sector])
 }
 
 model SkillKnowledgeBase {
-  id              Int      @id @default(autoincrement())
-  qp_code         String?
-  nos_code        String?
-  job_role        String?
-  nsqf_level      Int?
-  sector          String?
-  title           String?
-  description     String?
-  skill_text      String?
-  keywords        String[]
-  source_type     String   // "QP" | "NOS" | "Skill"
-  created_at      DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  qp_code     String?
+  nos_code    String?
+  job_role    String?
+  nsqf_level  Int?
+  sector      String?
+  title       String?
+  description String?
+  skill_text  String?
+  keywords    String[]
+  source_type String
+  created_at  DateTime @default(now())
 
   @@index([qp_code])
   @@index([nos_code])
@@ -181,31 +177,30 @@ model LearnerSkillProfile {
 }
 
 model employer {
-  id                Int       @id @default(autoincrement())
-  company_name      String
-  company_website   String?
-  company_address   String?
-  industry_type     String?
-  company_size      String?
-  contact_person    String?
-  email             String      @unique
-  phone             String?
-  password_hash     String
-  pan_number      String?      @unique      // Added PAN number for verification (Optional for migration compatibility)
-  status            String      @default("active") // pending | approved | rejected - Changed default to active
-  approved_at       DateTime?
-  rejected_reason   String?
-  created_at        DateTime    @default(now())
-  activity_logs     employer_activity_log[]
+  id              Int                     @id @default(autoincrement())
+  company_name    String
+  company_website String?
+  company_address String?
+  industry_type   String?
+  company_size    String?
+  contact_person  String?
+  email           String                  @unique
+  phone           String?
+  password_hash   String
+  status          String                  @default("active")
+  approved_at     DateTime?
+  rejected_reason String?
+  created_at      DateTime                @default(now())
+  pan_number      String?                 @unique
+  activity_logs   employer_activity_log[]
 }
 
 model employer_activity_log {
-  id             Int       @id @default(autoincrement())
-  employer_id    Int
-  credential_id  String?
-  activity_type  String     // "verify" | "bulk_verify" | "search"
-  details        Json?
-  created_at     DateTime   @default(now())
-
-  employer       employer @relation(fields: [employer_id], references: [id])
+  id            Int      @id @default(autoincrement())
+  employer_id   Int
+  credential_id String?
+  activity_type String
+  details       Json?
+  created_at    DateTime @default(now())
+  employer      employer @relation(fields: [employer_id], references: [id])
 }

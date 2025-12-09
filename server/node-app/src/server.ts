@@ -1,9 +1,10 @@
 import app from './app';
 import { logger } from './utils/logger';
 import { connectPrisma, disconnectPrisma } from './utils/prisma';
-import { externalCredentialSyncScheduler } from './modules/external-credential-sync';
+import { externalCredentialSyncScheduler, externalCredentialSyncService } from './modules/external-credential-sync';
+import { blockchainWorker, blockchainQueue, shutdownBlockchainQueue } from './services/blockchainQueue';
 
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT || '3000', 10);
 
 let server: any;
 
@@ -20,7 +21,7 @@ const startServer = async () => {
     }
 
     // Start the server only if database connection is successful
-    server = app.listen(PORT, () => {
+    server = app.listen(PORT, '0.0.0.0', () => {
       logger.info(`Server is running on port ${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`Health check: http://localhost:${PORT}/health`);
@@ -29,6 +30,22 @@ const startServer = async () => {
       if (process.env.ENABLE_EXTERNAL_SYNC === 'true') {
         externalCredentialSyncScheduler.start();
         logger.info('External credential sync scheduler started');
+        
+        // Perform initial sync on startup to fetch 1 credential from each provider
+        logger.info('Performing initial sync on startup...');
+        setTimeout(async () => {
+          try {
+            const results = await externalCredentialSyncService.syncAll();
+            logger.info('Initial sync completed', { 
+              results: results.map(r => ({ 
+                provider: r.provider_id, 
+                created: r.credentials_created 
+              }))
+            });
+          } catch (error: any) {
+            logger.error('Initial sync failed', { error: error.message });
+          }
+        }, 5000); // Wait 5 seconds after server starts
       }
     });
   } catch (error) {
@@ -46,6 +63,14 @@ const gracefulShutdown = async (signal: string) => {
 
   // Stop the scheduler first
   externalCredentialSyncScheduler.stop();
+
+  // Shutdown blockchain queue and worker
+  try {
+    await shutdownBlockchainQueue();
+    logger.info('Blockchain queue shutdown complete');
+  } catch (error) {
+    logger.error('Error shutting down blockchain queue', { error });
+  }
 
   server.close(async () => {
     logger.info('HTTP server closed');

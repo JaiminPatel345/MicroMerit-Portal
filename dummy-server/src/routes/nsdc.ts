@@ -6,6 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { getCredentialsSince, getCredentialsByProvider } from '../data/seed.js';
 import { NSDCCredentialResponse, PaginatedResponse } from '../types/index.js';
+import { generatePDFFromCredential } from '../utils/pdf-generator.js';
 
 const router = Router();
 
@@ -88,7 +89,7 @@ router.get('/credentials', verifyToken, (req: Request, res: Response) => {
         occupation: c.occupation,
         tags: c.tags,
         issue_date: c.issued_at.toISOString(),
-        certificate_url: `https://nsdc.example.com/cert/${c.id}`,
+        certificate_url: `http://localhost:4000/nsdc/credentials/${c.id}/pdf`,
     }));
 
     const response: PaginatedResponse<NSDCCredentialResponse> = {
@@ -134,10 +135,44 @@ router.get('/credentials/:id', verifyToken, (req: Request, res: Response) => {
         occupation: credential.occupation,
         tags: credential.tags,
         issue_date: credential.issued_at.toISOString(),
-        certificate_url: `https://nsdc.example.com/cert/${credential.id}`,
+        certificate_url: `http://localhost:4000/nsdc/credentials/${credential.id}/pdf`,
     };
 
     res.json(nsdcCredential);
+});
+
+/**
+ * GET /nsdc/credentials/:id/pdf
+ * Download certificate PDF
+ */
+router.get('/credentials/:id/pdf', async (req: Request, res: Response) => {
+    const credentials = getCredentialsByProvider('nsdc');
+    const credential = credentials.find(c => c.id === req.params.id);
+
+    if (!credential) {
+        res.status(404).json({ error: 'Credential not found' });
+        return;
+    }
+
+    try {
+        // Generate PDF
+        const pdfBuffer = await generatePDFFromCredential(credential);
+
+        // Set headers for PDF download
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader(
+            'Content-Disposition',
+            `inline; filename="certificate-${credential.id}.pdf"`
+        );
+
+        res.send(pdfBuffer);
+    } catch (error) {
+        console.error('PDF generation error:', error);
+        res.status(500).json({
+            error: 'pdf_generation_failed',
+            message: 'Failed to generate PDF certificate'
+        });
+    }
 });
 
 export default router;

@@ -38,7 +38,7 @@ export class NSDCConnector extends BaseConnector {
                 params: {
                     since,
                     page,
-                    per_page: 20,
+                    per_page: 1, // Fetch only 1 credential per sync
                 },
             });
 

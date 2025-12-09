@@ -1,4 +1,4 @@
-import { externalCredentialSyncService } from '../modules/external-credential-sync/service';
+import { ExternalCredentialSyncService } from '../modules/external-credential-sync/service';
 import { externalCredentialSyncRepository } from '../modules/external-credential-sync/repository';
 import { credentialIssuanceRepository } from '../modules/credential-issuance/repository';
 import { logger } from '../utils/logger';
@@ -19,8 +19,30 @@ jest.mock('../modules/external-credential-sync/repository');
 jest.mock('../modules/credential-issuance/repository');
 jest.mock('../utils/logger');
 jest.mock('../services/blockchainClient', () => ({
-    writeToBlockchain: jest.fn().mockResolvedValue({ tx_hash: '0xMockTxHash', status: 'confirmed' })
+    writeToBlockchain: jest.fn().mockResolvedValue({ tx_hash: '0xMockTxHash', status: 'confirmed' }),
+    writeToBlockchainQueued: jest.fn().mockResolvedValue('job-id-123'),
 }));
+jest.mock('../utils/filebase', () => ({
+    uploadToFilebase: jest.fn().mockResolvedValue({ 
+        cid: 'QmMockIPFSCid123', 
+        gateway_url: 'https://ipfs.filebase.io/ipfs/QmMockIPFSCid123' 
+    })
+}));
+jest.mock('axios');
+jest.mock('../modules/external-credential-sync/connector.factory', () => ({
+    getProviderConfig: jest.fn().mockReturnValue({
+        id: 'test',
+        name: 'Test Provider',
+        credentials: {
+            api_key: 'test-api-key'
+        }
+    })
+}));
+
+import axios from 'axios';
+
+// Create service instance for testing
+const externalCredentialSyncService = new ExternalCredentialSyncService();
 
 describe('External Credential Sync Service', () => {
     beforeEach(() => {
@@ -33,6 +55,13 @@ describe('External Credential Sync Service', () => {
         // Default duplicate checks
         (externalCredentialSyncRepository.credentialExistsByExternalId as jest.Mock).mockResolvedValue(false);
         (externalCredentialSyncRepository.credentialExists as jest.Mock).mockResolvedValue(false);
+
+        // Mock axios for PDF download
+        (axios.get as jest.Mock).mockResolvedValue({
+            status: 200,
+            headers: { 'content-type': 'application/pdf', 'content-length': '1234' },
+            data: Buffer.from('mock pdf content')
+        });
     });
 
     describe('processCredential', () => {
@@ -50,6 +79,7 @@ describe('External Credential Sync Service', () => {
             occupation: 'Developer',
             tags: ['test', 'mock'],
             description: 'Test Description',
+            certificate_url: 'https://example.com/certificates/test.pdf',
             external_id: 'ext-123',
             raw_data: {}
         };
