@@ -254,6 +254,45 @@ export class AIService {
             return {};
         }
     }
+
+    /**
+     * Extract Credential ID from a PDF using the AI Service OCR
+     */
+    async extractCredentialId(fileBuffer: Buffer, filename: string): Promise<{ credential_id: string | null, found: boolean, status?: string, confidence?: number, message?: string }> {
+        try {
+            const formData = new FormData();
+            formData.append('file', fileBuffer, filename);
+
+            const response = await axios.post(
+                `${this.aiServiceUrl}/extract-certificate-id`,
+                formData,
+                {
+                    headers: formData.getHeaders(),
+                    timeout: 20000 // 20s timeout for OCR
+                }
+            );
+            
+            // Map new python response to old service interface + new fields
+            const data = response.data;
+            return {
+                credential_id: data.certificate_number,
+                found: data.status === 'found' || data.status === 'needs_review',
+                status: data.status,
+                confidence: data.confidence,
+                message: data.status === 'not_found' ? 'No credential ID found' : undefined
+            };
+
+        } catch (error: any) {
+            console.error('AI Service - Extract ID Error:', error.message);
+            if (error.response) {
+                 console.error('AI Service Detailed Error:', JSON.stringify(error.response.data));
+            }
+            throw {
+                status: error.response?.status || 500,
+                message: error.response?.data?.detail || 'Failed to extract credential ID'
+            };
+        }
+    }
 }
 
 export const aiService = new AIService();

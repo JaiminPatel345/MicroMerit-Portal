@@ -231,3 +231,140 @@ async def append_qr(
         raise HTTPException(status_code=500, detail=f"Failed to process PDF: {str(e)}")
 
 
+
+@router.post("/extract-certificate-id")
+async def extract_certificate_id(
+    file: UploadFile = File(...),
+    issuer_name: str = Form(None),
+):
+    """
+    Minimal endpoint: extract only the certificate number from a certificate image/PDF.
+    Returns JSON:
+    {
+      "certificate_number": "ACTNAADO2008500-001904" | null,
+      "confidence": 93.0,
+      "status": "found" | "needs_review" | "not_found",
+      "candidate": { "value": "...", "evidence": "...", "score": 72.3 }  # optional
+    }
+    """
+    try:
+        file_bytes = await file.read()
+        import hashlib, re, json
+        file_hash = hashlib.sha256(file_bytes).hexdigest()
+
+        # 1) Extract full OCR text (uses your OCR pipeline which handles pdfs/images)
+        extracted_text = ocr_service.extract_text(file_bytes, file.filename or "uploaded_file")
+
+        if not extracted_text or len(extracted_text.strip()) < 5:
+            return {"certificate_number": None, "confidence": 0.0, "status": "not_found", "candidate": None}
+
+        # 2) Patterns and keywords (tune these if you need)
+        CERT_KEYWORDS = [
+            "certificate no", "certificate number", "cert no", "cert no.", "cert.", "certificate id",
+            "credential id", "registration no", "regn no", "ref no", "serial no", "certificate #", "cert #:"
+        ]
+
+        CERT_PATTERNS = [
+            re.compile(r'\b[A-Z]{2,8}\-?\d{3,12}\b', re.I),     # ABC-12345 or ACTNAADO2008500-001904
+            re.compile(r'\b[A-Z0-9]{6,30}\b', re.I),           # fallback alnum 6-30
+            re.compile(r'\b\d{4}\/\d{2,8}\b'),                 # 2021/12345
+            re.compile(r'\b\d{6,12}\b')                        # 6-12 digits
+        ]
+
+        def _keyword_nearby(context: str) -> bool:
+            lc = context.lower()
+            return any(kw in lc for kw in CERT_KEYWORDS)
+
+        # 3) Find all matches and score them
+        candidates = []
+        for pat in CERT_PATTERNS:
+            for m in pat.finditer(extracted_text):
+                val = m.group(0).strip()
+                start, end = max(0, m.start() - 80), min(len(extracted_text), m.end() + 80)
+                context = extracted_text[start:end]
+                keyword_flag = _keyword_nearby(context)
+                base_score = 60.0
+                if keyword_flag:
+                    base_score += 30.0
+                if re.search(r'[A-Za-z]', val) and re.search(r'\d', val):
+                    base_score += 5.0
+                if '-' in val or '/' in val:
+                    base_score += 3.0
+                score = min(100.0, base_score)
+                candidates.append({
+                    "value": val,
+                    "normalized": re.sub(r'[^A-Za-z0-9\-\/]', '', val),
+                    "evidence": context,
+                    "start": m.start(),
+                    "end": m.end(),
+                    "score": score
+                })
+
+        # 4) Also check if skill_extraction AI already found a certificate number
+        try:
+            ai_meta = skill_extraction_service.extract_skills_and_metadata(
+                extracted_text=extracted_text,
+                certificate_title="",
+                issuer_name=issuer_name or "",
+                nsqf_context=[]
+            ).get("certificate_metadata", {}) or {}
+            for key in ("certificate_number", "certificate_no", "cert_no", "credential_id", "reference_no"):
+                if key in ai_meta and ai_meta.get(key):
+                    val = str(ai_meta.get(key)).strip()
+                    if not any(c["normalized"].upper() == re.sub(r'[^A-Za-z0-9\-\/]', '', val).upper() for c in candidates):
+                        candidates.append({
+                            "value": val,
+                            "normalized": re.sub(r'[^A-Za-z0-9\-\/]', '', val),
+                            "evidence": f"found_in_ai_meta.{key}",
+                            "start": None,
+                            "end": None,
+                            "score": 85.0
+                        })
+        except Exception:
+            # AI step optional — ignore failures (keeps endpoint robust)
+            pass
+
+        # 5) Deduplicate + pick best
+        uniq = {}
+        for c in candidates:
+            k = (c['normalized'] or c['value']).upper()
+            if not k:
+                continue
+            if k not in uniq or c['score'] > uniq[k]['score']:
+                uniq[k] = c
+        candidate_list = sorted(uniq.values(), key=lambda x: x['score'], reverse=True)
+
+        if not candidate_list:
+            return {"certificate_number": None, "confidence": 0.0, "status": "not_found", "candidate": None}
+
+        top = candidate_list[0]
+        AUTO_ACCEPT = 80.0
+        REVIEW_THRESHOLD = 60.0
+
+        if top['score'] >= AUTO_ACCEPT:
+            return {
+                "certificate_number": top['value'],
+                "confidence": top['score'],
+                "status": "found",
+                "candidate": top
+            }
+        elif top['score'] >= REVIEW_THRESHOLD:
+            return {
+                "certificate_number": top['value'],
+                "confidence": top['score'],
+                "status": "needs_review",
+                "candidate": top
+            }
+        else:
+            return {
+                "certificate_number": None,
+                "confidence": top['score'],
+                "status": "not_found",
+                "candidate": top
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[extract-certificate-id] error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))

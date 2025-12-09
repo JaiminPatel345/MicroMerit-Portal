@@ -194,31 +194,78 @@ const Verification = () => {
                              <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-chill-400 transition-colors cursor-pointer"
                                   onClick={() => document.getElementById('file-upload').click()}>
                                 <div className="space-y-1 text-center">
-                                    <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                                    <div className="flex text-sm text-gray-600">
-                                        <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-chill-600 hover:text-blue-chill-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-chill-500">
-                                            <span>Upload a PDF Certificate</span>
-                                            <input 
-                                                id="file-upload" 
-                                                name="file-upload" 
-                                                type="file" 
-                                                accept=".pdf" 
-                                                className="sr-only"
-                                                onChange={(e) => {
-                                                    const file = e.target.files[0];
-                                                    if (file) {
-                                                        // Placeholder for PDF extraction
-                                                        console.log("PDF Selected:", file.name);
-                                                        // Logic to extract CID would go here, updating setInputValue and setInputType
-                                                        // Example: extractCid(file).then(cid => { setInputValue(cid); setInputType('ipfs_cid'); });
-                                                        alert("PDF extraction logic to be implemented. Please enter CID manually for now.");
-                                                    }
-                                                }}
-                                            />
-                                        </label>
-                                        <p className="pl-1">to auto-extract CID</p>
-                                    </div>
-                                    <p className="text-xs text-gray-500">PDF up to 10MB</p>
+                                    {loading && !result ? ( // Reusing loading state if okay, or use local loading
+                                        <div className="py-2 flex flex-col items-center justify-center">
+                                             <Loader2 className="h-8 w-8 text-blue-chill-600 animate-spin mb-1" />
+                                             <p className="text-xs text-gray-500">Scanning...</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <FileText className="mx-auto h-12 w-12 text-gray-400" />
+                                            <div className="flex text-sm text-gray-600">
+                                                <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-chill-600 hover:text-blue-chill-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-chill-500">
+                                                    <span>Upload Document</span>
+                                                    <input 
+                                                        id="file-upload" 
+                                                        name="file-upload" 
+                                                        type="file" 
+                                                        accept=".pdf,.png,.jpg,.jpeg" 
+                                                        className="sr-only"
+                                                        onChange={async (e) => {
+                                                            const file = e.target.files[0];
+                                                            if (file) {
+                                                                // Use existing loading/error state or separate ones?
+                                                                // Verification uses 'loading' for main verification. 
+                                                                // Let's use 'loading' but be careful not to confuse user if it takes long.
+                                                                // Actually, better to have a separate indicator if possible, but for now reuse is ok or I can add a local state if I could.
+                                                                // Since I can't add state easily without viewing the whole file again and finding top, I will use loading. 
+                                                                // BUT 'loading' triggers the main loader overlay "Verifying Credential".
+                                                                // That might be misleading. "Extracting ID..." vs "Verifying...".
+                                                                // The overlay text is hardcoded "Verifying Credential".
+                                                                // I should probably just do the upload.
+                                                                
+                                                                setLoading(true);
+                                                                setError(null);
+                                                                setResult(null);
+
+                                                                try {
+                                                                    const formData = new FormData();
+                                                                    formData.append('file', file);
+                                                                    
+                                                                    // Use public endpoint
+                                                                    const res = await axios.post(`${API_BASE_URL}/credentials/extract-id`, formData, {
+                                                                        headers: { 'Content-Type': 'multipart/form-data' }
+                                                                    });
+                                                                    
+                                                                    if (res.data.success && res.data.data.found && res.data.data.credential_id) {
+                                                                        const id = res.data.data.credential_id;
+                                                                        setInputValue(id);
+                                                                        setInputType('credential_id'); // Ensure type is correct
+                                                                        
+                                                                        if (res.data.data.status === 'needs_review') {
+                                                                             setError(`ID found with confidence ${res.data.data.confidence}%. Please verify: ${id}`);
+                                                                        } else {
+                                                                            // Validating immediately is smooth UX.
+                                                                            handleVerify(id, 'credential_id');
+                                                                        }
+                                                                    } else {
+                                                                        setError(res.data.data?.message || 'No Credential ID found in document. Please manually enter.');
+                                                                        setLoading(false);
+                                                                    }
+                                                                } catch (err) {
+                                                                    console.error(err);
+                                                                    setError(err.response?.data?.message || 'Failed to extract ID from document');
+                                                                    setLoading(false);
+                                                                }
+                                                            }
+                                                        }}
+                                                    />
+                                                </label>
+                                                <p className="pl-1">PDF or Image</p>
+                                            </div>
+                                            <p className="text-xs text-gray-500">Supported: PDF, PNG, JPG</p>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>

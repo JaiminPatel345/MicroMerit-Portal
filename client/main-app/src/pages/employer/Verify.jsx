@@ -175,28 +175,58 @@ const EmployerVerify = () => {
                              <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-chill-400 transition-colors cursor-pointer"
                                   onClick={() => document.getElementById('single-file-upload').click()}>
                                 <div className="space-y-1 text-center">
-                                    <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                                    <div className="flex text-sm text-gray-600">
-                                        <label htmlFor="single-file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-chill-600 hover:text-blue-chill-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-chill-500">
-                                            <span>Upload a PDF Certificate</span>
-                                            <input 
-                                                id="single-file-upload" 
-                                                name="single-file-upload" 
-                                                type="file" 
-                                                accept=".pdf" 
-                                                className="sr-only"
-                                                onChange={(e) => {
-                                                    const file = e.target.files[0];
-                                                    if (file) {
-                                                        console.log("PDF Selected:", file.name);
-                                                        alert("PDF extraction logic to be implemented. Please enter credentials manually for now.");
-                                                    }
-                                                }}
-                                            />
-                                        </label>
-                                        <p className="pl-1">to extract hash/ID</p>
-                                    </div>
-                                    <p className="text-xs text-gray-500">PDF documents only</p>
+                                    {loading ? (
+                                        <div className="py-4 flex flex-col items-center justify-center">
+                                            <Loader className="h-10 w-10 text-blue-chill-600 animate-spin mb-2" />
+                                            <p className="text-sm text-gray-500">Extracting ID from document...</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <FileText className="mx-auto h-12 w-12 text-gray-400" />
+                                            <div className="flex text-sm text-gray-600">
+                                                <label htmlFor="single-file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-chill-600 hover:text-blue-chill-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-chill-500">
+                                                    <span>Upload Document</span>
+                                                    <input 
+                                                        id="single-file-upload" 
+                                                        name="single-file-upload" 
+                                                        type="file" 
+                                                        accept=".pdf,.png,.jpg,.jpeg" 
+                                                        className="sr-only"
+                                                        onChange={async (e) => {
+                                                            const file = e.target.files[0];
+                                                            if (file) {
+                                                                setLoading(true);
+                                                                setError('');
+                                                                try {
+                                                                    const formData = new FormData();
+                                                                    formData.append('file', file);
+                                                                    const res = await employerApi.extractIdFromDoc(formData);
+                                                                    
+                                                                    if (res.data.success && res.data.data.found && res.data.data.credential_id) {
+                                                                        setInputValue(res.data.data.credential_id);
+                                                                        if (res.data.data.status === 'needs_review') {
+                                                                            setError(`ID found with confidence ${res.data.data.confidence}%. Please verify: ${res.data.data.credential_id}`);
+                                                                        }
+                                                                    } else {
+                                                                        setError(res.data.data?.message || 'No Credential ID found in document. Please enter manually.');
+                                                                    }
+                                                                } catch (err) {
+                                                                    console.error(err);
+                                                                    setError(err.response?.data?.message || 'Failed to process document');
+                                                                } finally {
+                                                                    setLoading(false);
+                                                                    // Reset file input
+                                                                    e.target.value = null;
+                                                                }
+                                                            }
+                                                        }}
+                                                    />
+                                                </label>
+                                                <p className="pl-1">PDF or Image</p>
+                                            </div>
+                                            <p className="text-xs text-gray-500">Supported: PDF, PNG, JPG</p>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>

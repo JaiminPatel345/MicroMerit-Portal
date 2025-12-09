@@ -59,6 +59,9 @@ export const employerApi = {
   bulkVerify: (payload) => api.post('/employer/verify/bulk', payload),
   searchCandidates: (params) => api.get('/employer/search', { params }),
   verifyEmail: (payload) => api.post('/auth/employer/verify-email', payload),
+  extractIdFromDoc: (formData) => api.post('/employer/extract-id', formData, { 
+    headers: { 'Content-Type': 'multipart/form-data' } 
+  }),
 };
 
 
