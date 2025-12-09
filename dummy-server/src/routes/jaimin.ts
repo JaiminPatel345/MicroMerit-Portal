@@ -126,7 +126,7 @@ router.get('/api/certs/:id', verifyApiKey, (req: Request, res: Response) => {
  * GET /jaimin/api/certs/:id/pdf
  * Download certificate PDF
  */
-router.get('/api/certs/:id/pdf', verifyApiKey, async (req: Request, res: Response) => {
+router.get('/api/certs/:id/pdf', async (req: Request, res: Response) => {
     const credentials = getCredentialsByProvider('jaimin');
     const credential = credentials.find(c => c.id === req.params.id);
 
@@ -147,7 +147,7 @@ router.get('/api/certs/:id/pdf', verifyApiKey, async (req: Request, res: Respons
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader(
             'Content-Disposition',
-            `attachment; filename="certificate-${credential.id}.pdf"`
+            `inline; filename="certificate-${credential.id}.pdf"`
         );
         res.setHeader('Content-Length', pdfBuffer.length);
 

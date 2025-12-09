@@ -122,7 +122,7 @@ router.get('/api/credentials/:id', verifyApiKey, (req: Request, res: Response) =
  * GET /sih/api/credentials/:id/pdf
  * Download certificate PDF
  */
-router.get('/api/credentials/:id/pdf', verifyApiKey, async (req: Request, res: Response) => {
+router.get('/api/credentials/:id/pdf', async (req: Request, res: Response) => {
     const credentials = getCredentialsByProvider('sih');
     const credential = credentials.find(c => c.id === req.params.id);
 
@@ -143,7 +143,7 @@ router.get('/api/credentials/:id/pdf', verifyApiKey, async (req: Request, res: R
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader(
             'Content-Disposition',
-            `attachment; filename="credential-${credential.id}.pdf"`
+            `inline; filename="credential-${credential.id}.pdf"`
         );
         res.setHeader('Content-Length', pdfBuffer.length);
 

@@ -6,6 +6,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 import { Connector, CanonicalCredential, SyncJobResult, SyncState } from './types';
 import { createConnector, getAllEnabledConnectors, getProviderConfig } from './connector.factory';
 import { externalCredentialSyncRepository } from './repository';
@@ -92,7 +94,9 @@ class ExternalCredentialSyncService {
                 } catch (error: any) {
                     if (error.message?.includes('duplicate') || error.message?.includes('exists')) {
                         result.credentials_skipped++;
+                        logger.debug(`[${providerId}] Skipped duplicate`, { error: error.message });
                     } else {
+                        logger.error(`[${providerId}] Credential processing failed`, { error: error.message });
                         result.errors.push(`${error.message}`);
                     }
                 }
@@ -276,20 +280,37 @@ class ExternalCredentialSyncService {
 
         if (canonical.certificate_url) {
             try {
-                logger.info('Downloading PDF from external provider', {
+                logger.info('Attempting to download PDF from external provider', {
                     credential_id: credentialId,
-                    certificate_url: canonical.certificate_url
+                    certificate_url: canonical.certificate_url,
+                    external_id: canonical.external_id
                 });
 
                 // Get provider config for authentication
                 const providerId = canonical.tags && canonical.tags.length > 0 ? canonical.tags[0] : null;
                 const providerConfig = providerId ? getProviderConfig(providerId) : null;
 
+                logger.debug('Provider config retrieved', {
+                    credential_id: credentialId,
+                    provider_id: providerId,
+                    has_config: !!providerConfig,
+                    has_api_key: !!providerConfig?.credentials?.api_key
+                });
+
                 // Download PDF from external provider
                 const headers: Record<string, string> = {};
                 if (providerConfig?.credentials.api_key) {
                     headers['X-API-Key'] = providerConfig.credentials.api_key;
+                    logger.debug('Added API key to request headers', {
+                        credential_id: credentialId
+                    });
                 }
+
+                logger.info('Starting PDF download from URL', {
+                    credential_id: credentialId,
+                    url: canonical.certificate_url,
+                    has_auth_headers: Object.keys(headers).length > 0
+                });
 
                 const response = await axios.get(canonical.certificate_url, {
                     responseType: 'arraybuffer',
@@ -297,7 +318,38 @@ class ExternalCredentialSyncService {
                     timeout: 30000, // 30 second timeout
                 });
 
+                logger.info('PDF download response received', {
+                    credential_id: credentialId,
+                    status: response.status,
+                    content_type: response.headers['content-type'],
+                    content_length: response.headers['content-length']
+                });
+
                 const pdfBuffer = Buffer.from(response.data);
+
+                if (pdfBuffer.length === 0) {
+                    throw new Error('Downloaded PDF is empty (0 bytes)');
+                }
+
+                logger.info('PDF buffer created successfully', {
+                    credential_id: credentialId,
+                    buffer_size: pdfBuffer.length
+                });
+
+                // Save to temp file first (User request for verification/stability)
+                const tempDir = '/tmp';
+                const tempFile = path.join(tempDir, `credential-${canonical.external_id || credentialId}.pdf`);
+                try {
+                    fs.writeFileSync(tempFile, pdfBuffer);
+                    logger.info('PDF downloaded and staged locally', {
+                        credential_id: credentialId,
+                        temp_path: tempFile,
+                        size: pdfBuffer.length
+                    });
+                } catch (writeErr) {
+                    logger.warn('Failed to write temp PDF file', { error: writeErr });
+                    // Continue with upload even if local write fails
+                }
 
                 logger.info('PDF downloaded, uploading to Filebase', {
                     credential_id: credentialId,
@@ -326,15 +378,27 @@ class ExternalCredentialSyncService {
                     certificate_url: canonical.certificate_url,
                     error_message: error.message,
                     error_code: error.code,
+                    error_name: error.name,
                     response_status: error.response?.status,
-                    response_headers: error.response?.headers
+                    response_data: error.response?.data ? 
+                        (typeof error.response.data === 'string' ? error.response.data.substring(0, 200) : JSON.stringify(error.response.data).substring(0, 200)) 
+                        : undefined,
+                    is_timeout: error.code === 'ECONNABORTED' || error.message?.includes('timeout'),
+                    is_network: error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT'
                 });
 
-                // Continue without PDF - we'll still create the credential
-                // Store the original URL as fallback
-                pdfUrl = canonical.certificate_url;
+                // Optional Mode: Log error but continue credential creation without PDF
+                logger.warn('Proceeding with credential creation without PDF/IPFS', {
+                    credential_id: credentialId,
+                    reason: 'PDF download or upload failed'
+                });
+                pdfUrl = null;
                 ipfsCid = null;
             }
+        } else {
+            logger.info('No certificate_url provided, creating credential without PDF', {
+                credential_id: credentialId
+            });
         }
 
         logger.info('Creating external credential', {
