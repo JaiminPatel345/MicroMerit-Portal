@@ -132,74 +132,110 @@ export const employerRepository = {
         keyword?: string,
         issuer?: string
     }) {
-        const learnerIds = new Set<number>();
+        const strictFilterIds = new Set<number>();
+        const searchMatchIds = new Set<number>();
+        
+        const hasStrictFilters = !!(filters.sector || filters.nsqf_level || filters.job_role || filters.issuer);
+        const hasSearchTerm = !!(filters.keyword || (filters.skills && filters.skills.length > 0));
 
-        // 1. Search in Credentials (Title, Issuer, Metadata)
-        const credWhere: Prisma.CredentialWhereInput = {
-            status: 'issued',
-            learner: { isNot: null }
-        };
+        // --- STAGE 1: Strict Filters (AND logic) ---
+        // These MUST be met. They are all based on Credentials.
+        if (hasStrictFilters) {
+            const credConditions: any[] = []; // Typed as any to support new fields like sector/nsqf_level
+            
+            if (filters.sector) credConditions.push({ sector: { contains: filters.sector, mode: 'insensitive' } });
+            if (filters.job_role) credConditions.push({ certificate_title: { contains: filters.job_role, mode: 'insensitive' } });
+            if (filters.issuer) credConditions.push({ issuer: { name: { contains: filters.issuer, mode: 'insensitive' } } });
+            
+            if (filters.nsqf_level) {
+                const level = Number(filters.nsqf_level);
+                if (!isNaN(level)) credConditions.push({ nsqf_level: { equals: level } });
+            }
 
-        const credConditions: Prisma.CredentialWhereInput[] = [];
-
-        if (filters.keyword) {
-            credConditions.push({
-                OR: [
-                    { certificate_title: { contains: filters.keyword, mode: 'insensitive' } },
-                    { learner: { name: { contains: filters.keyword, mode: 'insensitive' } } },
-                    { issuer: { name: { contains: filters.keyword, mode: 'insensitive' } } }
-                ]
+            const creds = await prisma.credential.findMany({
+                where: {
+                    status: 'issued',
+                    learner: { isNot: null },
+                    AND: credConditions as any
+                },
+                select: { learner_id: true }
             });
-        }
-        if (filters.job_role) {
-            credConditions.push({ certificate_title: { contains: filters.job_role, mode: 'insensitive' } });
-        }
-        if (filters.issuer) {
-            credConditions.push({ issuer: { name: { contains: filters.issuer, mode: 'insensitive' } } });
-        }
-        if (credConditions.length > 0) {
-            credWhere.AND = credConditions;
+            creds.forEach(c => c.learner_id && strictFilterIds.add(c.learner_id));
+            
+            // If strict filters are applied but no one matches, we can return early (intersection will be empty)
+            if (strictFilterIds.size === 0) return [];
         }
 
-        // If specific non-credential filters (like 'skills' which might only be in profile) are NOT present, or if we want to combine results
-        const credentials = await prisma.credential.findMany({
-            where: credWhere,
-            select: { learner_id: true }
-        });
-        credentials.forEach(c => { if (c.learner_id) learnerIds.add(c.learner_id) });
+        // --- STAGE 2: Search Query (OR logic across fields) ---
+        // Keyword matches Name OR Credential Title OR Profile
+        // Skills matches Profile
+        if (hasSearchTerm) {
+            // A. Search Credentials for Keyword
+            if (filters.keyword) {
+                const creds = await prisma.credential.findMany({
+                    where: {
+                        status: 'issued',
+                        OR: [
+                            { certificate_title: { contains: filters.keyword, mode: 'insensitive' } },
+                            { issuer: { name: { contains: filters.keyword, mode: 'insensitive' } } }
+                        ]
+                    },
+                    select: { learner_id: true }
+                });
+                creds.forEach(c => c.learner_id && searchMatchIds.add(c.learner_id));
+                
+                // Search Users by Name
+                const learners = await prisma.learner.findMany({
+                    where: { name: { contains: filters.keyword, mode: 'insensitive' } },
+                    select: { id: true }
+                });
+                learners.forEach(l => searchMatchIds.add(l.id));
+            }
 
-
-        // 2. Search in SkillProfile (via Raw Query for JSON text search)
-        // This covers "Skills" filter and generic Keyword search in profile
-        let searchTerm = filters.keyword || filters.skills;
-        if (filters.skills && Array.isArray(filters.skills)) searchTerm = filters.skills.join(' ');
-
-        if (searchTerm && searchTerm.length > 0) {
-            try {
-                // Determine table name - usually LearnerSkillProfile or "LearnerSkillProfile"
-                // Using generic raw query hoping standard naming. If fail, will catch.
-                const profiles = await prisma.$queryRawUnsafe<{ learner_id: number }[]>(
-                    `SELECT learner_id FROM "LearnerSkillProfile" WHERE data::text ILIKE $1`,
-                    `%${searchTerm}%`
-                );
-                profiles.forEach(p => learnerIds.add(p.learner_id));
-            } catch (e) {
-                console.error("SkillProfile raw search failed", e);
+            // B. Search Profile for Keyword OR Skills
+            let profileTerm = filters.keyword || "";
+            if (filters.skills) {
+                 if (Array.isArray(filters.skills)) profileTerm += " " + filters.skills.join(' ');
+                 else profileTerm += " " + filters.skills;
+            }
+            
+            if (profileTerm.trim().length > 0) {
+                 try {
+                    const profiles = await prisma.$queryRawUnsafe<{ learner_id: number }[]>(
+                        `SELECT learner_id FROM "LearnerSkillProfile" WHERE data::text ILIKE $1`,
+                        `%${profileTerm.trim()}%`
+                    );
+                    profiles.forEach(p => searchMatchIds.add(p.learner_id));
+                } catch (e) {
+                    console.error("SkillProfile raw search failed", e);
+                }
             }
         }
 
-        // 3. Search Learners direct (Name)
-        if (filters.keyword) {
-            const learners = await prisma.learner.findMany({
-                where: {
-                    name: { contains: filters.keyword, mode: 'insensitive' }
-                },
-                select: { id: true }
-            });
-            learners.forEach(l => learnerIds.add(l.id));
+        // --- STAGE 3: Combine (INTERSECTION) ---
+        let finalIds: number[] = [];
+
+        if (hasStrictFilters && hasSearchTerm) {
+            // Intersection
+            finalIds = Array.from(strictFilterIds).filter(id => searchMatchIds.has(id));
+        } else if (hasStrictFilters) {
+            // Only strict
+            finalIds = Array.from(strictFilterIds);
+        } else if (hasSearchTerm) {
+            // Only search
+            finalIds = Array.from(searchMatchIds);
+        } else {
+            // Neither (Show Recent Default)
+             const allLearners = await prisma.learner.findMany({ take: 50, orderBy: { created_at: 'desc' }, select: { id: true } });
+             finalIds = allLearners.map(l => l.id);
         }
 
-        if (learnerIds.size === 0) return [];
+        // If filtering attempted but nothing matched
+        if ((hasStrictFilters || hasSearchTerm) && finalIds.length === 0) {
+            return [];
+        }
+
+        const learnerIds = new Set(finalIds);
 
         // 4. Fetch Details for collected IDs
         const candidates = await prisma.learner.findMany({

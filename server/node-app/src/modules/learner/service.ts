@@ -601,6 +601,24 @@ export class LearnerService {
     if (learner.dob) completion += 20;
     if (learner.gender) completion += 20;
 
+    // Fallback: If no top skills from credentials (e.g. dummy users), try seeded profile
+    if (!stats.topSkills || stats.topSkills.length === 0) {
+        const profile = await prisma.learnerSkillProfile.findUnique({ where: { learner_id: learnerId } });
+        if (profile && profile.data) {
+             const data: any = profile.data;
+             if (data.topSkills && Array.isArray(data.topSkills)) {
+                  stats.topSkills = data.topSkills.map((s: any) => ({
+                      skill: typeof s === 'string' ? s : s.skill,
+                      count: 1 // Dummy count for display
+                  }));
+                  // Update total verified count approximation if zero
+                  if (stats.totalSkillsVerified === 0) {
+                      stats.totalSkillsVerified = (data.allSkills?.length) || stats.topSkills.length;
+                  }
+             }
+        }
+    }
+
     return {
       ...stats,
       profileCompletion: completion,
