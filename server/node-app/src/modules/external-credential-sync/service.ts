@@ -6,8 +6,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import axios from 'axios';
-import fs from 'fs';
-import path from 'path';
 import { Connector, CanonicalCredential, SyncJobResult, SyncState } from './types';
 import { createConnector, getAllEnabledConnectors, getProviderConfig } from './connector.factory';
 import { externalCredentialSyncRepository } from './repository';
@@ -66,23 +64,11 @@ class ExternalCredentialSyncService {
             const sinceISO = lastSync.toISOString();
             logger.info(`[${providerId}] Fetching credentials since ${sinceISO}`);
 
-            // Fetch all pages
-            let pageToken: string | undefined;
-            let allItems: any[] = [];
+            // Fetch only 1 credential per sync (not all pages)
+            const fetchResult = await connector.fetchSince(sinceISO);
+            const allItems = fetchResult.items;
 
-            do {
-                const fetchResult = await connector.fetchSince(sinceISO, pageToken);
-                allItems = allItems.concat(fetchResult.items);
-                pageToken = fetchResult.next;
-
-                // Safety limit
-                if (allItems.length > 1000) {
-                    logger.warn(`[${providerId}] Reached item limit (1000)`);
-                    break;
-                }
-            } while (pageToken);
-
-            logger.info(`[${providerId}] Fetched ${allItems.length} credentials`);
+            logger.info(`[${providerId}] Fetched ${allItems.length} credential(s)`);
 
             // Process each credential
             for (const item of allItems) {
@@ -331,29 +317,9 @@ class ExternalCredentialSyncService {
                     throw new Error('Downloaded PDF is empty (0 bytes)');
                 }
 
-                logger.info('PDF buffer created successfully', {
+                logger.info('PDF downloaded successfully, uploading directly to IPFS', {
                     credential_id: credentialId,
                     buffer_size: pdfBuffer.length
-                });
-
-                // Save to temp file first (User request for verification/stability)
-                const tempDir = '/tmp';
-                const tempFile = path.join(tempDir, `credential-${canonical.external_id || credentialId}.pdf`);
-                try {
-                    fs.writeFileSync(tempFile, pdfBuffer);
-                    logger.info('PDF downloaded and staged locally', {
-                        credential_id: credentialId,
-                        temp_path: tempFile,
-                        size: pdfBuffer.length
-                    });
-                } catch (writeErr) {
-                    logger.warn('Failed to write temp PDF file', { error: writeErr });
-                    // Continue with upload even if local write fails
-                }
-
-                logger.info('PDF downloaded, uploading to Filebase', {
-                    credential_id: credentialId,
-                    size: pdfBuffer.length
                 });
 
                 // Upload to Filebase/IPFS

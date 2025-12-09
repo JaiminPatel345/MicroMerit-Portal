@@ -6,6 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { getCredentialsSince, getCredentialsByProvider } from '../data/seed.js';
 import { UdemyCredentialResponse, PaginatedResponse } from '../types/index.js';
+import { generatePDFFromCredential } from '../utils/pdf-generator.js';
 
 const router = Router();
 
@@ -96,7 +97,7 @@ router.get('/api/v1/certificates', verifyOAuthToken, (req: Request, res: Respons
             email: c.learner_email,
             display_name: c.learner_name,
         },
-        certificate_url: `https://udemy.example.com/certificate/${c.id}`,
+        certificate_url: `http://localhost:4000/udemy/api/v1/certificates/${c.id}/pdf`,
         metadata: {
             awarding_bodies: c.awarding_bodies,
             tags: c.tags,
@@ -140,7 +141,7 @@ router.get('/api/v1/certificates/:id', verifyOAuthToken, (req: Request, res: Res
             email: credential.learner_email,
             display_name: credential.learner_name,
         },
-        certificate_url: `https://udemy.example.com/certificate/${credential.id}`,
+        certificate_url: `http://localhost:4000/udemy/api/v1/certificates/${credential.id}/pdf`,
         metadata: {
             awarding_bodies: credential.awarding_bodies,
             tags: credential.tags,
@@ -149,6 +150,40 @@ router.get('/api/v1/certificates/:id', verifyOAuthToken, (req: Request, res: Res
     };
 
     res.json(udemyCredential);
+});
+
+/**
+ * GET /udemy/api/v1/certificates/:id/pdf
+ * Download certificate PDF
+ */
+router.get('/api/v1/certificates/:id/pdf', async (req: Request, res: Response) => {
+    const credentials = getCredentialsByProvider('udemy');
+    const credential = credentials.find(c => c.id === req.params.id);
+
+    if (!credential) {
+        res.status(404).json({ detail: 'Certificate not found' });
+        return;
+    }
+
+    try {
+        // Generate PDF
+        const pdfBuffer = await generatePDFFromCredential(credential);
+
+        // Set headers for PDF download
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader(
+            'Content-Disposition',
+            `inline; filename="certificate-${credential.id}.pdf"`
+        );
+
+        res.send(pdfBuffer);
+    } catch (error) {
+        console.error('PDF generation error:', error);
+        res.status(500).json({
+            error: 'pdf_generation_failed',
+            message: 'Failed to generate PDF certificate'
+        });
+    }
 });
 
 export default router;

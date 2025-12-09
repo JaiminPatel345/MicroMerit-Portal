@@ -1,7 +1,7 @@
 import app from './app';
 import { logger } from './utils/logger';
 import { connectPrisma, disconnectPrisma } from './utils/prisma';
-import { externalCredentialSyncScheduler } from './modules/external-credential-sync';
+import { externalCredentialSyncScheduler, externalCredentialSyncService } from './modules/external-credential-sync';
 
 const PORT = process.env.PORT || 3000;
 
@@ -29,6 +29,22 @@ const startServer = async () => {
       if (process.env.ENABLE_EXTERNAL_SYNC === 'true') {
         externalCredentialSyncScheduler.start();
         logger.info('External credential sync scheduler started');
+        
+        // Perform initial sync on startup to fetch 1 credential from each provider
+        logger.info('Performing initial sync on startup...');
+        setTimeout(async () => {
+          try {
+            const results = await externalCredentialSyncService.syncAll();
+            logger.info('Initial sync completed', { 
+              results: results.map(r => ({ 
+                provider: r.provider_id, 
+                created: r.credentials_created 
+              }))
+            });
+          } catch (error: any) {
+            logger.error('Initial sync failed', { error: error.message });
+          }
+        }, 5000); // Wait 5 seconds after server starts
       }
     });
   } catch (error) {

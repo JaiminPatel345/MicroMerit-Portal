@@ -33,7 +33,7 @@ export class SIHConnector extends BaseConnector {
             const response = await this.httpClient.get('/api/credentials', {
                 params: {
                     since,
-                    limit: 20,
+                    limit: 1, // Fetch only 1 credential per sync
                     offset,
                 },
             });

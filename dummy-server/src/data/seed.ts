@@ -484,13 +484,7 @@ export function getCredentialsSince(
 
     let finalCredentials = providerCreds;
 
-    // Enforcement: Strictly 1 credential total. Only Jaimin provider is active.
-    if (provider === 'nsdc' || provider === 'udemy' || provider === 'sih') {
-        // Disable other providers to ensure we only get 1 credential total
-        // console.log(`Fetch request for ${provider}: returning 0 (inactive).`);
-        return { credentials: [], total: 0, hasMore: false };
-    }
-
+    // All providers are now active - each returns 1 credential per sync
     if (isFirstFetch) {
         console.log(`Initial fetch request for ${provider} (since ${since.toISOString()}). Limiting to 1.`);
         finalCredentials = providerCreds.slice(0, 1);
