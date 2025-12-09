@@ -279,7 +279,10 @@ export class LearnerRepository {
     search?: string,
     status?: string,
     issuerId?: number,
-    certificateTitle?: string
+    certificateTitle?: string,
+    tags?: string[],
+    startDate?: Date,
+    endDate?: Date
   ) {
     const skip = (page - 1) * limit;
     const where: any = {
@@ -298,11 +301,45 @@ export class LearnerRepository {
       where.certificate_title = { contains: certificateTitle, mode: 'insensitive' };
     }
 
+    if (startDate || endDate) {
+      where.issued_at = {};
+      if (startDate) where.issued_at.gte = startDate;
+      if (endDate) where.issued_at.lte = endDate;
+    }
+
+    if (tags && tags.length > 0) {
+      const tagConditions = tags.flatMap(t => [
+          { sector: { contains: t, mode: 'insensitive' } },
+          { tags: { array_contains: t } }
+      ]);
+      where.OR = tagConditions;
+    }
+
     if (search) {
-      where.OR = [
-        { certificate_title: { contains: search, mode: 'insensitive' } },
-        { issuer: { name: { contains: search, mode: 'insensitive' } } },
-      ];
+      // If we already have an OR for tag, we need to be careful not to overwrite it
+      // We can use AND to combine them
+      const searchCondition = {
+        OR: [
+            { certificate_title: { contains: search, mode: 'insensitive' } },
+            { issuer: { name: { contains: search, mode: 'insensitive' } } },
+        ]
+      };
+
+      if (where.OR) {
+        // If we have tags filter, we want (Tags Condition) AND (Search Condition)
+        // But Prisma 'where' structure with top-level OR and AND can be tricky.
+        // If we assign where.AND = [searchCondition], it preserves the top-level where.OR (Tags)
+        // effective query: (Tag1 OR Tag2) AND (Search1 OR Search2)
+        // This is usually what we want.
+        
+        // However, we must be careful if where.AND acts as an override or merge.
+        // In Prisma, 'AND' is an array. We should safely append if it exists (though here it doesn't).
+        where.AND = [
+            searchCondition
+        ];
+      } else {
+        where.OR = searchCondition.OR;
+      }
     }
 
     const [total, credentials] = await Promise.all([

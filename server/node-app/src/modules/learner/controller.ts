@@ -238,8 +238,32 @@ export class LearnerController {
       const limit = parseInt(req.query.limit as string) || 10;
       const search = req.query.search as string;
       const status = req.query.status as string;
+      const tag = req.query.tag as string;
+      const tags = tag ? tag.split(',') : undefined;
+      const duration = req.query.duration as string;
 
-      const result = await learnerService.getMyCredentials(req.user.id, page, limit, search, status);
+      let startDate: Date | undefined;
+      let endDate: Date | undefined;
+
+      const startDateParam = req.query.startDate as string;
+      const endDateParam = req.query.endDate as string;
+
+      if (duration) {
+        const now = new Date();
+        const months = parseInt(duration, 10);
+        if (!isNaN(months)) {
+          startDate = new Date(now.setMonth(now.getMonth() - months));
+        }
+      }
+
+      if (startDateParam) {
+          startDate = new Date(startDateParam);
+      }
+      if (endDateParam) {
+          endDate = new Date(endDateParam);
+      }
+
+      const result = await learnerService.getMyCredentials(req.user.id, page, limit, search, status, tags, startDate, endDate);
       sendSuccess(res, result, 'Credentials retrieved successfully');
     } catch (error: any) {
       logger.error('Get my credentials failed', { error: error.message });
