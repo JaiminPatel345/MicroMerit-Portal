@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { employerApi } from '../../services/authServices';
 import { Search, Loader, Filter, MapPin, Briefcase, Award, X, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -16,6 +16,21 @@ const EmployerSearch = () => {
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searched, setSearched] = useState(false);
+
+    useEffect(() => {
+        const fetchInitialCandidates = async () => {
+            setLoading(true);
+            try {
+                const res = await employerApi.searchCandidates({});
+                setResults(res.data.data || []);
+            } catch (err) {
+                console.error("Initial fetch failed", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchInitialCandidates();
+    }, []);
 
     const handleSearch = async (e) => {
         e?.preventDefault();
@@ -49,8 +64,77 @@ const EmployerSearch = () => {
 
     const activeFiltersCount = Object.entries(filters).filter(([k, v]) => k !== 'keyword' && v !== '').length;
 
+    const [selectedCandidates, setSelectedCandidates] = useState([]);
+    const [showComparison, setShowComparison] = useState(false);
+    const [comparisonData, setComparisonData] = useState([]);
+    const [comparing, setComparing] = useState(false);
+
+    const toggleCandidateSelection = (id) => {
+
+        if (selectedCandidates.includes(id)) {
+            setSelectedCandidates(selectedCandidates.filter(cId => cId !== id));
+        } else {
+            if (selectedCandidates.length >= 3) {
+                alert("You can compare up to 3 candidates at a time.");
+                return;
+            }
+            setSelectedCandidates([...selectedCandidates, id]);
+        }
+    };
+
+    const handleCompare = async () => {
+        setComparing(true);
+        try {
+            const res = await employerApi.compareCandidates({
+                candidate_ids: selectedCandidates,
+                context: {
+                    skills: filters.skills ? filters.skills.split(',').map(s => s.trim()) : [],
+                    sector: filters.sector
+                }
+            });
+            setComparisonData(res.data.data);
+            setShowComparison(true);
+        } catch (err) {
+            console.error("Comparison failed", err);
+            alert("Failed to load comparison data.");
+        } finally {
+            setComparing(false);
+        }
+    };
+
+    const handleCloseComparison = () => {
+        setShowComparison(false);
+        setSelectedCandidates([]); // Clear selection after closing
+    };
+
+    const downloadCSV = () => {
+        if (comparisonData.length === 0) return;
+        
+        const headers = ["Feature", ...comparisonData.map(c => c.name)];
+        const rows = [
+            ["NSQF Level", ...comparisonData.map(c => c.nsqf_level)],
+            ["Skills Count", ...comparisonData.map(c => c.skills_count)],
+            ["Fit Score", ...comparisonData.map(c => c.fit_score + "%")],
+            // Removed Issuer Trust Score
+            ["Top Skills", ...comparisonData.map(c => c.top_skills.join(", "))]
+        ];
+
+        let csvContent = "data:text/csv;charset=utf-8," 
+            + headers.join(",") + "\n" 
+            + rows.map(e => e.join(",")).join("\n");
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "candidate_comparison.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+    
+
     return (
-        <div className="min-h-screen bg-gray-50/50">
+        <div className="min-h-screen bg-gray-50/50 pb-24">
             {/* Hero Search Section */}
             <div className="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 pb-20 pt-16 px-6 lg:px-10 relative overflow-hidden">
                 {/* Decorative Background Elements */}
@@ -278,11 +362,17 @@ const EmployerSearch = () => {
                                 </div>
                             ))
                             : results.map((profile) => (
-                                <Link
+                                <div
                                     key={profile.id}
-                                    to={`/p/${profile.id}`}
-                                    className="bg-white border border-transparent hover:border-blue-100 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col h-full cursor-pointer"
+                                    className={`relative bg-white border hover:border-blue-100 rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col h-full cursor-pointer ${selectedCandidates.includes(profile.id) ? 'ring-2 ring-blue-500 border-blue-500' : 'border-transparent'}`}
+                                    onClick={() => toggleCandidateSelection(profile.id)}
                                 >
+                                    <div className="absolute top-4 right-4 z-10">
+                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedCandidates.includes(profile.id) ? 'bg-blue-600 border-blue-600' : 'border-gray-200 group-hover:border-blue-300'}`}>
+                                            {selectedCandidates.includes(profile.id) && <CheckCircle2 size={14} className="text-white" />}
+                                        </div>
+                                    </div>
+
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="flex items-center gap-4">
                                             <div className="relative">
@@ -328,11 +418,15 @@ const EmployerSearch = () => {
                                             <span className="w-2 h-2 rounded-full bg-blue-400"></span>
                                             <span className="w-2 h-2 rounded-full bg-purple-400"></span>
                                         </div>
-                                        <span className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 flex items-center gap-2 transition-colors">
+                                        <Link
+                                            to={`/p/${profile.id}`}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 flex items-center gap-2 transition-colors z-20"
+                                        >
                                             View Profile <Briefcase size={16} className="text-gray-400 group-hover:text-blue-600 transition-colors" />
-                                        </span>
+                                        </Link>
                                     </div>
-                                </Link>
+                                </div>
                             ))}
 
                         {/* Empty State placeholder for initial load */}
@@ -346,8 +440,141 @@ const EmployerSearch = () => {
                     </div>
                 )}
             </div>
+
+            {/* Comparison Floating Bar */}
+            {selectedCandidates.length > 0 && (
+                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] py-4 px-6 z-40 animate-slide-up">
+                    <div className="max-w-6xl mx-auto flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <span className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">
+                                {selectedCandidates.length}
+                            </span>
+                            <span className="text-gray-900 font-medium">Candidates Selected</span>
+                            <button 
+                                onClick={() => setSelectedCandidates([])}
+                                className="text-sm text-gray-500 hover:text-red-500 ml-2"
+                            >
+                                Clear Selection
+                            </button>
+                        </div>
+                        <button
+                            onClick={handleCompare}
+                            disabled={selectedCandidates.length < 2}
+                            className={`px-6 py-2.5 rounded-lg font-semibold transition-all ${selectedCandidates.length >= 2 
+                                ? 'bg-slate-900 text-white hover:bg-slate-800 shadow-lg hover:shadow-xl' 
+                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                        >
+                            {comparing ? 'Comparing...' : 'Compare Candidates'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Comparison Modal */}
+            {showComparison && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-5xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <div>
+                                <h3 className="text-2xl font-bold text-slate-800">Candidate Comparison</h3>
+                                <p className="text-gray-500 text-sm mt-1">Comparing metrics for {comparisonData.length} candidates</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={downloadCSV}
+                                    className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 font-medium transition-colors flex items-center gap-2"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    Download CSV
+                                </button>
+                                <button 
+                                    onClick={handleCloseComparison}
+                                    className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="overflow-auto p-6">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th className="p-4 bg-gray-50 border-b-2 border-slate-100 font-semibold text-gray-500 uppercase tracking-wider text-xs w-1/4">Feature</th>
+                                        {comparisonData.map(c => (
+                                            <th key={c.id} className="p-4 border-b-2 border-slate-100 min-w-[200px]">
+                                                <div className="flex items-center gap-3">
+                                                    <img 
+                                                        src={c.avatar || `https://ui-avatars.com/api/?name=${c.name}&background=eff6ff&color=2563eb`}
+                                                        className="w-10 h-10 rounded-full"
+                                                        alt={c.name}
+                                                    />
+                                                    <div>
+                                                        <div className="font-bold text-gray-900">{c.name}</div>
+                                                        <Link to={`/p/${c.id}`} className="text-xs text-blue-500 hover:underline">View Profile</Link>
+                                                    </div>
+                                                </div>
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="text-sm">
+                                    <tr className="hover:bg-gray-50/30">
+                                        <td className="p-4 border-b border-gray-100 font-medium text-gray-700">NSQF Level</td>
+                                        {comparisonData.map(c => (
+                                            <td key={c.id} className="p-4 border-b border-gray-100 text-gray-600 font-medium">
+                                                Level {c.nsqf_level}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                    <tr className="hover:bg-gray-50/30">
+                                        <td className="p-4 border-b border-gray-100 font-medium text-gray-700">Skills Verified</td>
+                                        {comparisonData.map(c => (
+                                            <td key={c.id} className="p-4 border-b border-gray-100 text-gray-600">
+                                                <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-xs font-bold">
+                                                    {c.skills_count} Skills
+                                                </span>
+                                            </td>
+                                        ))}
+                                    </tr>
+                                    <tr className="hover:bg-gray-50/30">
+                                        <td className="p-4 border-b border-gray-100 font-medium text-gray-700">Fit Score</td>
+                                        {comparisonData.map(c => (
+                                            <td key={c.id} className="p-4 border-b border-gray-100">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-full bg-gray-200 rounded-full h-2.5 max-w-[100px]">
+                                                        <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${c.fit_score}%` }}></div>
+                                                    </div>
+                                                    <span className="font-bold text-green-700">{c.fit_score}%</span>
+                                                </div>
+                                            </td>
+                                        ))}
+                                    </tr>
+                                    <tr className="hover:bg-gray-50/30">
+                                        <td className="p-4 border-b border-gray-100 font-medium text-gray-700 align-top">Top Skills</td>
+                                        {comparisonData.map(c => (
+                                            <td key={c.id} className="p-4 border-b border-gray-100">
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {c.top_skills.map(skill => (
+                                                        <span key={skill} className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs capitalize">
+                                                            {skill}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </td>
+                                        ))}
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
+
 };
 
 export default EmployerSearch;
