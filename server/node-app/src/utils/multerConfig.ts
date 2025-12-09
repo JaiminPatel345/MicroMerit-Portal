@@ -34,3 +34,23 @@ export const imageUpload = multer({
  * Multer middleware for single profile photo upload
  */
 export const uploadProfilePhoto: any = imageUpload.single('profilePhoto');
+
+/**
+ * Configure multer for ZIP uploads (disk storage)
+ */
+import path from 'path';
+import os from 'os';
+
+export const zipUpload = multer({
+  dest: os.tmpdir(), // Save to system temp directory
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB max file size
+  },
+  fileFilter: (req: any, file: any, cb: any) => {
+    if (file.mimetype === 'application/zip' || file.mimetype === 'application/x-zip-compressed' || file.originalname.endsWith('.zip')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only ZIP files are allowed'));
+    }
+  },
+});

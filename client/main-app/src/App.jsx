@@ -31,6 +31,7 @@ import AppHeader from './AppHeader';
 import IssuerHeader from './pages/issuer/IssuerHeader';
 import Credentials from './pages/issuer/Credentials';
 import NewIssuance from './pages/issuer/NewIssuance';
+import BulkUpload from './pages/issuer/BulkUpload';
 import RecipientManagement from './pages/issuer/RecepientManagement';
 import IssuerAnalytics from './pages/issuer/IssuerAnalytics';
 import APIManagement from './pages/issuer/APIManagment';
@@ -149,6 +150,7 @@ function Layout() {
                 <Route path="dashboard" element={<IssuerDashboard />} />
                 <Route path="credentials" element={<Credentials />} />
                 <Route path="issuance" element={<NewIssuance />} />
+                <Route path="bulk-upload" element={<BulkUpload />} />
                 <Route path="recipients" element={<RecipientManagement />} />
                 <Route path="analytics" element={<IssuerAnalytics />} />
                 <Route path="apis" element={<APIManagement />} />

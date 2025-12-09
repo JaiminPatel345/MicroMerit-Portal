@@ -29,6 +29,7 @@ model issuer {
   created_at                 DateTime         @default(now())
   credentials                Credential[]
   apiKeys                    issuer_api_key[]
+  bulkUploadBatches          BulkUploadBatch[]
 }
 
 model issuer_api_key {
@@ -114,8 +115,16 @@ model Credential {
   status            String   @default("issued")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  
+  // Bulk Upload fields
+  batch_id          Int?
+  original_file_url String?
+  verified_pdf_url  String?
+  blockchain_tx_hash String?
+
   issuer            issuer   @relation(fields: [issuer_id], references: [id])
   learner           learner? @relation(fields: [learner_id], references: [id])
+  batch             BulkUploadBatch? @relation(fields: [batch_id], references: [id])
 
   @@index([credential_id])
   @@index([issuer_id])
@@ -194,4 +203,29 @@ model employer_activity_log {
   created_at     DateTime   @default(now())
 
   employer       employer @relation(fields: [employer_id], references: [id])
+}
+
+model BulkUploadBatch {
+  id             Int       @id @default(autoincrement())
+  issuer_id      Int
+  status         String    @default("processing") // processing, completed, failed
+  total_records  Int       @default(0)
+  success_count  Int       @default(0)
+  failed_count   Int       @default(0)
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+  
+  issuer         issuer    @relation(fields: [issuer_id], references: [id])
+  credentials    Credential[]
+  errors         BulkUploadError[]
+}
+
+model BulkUploadError {
+  id             Int             @id @default(autoincrement())
+  batch_id       Int
+  file_name      String?
+  error_message  String
+  created_at     DateTime        @default(now())
+  
+  batch          BulkUploadBatch @relation(fields: [batch_id], references: [id])
 }
