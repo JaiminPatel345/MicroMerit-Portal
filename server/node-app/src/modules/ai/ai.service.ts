@@ -293,6 +293,32 @@ export class AIService {
             };
         }
     }
+
+    /**
+     * Extract multiple Credential IDs from a ZIP file
+     */
+    async extractBulkIds(fileBuffer: Buffer, filename: string): Promise<{ success: boolean, total: number, results: any[] }> {
+        try {
+            const formData = new FormData();
+            formData.append('file', fileBuffer, filename);
+
+            const response = await axios.post(
+                `${this.aiServiceUrl}/extract-bulk-ids`,
+                formData,
+                {
+                    headers: formData.getHeaders(),
+                    timeout: 60000 // 60s timeout for bulk OCR
+                }
+            );
+            return response.data;
+        } catch (error: any) {
+            console.error('AI Service - Bulk Extract Error:', error.message);
+            throw {
+                status: error.response?.status || 500,
+                message: error.response?.data?.detail || 'Failed to process bulk extraction'
+            };
+        }
+    }
 }
 
 export const aiService = new AIService();

@@ -61,3 +61,32 @@ export const documentUpload = multer({
     }
   },
 });
+
+/**
+ * Configure multer for bulk verification uploads (CSV and ZIP)
+ */
+export const bulkUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB max file size for bulk zip
+  },
+  fileFilter: (req: any, file: any, cb: any) => {
+    const allowedMimeTypes = [
+      'application/zip',
+      'application/x-zip-compressed',
+      'multipart/x-zip',
+      'text/csv',
+      'application/csv',
+      'application/vnd.ms-excel',
+      'text/plain' // sometimes CSVs are text/plain
+    ];
+
+    // Also check extension as backup for CSV/ZIP
+    if (allowedMimeTypes.includes(file.mimetype) || 
+        file.originalname.match(/\.(csv|zip)$/i)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV and ZIP files are allowed for bulk verification'));
+    }
+  },
+});
