@@ -3,18 +3,31 @@ import {
     Search,
     Hash,
     Clock,
-    ChevronDown
+    ChevronDown,
+    Filter,
+    Calendar as CalendarIcon,
+    X
 } from 'lucide-react';
 import { learnerApi } from '../../services/authServices';
 import { Link } from 'react-router-dom';
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
 
 const Wallet = () => {
     const [certificates, setCertificates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    const [sortBy, setSortBy] = useState('');
+    const [durationFilter, setDurationFilter] = useState('all');
+    const [tagFilter, setTagFilter] = useState([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    // Custom Date Range State
+    const [startDate, setStartDate] = useState(null);
+    const [endDate, setEndDate] = useState(null);
+    const [isCustomDate, setIsCustomDate] = useState(false);
+    
     const [limit] = useState(10);
 
     const fetchCertificates = async () => {
@@ -24,7 +37,9 @@ const Wallet = () => {
                 page,
                 limit,
                 search: searchTerm,
-                status: statusFilter
+                status: statusFilter,
+                duration: durationFilter,
+                tag: tagFilter
             });
             const data = res.data?.data?.data || [];
             const pagination = res.data?.data?.pagination || {};
@@ -40,10 +55,58 @@ const Wallet = () => {
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            fetchCertificates();
+            // Logic to determine parameters
+            let apiStartDate = undefined;
+            let apiEndDate = undefined;
+            
+            if (isCustomDate && startDate) {
+                apiStartDate = startDate.toISOString();
+                if (endDate) apiEndDate = endDate.toISOString();
+            } else if (!isCustomDate && durationFilter && durationFilter !== 'all') {
+                // If using preset duration, let backend handle it? Or we can calculate it here?
+                // The backend currently handles 'duration' param nicely.
+                // But if we want consistent API, we can just pass 'duration' param as before if not custom.
+                // Or better: Let's stick to 'duration' param for presets to keep backend logic simple,
+                // and use startDate/endDate for custom.
+            }
+
+            setLoading(true);
+            learnerApi.getCertificates({
+                page,
+                limit,
+                search: searchTerm,
+                status: statusFilter,
+                duration: isCustomDate ? undefined : durationFilter,
+                page,
+                limit,
+                search: searchTerm,
+                limit,
+                search: searchTerm,
+                status: statusFilter,
+                sortBy: sortBy,
+                duration: isCustomDate ? undefined : durationFilter,
+                tag: tagFilter.join(','), // Send comma-separated string
+                startDate: apiStartDate,
+                endDate: apiEndDate
+            }).then(res => {
+                 const data = res.data?.data?.data || [];
+                const pagination = res.data?.data?.pagination || {};
+                setCertificates(data);
+                setTotalPages(pagination.totalPages || 1);
+            }).catch(err => {
+                console.error("Failed to fetch", err);
+            }).finally(() => setLoading(false));
+
         }, 300);
         return () => clearTimeout(timer);
-    }, [page, searchTerm, statusFilter]);
+    }, [page, searchTerm, statusFilter, sortBy, durationFilter, tagFilter, startDate, endDate, isCustomDate]);
+
+    // Popular tags for filtering
+    const filterTags = [
+        "IT", "Software", "ITI", "Non-tech", 
+        "Fashion Design", "Mason", "Healthcare", "Finance",
+        "Management", "Design"
+    ];
 
     return (
         <div className="min-h-screen bg-gray-50 p-6 lg:p-10">
@@ -56,37 +119,170 @@ const Wallet = () => {
                 </div>
 
                 {/* Search and Filter Bar */}
-                <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                    <div className="flex-1 relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Find a certificate..."
-                            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-blue-chill-500 text-sm bg-white"
-                            value={searchTerm}
-                            onChange={(e) => {
-                                setSearchTerm(e.target.value);
-                                setPage(1);
-                            }}
-                        />
-                    </div>
-                    <div className="relative min-w-[180px]">
-                        <select
-                            className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-2.5 px-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-blue-chill-500 text-sm"
-                            value={statusFilter}
-                            onChange={(e) => {
-                                setStatusFilter(e.target.value);
-                                setPage(1);
-                            }}
-                        >
-                            <option value="">All Status</option>
-                            <option value="issued">Issued</option>
-                            <option value="claimed">Claimed</option>
-                            <option value="revoked">Revoked</option>
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                            <ChevronDown size={16} />
+                {/* Filters Container */}
+                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6">
+                    <div className="flex flex-col lg:flex-row gap-4">
+                        {/* Search */}
+                        <div className="flex-1 relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                type="text"
+                                placeholder="Search by title or issuer..."
+                                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:border-blue-chill-500 text-sm bg-gray-50 focus:bg-white transition-colors"
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setPage(1);
+                                }}
+                            />
                         </div>
+
+                        {/* Dropdowns Group */}
+                        <div className="flex flex-wrap gap-3">
+                            {/* Status and Sort Filter */}
+                            <div className="relative min-w-[180px]">
+                                <select
+                                    className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-2.5 px-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-blue-chill-500 text-sm font-medium transition-colors"
+                                    value={sortBy ? `${sortBy}` : statusFilter || ""}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === 'max_hr_desc' || val === 'min_hr_asc') {
+                                            setSortBy(val);
+                                            setStatusFilter('');
+                                        } else {
+                                            setStatusFilter(val);
+                                            setSortBy('');
+                                        }
+                                        setPage(1);
+                                    }}
+                                >
+                                    <option value="">All Status (Newest)</option>
+                                    <optgroup label="Filter by Status">
+                                        <option value="issued">Issued</option>
+                                        <option value="claimed">Claimed</option>
+                                        <option value="revoked">Revoked</option>
+                                    </optgroup>
+                                    <optgroup label="Sort by Duration">
+                                        <option value="max_hr_desc">Duration: High to Low</option>
+                                        <option value="min_hr_asc">Duration: Low to High</option>
+                                    </optgroup>
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                    <ChevronDown size={16} />
+                                </div>
+                            </div>
+
+                            {/* Duration / Date Filter */}
+                            <div className="relative min-w-[160px]">
+                                <select
+                                    className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-2.5 px-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-blue-chill-500 text-sm font-medium transition-colors"
+                                    value={isCustomDate ? 'custom' : durationFilter}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === 'custom') {
+                                            setIsCustomDate(true);
+                                        } else {
+                                            setIsCustomDate(false);
+                                            setDurationFilter(val);
+                                            setStartDate(null);
+                                            setEndDate(null);
+                                        }
+                                        setPage(1);
+                                    }}
+                                >
+                                    <option value="all">All Time</option>
+                                    <option value="1">Last 1 Month</option>
+                                    <option value="2">Last 2 Months</option>
+                                    <option value="3">Last 3 Months</option>
+                                    <option value="6">Last 6 Months</option>
+                                    <option value="12">Last 1 Year</option>
+                                    <option value="custom">Custom Range...</option>
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                    <CalendarIcon size={16} />
+                                </div>
+                            </div>
+                            
+                            {/* Custom Date Picker Popup/Inline */}
+                            {isCustomDate && (
+                                <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-200">
+                                    <div className="relative">
+                                        <DatePicker
+                                            selected={startDate}
+                                            onChange={(dates) => {
+                                                const [start, end] = dates;
+                                                setStartDate(start);
+                                                setEndDate(end);
+                                                setPage(1);
+                                            }}
+                                            startDate={startDate}
+                                            endDate={endDate}
+                                            selectsRange
+                                            maxDate={new Date()} // Restrict to today or past
+                                            placeholderText="Select date range"
+                                            className="w-[220px] pl-10 pr-4 py-2.5 rounded-lg border border-blue-chill-300 focus:outline-none focus:ring-2 focus:ring-blue-chill-500 text-sm bg-white shadow-sm"
+                                        />
+                                        <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-chill-500" size={16} />
+                                    </div>
+                                    <button 
+                                        onClick={() => {
+                                            setIsCustomDate(false);
+                                            setDurationFilter('');
+                                            setStartDate(null);
+                                            setEndDate(null);
+                                        }}
+                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                        title="Clear custom date"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="h-px bg-gray-100 my-4"></div>
+
+                    {/* Tag Filters */}
+                     <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center text-xs font-medium text-gray-500 mr-2">
+                            <Filter size={14} className="mr-1" />
+                            Filter by Topic:
+                        </div>
+                        {filterTags.map((tag) => (
+                            <button
+                                key={tag}
+                                onClick={() => {
+                                    setTagFilter(prev => {
+                                        if (prev.includes(tag)) {
+                                            return prev.filter(t => t !== tag);
+                                        } else {
+                                            return [...prev, tag];
+                                        }
+                                    });
+                                    setPage(1);
+                                }}
+                                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 ease-in-out shadow-sm
+                                    ${tagFilter.includes(tag) 
+                                        ? 'bg-blue-chill-100 text-blue-chill-700 border-blue-chill-200 ring-2 ring-blue-chill-500 ring-offset-1' 
+                                        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-blue-chill-200 hover:text-blue-chill-600 hover:shadow-md'
+                                    }`}
+                            >
+                                {tag}
+                            </button>
+                        ))}
+                        {tagFilter.length > 0 && (
+                            <button
+                                onClick={() => {
+                                    setTagFilter([]);
+                                    setPage(1);
+                                }}
+                                className="px-3 py-1.5 text-xs font-medium text-red-500 hover:text-red-700 hover:underline ml-2 transition-colors"
+                            >
+                                Clear
+                            </button>
+                        )}
                     </div>
                 </div>
 

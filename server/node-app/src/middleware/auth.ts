@@ -24,6 +24,12 @@ export const authenticateToken = (
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
+    logger.info('Authenticating request', { 
+        path: req.path, 
+        authHeaderPresent: !!authHeader,
+        authHeaderPartial: authHeader ? authHeader.substring(0, 20) + '...' : 'none'
+    });
+
     if (!token) {
       sendUnauthorized(res, 'Access token is required');
       return;
