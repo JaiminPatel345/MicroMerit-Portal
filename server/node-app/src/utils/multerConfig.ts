@@ -51,6 +51,11 @@ export const zipUpload = multer({
       cb(null, true);
     } else {
       cb(new Error('Only ZIP files are allowed'));
+    }
+  },
+});
+
+/**
  * Configure multer for document uploads (PDFs and Images)
  */
 export const documentUpload = multer({
