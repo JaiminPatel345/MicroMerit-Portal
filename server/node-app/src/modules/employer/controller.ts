@@ -10,9 +10,9 @@ export class EmployerController {
             // Parse body first (could be form-data)
             // If validation fails here, check if body is parsed correctly by multer/express
             const data = employerRegistrationSchema.parse(req.body);
-            const docFile = req.file; // From multer
+            // const docFile = req.file; // From multer (Removed)
 
-            const result = await employerService.register(data, docFile);
+            const result = await employerService.register(data);
             sendSuccess(res, result, 'Registration successful', 201);
 
             // Registration is now step 1 (unverified), so no tokens yet.
@@ -140,6 +140,22 @@ export class EmployerController {
             sendSuccess(res, result, 'Dashboard Stats');
         } catch (error: any) {
             sendError(res, error.message, 'Failed to get stats', 500);
+        }
+    }
+
+    async extractCredentialId(req: Request, res: Response) {
+        try {
+            if (!req.user) return sendError(res, 'Unauthorized');
+            if (!req.file) return sendError(res, 'No file uploaded', 'Validation Error', 400);
+
+            // Import dynamically or assume aiService is globally available if imported at top
+            const { aiService } = await import('../ai/ai.service');
+            
+            const result = await aiService.extractCredentialId(req.file.buffer, req.file.originalname);
+            console.log('Extraction Result:', result);
+            sendSuccess(res, result, 'Extraction Complete');
+        } catch (error: any) {
+            sendError(res, error.message, 'Extraction Failed', 500);
         }
     }
 }

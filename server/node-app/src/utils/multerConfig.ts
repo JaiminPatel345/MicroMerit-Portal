@@ -34,3 +34,30 @@ export const imageUpload = multer({
  * Multer middleware for single profile photo upload
  */
 export const uploadProfilePhoto: any = imageUpload.single('profilePhoto');
+
+/**
+ * Configure multer for document uploads (PDFs and Images)
+ */
+export const documentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 15 * 1024 * 1024, // 15MB max file size
+  },
+  fileFilter: (req: any, file: any, cb: any) => {
+    const allowedMimeTypes = [
+      'application/pdf',
+      'image/png',
+      'image/jpg', 
+      'image/jpeg',
+      'image/gif',
+      'image/webp',
+      'image/bmp'
+    ];
+
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF and image files are allowed'));
+    }
+  },
+});
