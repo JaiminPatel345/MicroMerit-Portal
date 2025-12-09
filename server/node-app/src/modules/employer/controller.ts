@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { employerService } from './service';
-import { employerRegistrationSchema, employerLoginSchema, updateEmployerProfileSchema, refreshTokenSchema, bulkVerifySchema, candidateSearchSchema } from './schema';
+import { employerRegistrationSchema, employerLoginSchema, updateEmployerProfileSchema, refreshTokenSchema, bulkVerifySchema, candidateSearchSchema, compareCandidatesSchema } from './schema';
 import { sendSuccess, sendError } from '../../utils/response';
 import { logger } from '../../utils/logger';
 
@@ -196,6 +196,18 @@ export class EmployerController {
             sendSuccess(res, result, 'Dashboard Stats');
         } catch (error: any) {
             sendError(res, error.message, 'Failed to get stats', 500);
+        }
+    }
+
+    async compareCandidates(req: Request, res: Response) {
+        try {
+            if (!req.user) return sendError(res, 'Unauthorized');
+            const { candidate_ids, context } = compareCandidatesSchema.parse(req.body);
+            
+            const result = await employerService.compareCandidates(req.user.id, candidate_ids, context);
+            sendSuccess(res, result, 'Comparison Result');
+        } catch (error: any) {
+             sendError(res, error.message, 'Comparison Failed', 500);
         }
     }
 

@@ -228,6 +228,67 @@ export class EmployerService {
         return employerRepository.getStats(employerId);
     }
 
+    async compareCandidates(employerId: number, candidateIds: number[], context?: { skills?: string[], sector?: string }) {
+        const candidates = await employerRepository.getByIds(candidateIds);
+        
+        return candidates.map(c => {
+            // 1. Calculate NSQF Level (Max among issued certs)
+            const maxNsqf = c.credentials.reduce((max, curr) => {
+                return (curr.nsqf_level && curr.nsqf_level > max) ? curr.nsqf_level : max;
+            }, 0);
+
+            // 2. Skill Count
+            // Aggregate unique skills from profile (allSkills) + credentials (topSkills if mapped)
+            let skillCount = 0;
+            const uniqueSkills = new Set<string>();
+            
+            if (c.skillProfile?.data) {
+                const data: any = c.skillProfile.data;
+                if (Array.isArray(data.allSkills)) {
+                    data.allSkills.forEach((s: any) => {
+                        const name = typeof s === 'string' ? s : s.name;
+                        if (name) uniqueSkills.add(name.toLowerCase());
+                    });
+                }
+            }
+            skillCount = uniqueSkills.size;
+
+            // 3. Fit Score Calculation
+            let fitScore = 85; // Default baseline if no context
+            if (context && context.skills && context.skills.length > 0) {
+                const requiredSkills = context.skills.map(s => s.toLowerCase());
+                const matches = requiredSkills.filter(req => uniqueSkills.has(req)).length;
+                
+                // Formula: (Matches / Required) * 100
+                // We give a base of 40 even with 0 matches just for being fetched
+                fitScore = Math.min(100, Math.round((matches / requiredSkills.length) * 100)); // Strict percentage
+            } else {
+                // Heuristic based on profile completeness + nsqf
+                fitScore = Math.min(98, 70 + (maxNsqf * 3) + (skillCount > 5 ? 10 : 0));
+            }
+
+            // 4. Issuer Trust Score (Mocked / Usage of top issuer)
+            // In future, this comes from Issuer table. For now, if they have issued certs from known bodies, high score.
+            let trustScore = 75;
+            if (c.credentials.length > 0) {
+                trustScore = 92; // Baseline for verified credentials
+                // Adjust slightly based on count? 
+                if (c.credentials.length > 3) trustScore += 4;
+            }
+
+            return {
+                id: c.id,
+                name: c.name,
+                avatar: c.profileUrl,
+                nsqf_level: maxNsqf || 'N/A',
+                skills_count: skillCount,
+                fit_score: fitScore,
+                issuer_trust_score: Math.min(100, trustScore),
+                top_skills: Array.from(uniqueSkills).slice(0, 5) // Send top 5 for display
+            };
+        });
+    }
+
     private sanitize(employer: any) {
         const { password_hash, ...rest } = employer;
         return rest;

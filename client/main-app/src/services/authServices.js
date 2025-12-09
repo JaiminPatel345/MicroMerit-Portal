@@ -76,10 +76,14 @@ export const employerApi = {
   register: (payload) => api.post('/auth/employer/register', payload),
   getProfile: () => api.get('/employer/me'),
   updateProfile: (payload) => api.put('/employer/me', payload),
+  searchCandidates: (filters) => api.get('/employer/search', { params: filters }),
+  compareCandidates: (data) => api.post('/employer/compare', data),
+  getPublicProfile: (id) => api.get(`/employer/candidate/${id}`),
+  
+  // Stats
   getDashboardStats: () => api.get('/employer/dashboard'),
   verifyCredential: (payload) => api.post('/employer/verify', payload),
   bulkVerify: (payload) => api.post('/employer/verify/bulk', payload),
-  searchCandidates: (params) => api.get('/employer/search', { params }),
   verifyEmail: (payload) => api.post('/auth/employer/verify-email', payload),
   extractIdFromDoc: (formData) => api.post('/employer/extract-id', formData, { 
     headers: { 'Content-Type': 'multipart/form-data' } 

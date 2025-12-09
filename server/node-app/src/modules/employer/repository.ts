@@ -132,147 +132,181 @@ export const employerRepository = {
         keyword?: string,
         issuer?: string
     }) {
-        const strictFilterIds = new Set<number>();
-        const searchMatchIds = new Set<number>();
-        
-        const hasStrictFilters = !!(filters.sector || filters.nsqf_level || filters.job_role || filters.issuer);
-        const hasSearchTerm = !!(filters.keyword || (filters.skills && filters.skills.length > 0));
+        try {
+            // Base query to find learners
+            // We'll use raw query to handle the complex JSON filtering for skills effectively
+            
+            const conditions: string[] = [`l.status = 'active'`];
+            const params: any[] = [];
+            let paramCount = 1;
 
-        // --- STAGE 1: Strict Filters (AND logic) ---
-        // These MUST be met. They are all based on Credentials.
-        if (hasStrictFilters) {
-            const credConditions: any[] = []; // Typed as any to support new fields like sector/nsqf_level
-            
-            if (filters.sector) credConditions.push({ sector: { contains: filters.sector, mode: 'insensitive' } });
-            if (filters.job_role) credConditions.push({ certificate_title: { contains: filters.job_role, mode: 'insensitive' } });
-            if (filters.issuer) credConditions.push({ issuer: { name: { contains: filters.issuer, mode: 'insensitive' } } });
-            
+            // --- 1. SECTOR FILTER (Strict) ---
+            if (filters.sector) {
+                // Find learners who have at least one issued credential in this sector
+                conditions.push(`EXISTS (
+                    SELECT 1 FROM "Credential" c 
+                    WHERE c.learner_id = l.id 
+                    AND c.status = 'issued'
+                    AND c.sector ILIKE $${paramCount++}
+                )`);
+                params.push(`%${filters.sector}%`);
+            }
+
+            // --- 2. NSQF LEVEL FILTER (Strict) ---
             if (filters.nsqf_level) {
-                const level = Number(filters.nsqf_level);
-                if (!isNaN(level)) credConditions.push({ nsqf_level: { equals: level } });
+                conditions.push(`EXISTS (
+                    SELECT 1 FROM "Credential" c 
+                    WHERE c.learner_id = l.id 
+                    AND c.status = 'issued'
+                    AND c.nsqf_level = $${paramCount++}
+                )`);
+                params.push(filters.nsqf_level);
             }
 
-            const creds = await prisma.credential.findMany({
-                where: {
-                    status: 'issued',
-                    learner: { isNot: null },
-                    AND: credConditions as any
-                },
-                select: { learner_id: true }
-            });
-            creds.forEach(c => c.learner_id && strictFilterIds.add(c.learner_id));
-            
-            // If strict filters are applied but no one matches, we can return early (intersection will be empty)
-            if (strictFilterIds.size === 0) return [];
-        }
+            // --- 3. ISSUER FILTER (Strict) ---
+            if (filters.issuer) {
+                 conditions.push(`EXISTS (
+                    SELECT 1 FROM "Credential" c 
+                    JOIN "issuer" i ON c.issuer_id = i.id
+                    WHERE c.learner_id = l.id 
+                    AND c.status = 'issued'
+                    AND i.name ILIKE $${paramCount++}
+                )`);
+                params.push(`%${filters.issuer}%`);
+            }
 
-        // --- STAGE 2: Search Query (OR logic across fields) ---
-        // Keyword matches Name OR Credential Title OR Profile
-        // Skills matches Profile
-        if (hasSearchTerm) {
-            // A. Search Credentials for Keyword
-            if (filters.keyword) {
-                const creds = await prisma.credential.findMany({
-                    where: {
-                        status: 'issued',
-                        OR: [
-                            { certificate_title: { contains: filters.keyword, mode: 'insensitive' } },
-                            { issuer: { name: { contains: filters.keyword, mode: 'insensitive' } } }
-                        ]
-                    },
-                    select: { learner_id: true }
-                });
-                creds.forEach(c => c.learner_id && searchMatchIds.add(c.learner_id));
+             // --- 4. JOB ROLE FILTER (Strict - on Title) ---
+            if (filters.job_role) {
+                conditions.push(`EXISTS (
+                    SELECT 1 FROM "Credential" c 
+                    WHERE c.learner_id = l.id 
+                    AND c.status = 'issued'
+                    AND c.certificate_title ILIKE $${paramCount++}
+                )`);
+                params.push(`%${filters.job_role}%`);
+            }
+
+
+            // --- 5. SKILLS FILTER (Strict JSON check) ---
+            // Check in LearnerSkillProfile.data -> allSkills (array of strings or objects)
+            if (filters.skills && filters.skills.length > 0) {
+                // We want learners where ANY of the requested skills exist in their profile
+                // JSON structure: data: { allSkills: ["Java", {name: "Python"}] }
                 
-                // Search Users by Name
-                const learners = await prisma.learner.findMany({
-                    where: { name: { contains: filters.keyword, mode: 'insensitive' } },
-                    select: { id: true }
-                });
-                learners.forEach(l => searchMatchIds.add(l.id));
+                // Construct a robust JSON path OR check
+                // This checks if any of the filter skills exist in the allSkills array (handling both string/object)
+                const skillConditions = filters.skills.map(skill => {
+                    const p = `$${paramCount++}`;
+                    params.push(`%${skill.trim()}%`);
+                    // Check if skill string exists OR if object with name exists
+                     return `(
+                        EXISTS (
+                            SELECT 1 FROM jsonb_array_elements(lsp.data -> 'allSkills') as skill
+                            WHERE (jsonb_typeof(skill) = 'string' AND skill #>> '{}' ILIKE ${p})
+                            OR (jsonb_typeof(skill) = 'object' AND skill ->> 'name' ILIKE ${p})
+                        )
+                        OR
+                        EXISTS (
+                            SELECT 1 FROM jsonb_array_elements(lsp.data -> 'topSkills') as start_skill
+                            WHERE (jsonb_typeof(start_skill) = 'string' AND start_skill #>> '{}' ILIKE ${p})
+                            OR (jsonb_typeof(start_skill) = 'object' AND start_skill ->> 'skill' ILIKE ${p}) 
+                        )
+                    )`;
+                }).join(' OR ');
+
+                conditions.push(`(${skillConditions})`);
             }
 
-            // B. Search Profile for Keyword OR Skills
-            let profileTerm = filters.keyword || "";
-            if (filters.skills) {
-                 if (Array.isArray(filters.skills)) profileTerm += " " + filters.skills.join(' ');
-                 else profileTerm += " " + filters.skills;
-            }
+             // --- 6. KEYWORD SEARCH (Broad) ---
+             if (filters.keyword) {
+                const p = `$${paramCount++}`;
+                params.push(`%${filters.keyword}%`);
+                
+                conditions.push(`(
+                    l.name ILIKE ${p}
+                    OR l.email ILIKE ${p}
+                    OR EXISTS (
+                        SELECT 1 FROM "Credential" c 
+                        JOIN "issuer" i ON c.issuer_id = i.id
+                        WHERE c.learner_id = l.id 
+                        AND c.status = 'issued'
+                        AND (c.certificate_title ILIKE ${p} OR i.name ILIKE ${p})
+                    )
+                     OR EXISTS (
+                        SELECT 1 FROM "LearnerSkillProfile" lsp2
+                        WHERE lsp2.learner_id = l.id
+                        AND lsp2.data::text ILIKE ${p}
+                    )
+                )`);
+             }
+
+            // JOIN with SkillProfile to enable skill filtering
+            const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+            const query = `
+                SELECT DISTINCT l.id 
+                FROM "learner" l
+                LEFT JOIN "LearnerSkillProfile" lsp ON l.id = lsp.learner_id
+                ${whereClause}
+                ORDER BY l.id DESC
+                LIMIT 50
+            `;
             
-            if (profileTerm.trim().length > 0) {
-                 try {
-                    const profiles = await prisma.$queryRawUnsafe<{ learner_id: number }[]>(
-                        `SELECT learner_id FROM "LearnerSkillProfile" WHERE data::text ILIKE $1`,
-                        `%${profileTerm.trim()}%`
-                    );
-                    profiles.forEach(p => searchMatchIds.add(p.learner_id));
-                } catch (e) {
-                    console.error("SkillProfile raw search failed", e);
-                }
-            }
+            // console.log("Search Query:", query, params);
+
+            const result = await prisma.$queryRawUnsafe<{ id: number }[]>(query, ...params);
+            
+            const learnerIds = result.map(r => r.id);
+
+            if (learnerIds.length === 0) return [];
+
+             // Fetch full details
+             const candidates = await prisma.learner.findMany({
+                where: {
+                    id: { in: learnerIds }
+                },
+                include: {
+                    credentials: {
+                        where: { status: 'issued' },
+                        include: { issuer: { select: { name: true } } },
+                        take: 1 // Just take one for display
+                    },
+                    skillProfile: true
+                },
+                take: 50
+            });
+
+             // Post-process to optimize display
+            return candidates.map(learner => {
+                let matchedCred = learner.credentials[0];
+                return {
+                    ...learner,
+                    matched_credential: matchedCred ? {
+                        title: matchedCred.certificate_title,
+                        issuer: matchedCred.issuer.name,
+                        issued_at: matchedCred.issued_at
+                    } : null
+                };
+            });
+
+        } catch (error) {
+            console.error("Search failed:", error);
+            return []; // Fail safe to empty array
         }
+    },
 
-        // --- STAGE 3: Combine (INTERSECTION) ---
-        let finalIds: number[] = [];
-
-        if (hasStrictFilters && hasSearchTerm) {
-            // Intersection
-            finalIds = Array.from(strictFilterIds).filter(id => searchMatchIds.has(id));
-        } else if (hasStrictFilters) {
-            // Only strict
-            finalIds = Array.from(strictFilterIds);
-        } else if (hasSearchTerm) {
-            // Only search
-            finalIds = Array.from(searchMatchIds);
-        } else {
-            // Neither (Show Recent Default)
-             const allLearners = await prisma.learner.findMany({ take: 50, orderBy: { created_at: 'desc' }, select: { id: true } });
-             finalIds = allLearners.map(l => l.id);
-        }
-
-        // If filtering attempted but nothing matched
-        if ((hasStrictFilters || hasSearchTerm) && finalIds.length === 0) {
-            return [];
-        }
-
-        const learnerIds = new Set(finalIds);
-
-        // 4. Fetch Details for collected IDs
-        const candidates = await prisma.learner.findMany({
+    async getByIds(ids: number[]) {
+        return prisma.learner.findMany({
             where: {
-                id: { in: Array.from(learnerIds) }
+                id: { in: ids }
             },
             include: {
                 credentials: {
                     where: { status: 'issued' },
-                    include: { issuer: { select: { name: true } } },
-                    take: 1 // Just take one for display if matched
+                    include: { issuer: { select: { name: true, logo_url: true } } }
                 },
                 skillProfile: true
-            },
-            take: 50
-        });
-
-        // 5. Post-process to add matched_credential / matched_skill info for UI
-        return candidates.map(learner => {
-            // Try to find the best matching credential
-            let matchedCred = learner.credentials[0];
-            if (filters.keyword || filters.job_role) {
-                const matchTerm = filters.keyword || filters.job_role || '';
-                const betterMatch = learner.credentials.find(c =>
-                    c.certificate_title.toLowerCase().includes(matchTerm.toLowerCase())
-                );
-                if (betterMatch) matchedCred = betterMatch;
             }
-
-            return {
-                ...learner,
-                matched_credential: matchedCred ? {
-                    title: matchedCred.certificate_title,
-                    issuer: matchedCred.issuer.name,
-                    issued_at: matchedCred.issued_at
-                } : null
-            };
         });
     }
 };
