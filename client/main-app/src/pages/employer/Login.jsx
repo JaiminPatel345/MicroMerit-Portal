@@ -100,6 +100,11 @@ const EmployerLogin = () => {
                             onChange={handleChange}
                         />
                     </div>
+                    <div className="flex justify-end">
+                        <Link to="/employer/forgot-password" className="text-sm text-blue-chill-600 hover:text-blue-chill-700 font-medium">
+                            Forgot password?
+                        </Link>
+                    </div>
 
                     <button
                         type="submit"
