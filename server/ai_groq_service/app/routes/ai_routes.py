@@ -234,6 +234,7 @@ async def append_qr(
         raise HTTPException(status_code=500, detail=f"Failed to process PDF: {str(e)}")
 
 
+<<<<<<< HEAD
 @router.post("/stackability", response_model=StackabilityResponse)
 async def analyze_stackability(request: StackabilityRequest):
     """
@@ -247,3 +248,118 @@ async def analyze_stackability(request: StackabilityRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+=======
+
+@router.post("/extract-certificate-id")
+async def extract_certificate_id(
+    file: UploadFile = File(...),
+    issuer_name: str = Form(None),
+):
+    """
+    Minimal endpoint: extract only the certificate number from a certificate image/PDF.
+    Uses regex + scoring logic in OCR Service, with optional AI fallback.
+    """
+    try:
+        file_bytes = await file.read()
+        
+        # 1) Extract full OCR text (uses your OCR pipeline which handles pdfs/images)
+        extracted_text = ocr_service.extract_text(file_bytes, file.filename or "uploaded_file")
+        
+        # 2) Use refactored logic in OCR Service
+        result = await ocr_service.extract_certificate_number_from_text(extracted_text)
+        
+        # 3) Optional AI Fallback if result is weak
+        # If status is not found or review needed, check if we can improve it
+        if result["status"] == "not_found" or result["confidence"] < 70.0:
+            import re
+            
+            try:
+                ai_meta = skill_extraction_service.extract_skills_and_metadata(
+                    extracted_text=extracted_text,
+                    certificate_title="",
+                    issuer_name=issuer_name or "",
+                    nsqf_context=[]
+                ).get("certificate_metadata", {}) or {}
+                
+                for key in ("certificate_number", "certificate_no", "cert_no", "credential_id", "reference_no"):
+                     val = ai_meta.get(key)
+                     if val:
+                        val = str(val).strip()
+                        # Simple check if meaningful
+                        if len(val) > 4:
+                            # Override logic: If meaningful AI result found when regex failed
+                            return {
+                                "certificate_number": val,
+                                "confidence": 85.0, # AI usually good
+                                "status": "found",
+                                "candidate": {"value": val, "evidence": "ai_extracted", "score": 85.0}
+                            }
+            except Exception as e:
+                logger.warning(f"AI Fallback failed: {e}")
+                
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[extract-certificate-id] error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/extract-bulk-ids")
+async def extract_bulk_ids(
+    file: UploadFile = File(...)
+):
+    """
+    Efficiently extract IDs from a ZIP file containing multiple certificates.
+    Fast: Unzips in memory and runs Regex-based extraction on each.
+    Returns: List of results.
+    """
+    import zipfile
+    import io
+    
+    if not file.filename.lower().endswith('.zip'):
+        raise HTTPException(status_code=400, detail="File must be a ZIP archive.")
+        
+    try:
+        file_bytes = await file.read()
+        results = []
+        
+        with zipfile.ZipFile(io.BytesIO(file_bytes)) as z:
+            # Filter for valid image/pdf files
+            valid_files = [n for n in z.namelist() if n.lower().endswith(('.pdf', '.png', '.jpg', '.jpeg', '.webp')) and not n.startswith('__MACOSX')]
+            
+            logger.info(f"Processing ZIP with {len(valid_files)} valid files")
+            
+            for filename in valid_files:
+                try:
+                    with z.open(filename) as f:
+                        content = f.read()
+                        
+                        # Run OCR extraction
+                        # Note: We skip the heavy AI fallback for bulk to keep it fast
+                        extracted_text = ocr_service.extract_text(content, filename)
+                        res = await ocr_service.extract_certificate_number_from_text(extracted_text)
+                        
+                        results.append({
+                            "filename": filename,
+                            "certificate_number": res["certificate_number"],
+                            "status": res["status"],
+                            "confidence": res["confidence"]
+                        })
+                except Exception as file_err:
+                     logger.error(f"Failed to process {filename} in zip: {file_err}")
+                     results.append({
+                         "filename": filename,
+                         "certificate_number": None,
+                         "status": "error",
+                         "confidence": 0.0,
+                         "error": str(file_err)
+                     })
+                     
+        return {"success": True, "total": len(results), "results": results}
+
+    except Exception as e:
+        logger.error(f"[extract-bulk-ids] error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+>>>>>>> 30b43c956e36346684ee930ffdbdc63ecea55900
