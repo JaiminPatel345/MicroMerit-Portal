@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Phone, ArrowLeft } from 'lucide-react';
-import { signUpLeaner, signInIssuer } from '../services/authServices';
+import { signUpLeaner, signInIssuer, forgotPasswordLearner, forgotPasswordEmployer, forgotPasswordIssuer } from '../services/authServices';
 import { useDispatch } from 'react-redux';
 import { issuerLoginSuccess } from '../store/authIssuerSlice';
 import { learnerLoginSuccess } from '../store/authLearnerSlice';
@@ -80,7 +80,33 @@ const VerifyOTP = () => {
     }
 
     try {
+      // Handle password reset flow
+      if (verificationType === 'password-reset') {
+        let response;
+        const payload = { sessionId, otp: otpCode };
+        
+        if (type === 'employer') {
+          response = await forgotPasswordEmployer.verify(payload);
+        } else if (type === 'issuer') {
+          response = await forgotPasswordIssuer.verify(payload);
+        } else {
+          response = await forgotPasswordLearner.verify(payload);
+        }
 
+        if (response?.data?.success === true) {
+          // Navigate to reset password page
+          navigate('/reset-password', {
+            state: {
+              sessionId,
+              otp: otpCode,
+              type,
+            }
+          });
+        }
+        return;
+      }
+
+      // Handle registration flow
       if (type === 'issuer') {
         const response = await signInIssuer.verify({ sessionId, otp: otpCode });
 
@@ -115,18 +141,33 @@ const VerifyOTP = () => {
       setError(err.response?.data?.message || 'OTP verification failed. Please try again.');
       return;
     }
-
-
-
   };
 
   const handleResendOTP = async () => {
     if (!canResend) return;
 
-    setCanResend(false);
-    setResendTimer(30);
-    setOtp(['', '', '', '', '', '']);
-    setError('');
+    try {
+      let response;
+      const payload = { sessionId };
+      
+      if (type === 'employer') {
+        response = await forgotPasswordEmployer.resend(payload);
+      } else if (type === 'issuer') {
+        response = await forgotPasswordIssuer.resend(payload);
+      } else {
+        response = await forgotPasswordLearner.resend(payload);
+      }
+
+      if (response?.data?.success === true) {
+        setNotification('OTP resent successfully', 'success');
+        setCanResend(false);
+        setResendTimer(30);
+        setOtp(['', '', '', '', '', '']);
+        setError('');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to resend OTP. Please try again.');
+    }
   };
 
   return (
