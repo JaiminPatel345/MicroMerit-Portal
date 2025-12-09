@@ -4,13 +4,16 @@ from app.models.schemas import (
     RecommendationResponse, 
     OCRResponse,
     EmployerChatRequest,
-    EmployerChatResponse
+    EmployerChatResponse,
+    StackabilityRequest,
+    StackabilityResponse
 )
 from app.services.recommendation_service import recommendation_service
 from app.services.ocr_service import ocr_service
 from app.services.skill_extraction_service import skill_extraction_service
 from app.services.employer_chatbot_service import employer_chatbot_service
 from app.services.groq_service import groq_service
+from app.services.stackability_service import stackability_service
 import logging
 
 logger = logging.getLogger(__name__)
@@ -229,5 +232,18 @@ async def append_qr(
     except Exception as e:
         logger.error(f"Error appending QR code: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to process PDF: {str(e)}")
+
+
+@router.post("/stackability", response_model=StackabilityResponse)
+async def analyze_stackability(request: StackabilityRequest):
+    """
+    Analyze stackability of a qualification and suggest next progression steps.
+    """
+    try:
+        result = stackability_service.generate_stackable_path(request)
+        return result
+    except Exception as e:
+        logger.error(f"Stackability error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
