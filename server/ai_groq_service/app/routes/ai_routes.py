@@ -234,7 +234,6 @@ async def append_qr(
         raise HTTPException(status_code=500, detail=f"Failed to process PDF: {str(e)}")
 
 
-<<<<<<< HEAD
 @router.post("/stackability", response_model=StackabilityResponse)
 async def analyze_stackability(request: StackabilityRequest):
     """
@@ -248,7 +247,6 @@ async def analyze_stackability(request: StackabilityRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-=======
 
 @router.post("/extract-certificate-id")
 async def extract_certificate_id(
