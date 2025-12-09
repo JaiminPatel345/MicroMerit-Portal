@@ -5,6 +5,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
+import axios from 'axios';
 import { Connector, CanonicalCredential, SyncJobResult, SyncState } from './types';
 import { createConnector, getAllEnabledConnectors, getProviderConfig } from './connector.factory';
 import { externalCredentialSyncRepository } from './repository';
@@ -263,15 +264,78 @@ class ExternalCredentialSyncService {
             network,
             contract_address: contractAddress,
             ipfs_cid: null,
-            pdf_url: canonical.certificate_url || null, // Use certificate URL if provided by external provider
+            pdf_url: null,
             tx_hash: null,
             data_hash: null,
         });
         const dataHash = computeDataHash(canonicalJson);
 
-        // Store certificate_url from external provider as the pdf_url
-        const pdfUrl = canonical.certificate_url || null;
-        const ipfsCid = canonical.certificate_url || null; // Store URL as ipfs_cid for external credentials
+        // Download PDF from external provider and upload to IPFS
+        let pdfUrl: string | null = null;
+        let ipfsCid: string | null = null;
+
+        if (canonical.certificate_url) {
+            try {
+                logger.info('Downloading PDF from external provider', {
+                    credential_id: credentialId,
+                    certificate_url: canonical.certificate_url
+                });
+
+                // Get provider config for authentication
+                const providerId = canonical.tags && canonical.tags.length > 0 ? canonical.tags[0] : null;
+                const providerConfig = providerId ? getProviderConfig(providerId) : null;
+
+                // Download PDF from external provider
+                const headers: Record<string, string> = {};
+                if (providerConfig?.credentials.api_key) {
+                    headers['X-API-Key'] = providerConfig.credentials.api_key;
+                }
+
+                const response = await axios.get(canonical.certificate_url, {
+                    responseType: 'arraybuffer',
+                    headers,
+                    timeout: 30000, // 30 second timeout
+                });
+
+                const pdfBuffer = Buffer.from(response.data);
+
+                logger.info('PDF downloaded, uploading to Filebase', {
+                    credential_id: credentialId,
+                    size: pdfBuffer.length
+                });
+
+                // Upload to Filebase/IPFS
+                const uploadResult = await uploadToFilebase(
+                    pdfBuffer,
+                    `credential-${credentialId}.pdf`,
+                    'application/pdf'
+                );
+
+                ipfsCid = uploadResult.cid;
+                pdfUrl = uploadResult.gateway_url;
+
+                logger.info('PDF uploaded to IPFS', {
+                    credential_id: credentialId,
+                    ipfs_cid: ipfsCid,
+                    gateway_url: pdfUrl
+                });
+
+            } catch (error: any) {
+                logger.error('Failed to download/upload PDF from external provider', {
+                    credential_id: credentialId,
+                    certificate_url: canonical.certificate_url,
+                    error_message: error.message,
+                    error_code: error.code,
+                    response_status: error.response?.status,
+                    response_headers: error.response?.headers
+                });
+
+                // Continue without PDF - we'll still create the credential
+                // Store the original URL as fallback
+                pdfUrl = canonical.certificate_url;
+                ipfsCid = null;
+            }
+        }
 
         logger.info('Creating external credential', {
             credential_id: credentialId,

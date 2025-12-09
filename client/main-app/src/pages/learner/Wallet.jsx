@@ -145,7 +145,6 @@ const CertificateRow = ({ cert }) => {
         `Issued by ${cert.issuer?.name || 'Unknown Issuer'}. This credential verifies the completion of the course and mastery of the subject matter.`;
 
     return (
-         <Link to={`/credential/${cert.id}`} >
         <div className="p-6 flex flex-col sm:flex-row justify-between items-start gap-4 hover:bg-gray-50 transition-colors">
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
@@ -186,12 +185,11 @@ const CertificateRow = ({ cert }) => {
                 <Link
                     to={`/credential/${cert.id}`}
                     className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                    >
+                >
                     View Details
                 </Link>
             </div>
         </div>
-     </Link>
     );
 };
 

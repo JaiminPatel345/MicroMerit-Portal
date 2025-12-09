@@ -6,6 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { getCredentialsSince, getCredentialsByProvider } from '../data/seed.js';
 import { JaiminCredentialResponse } from '../types/index.js';
+import { generatePDFFromCredential } from '../utils/pdf-generator.js';
 
 const router = Router();
 
@@ -66,6 +67,7 @@ router.get('/api/certs', verifyApiKey, (req: Request, res: Response) => {
         issued_by: c.awarding_bodies,
         role: c.occupation,
         tags: c.tags,
+        certificate_url: `${req.protocol}://${req.get('host')}/jaimin/api/certs/${c.id}/pdf`,
     }));
 
     res.json({
@@ -111,12 +113,54 @@ router.get('/api/certs/:id', verifyApiKey, (req: Request, res: Response) => {
         issued_by: credential.awarding_bodies,
         role: credential.occupation,
         tags: credential.tags,
+        certificate_url: `${req.protocol}://${req.get('host')}/jaimin/api/certs/${credential.id}/pdf`,
     };
 
     res.json({
         success: true,
         data: jaiminCredential,
     });
+});
+
+/**
+ * GET /jaimin/api/certs/:id/pdf
+ * Download certificate PDF
+ */
+router.get('/api/certs/:id/pdf', verifyApiKey, async (req: Request, res: Response) => {
+    const credentials = getCredentialsByProvider('jaimin');
+    const credential = credentials.find(c => c.id === req.params.id);
+
+    if (!credential) {
+        res.status(404).json({
+            success: false,
+            error: 'Not found',
+            message: 'Certificate not found'
+        });
+        return;
+    }
+
+    try {
+        // Generate PDF
+        const pdfBuffer = await generatePDFFromCredential(credential);
+
+        // Set headers for PDF download
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="certificate-${credential.id}.pdf"`
+        );
+        res.setHeader('Content-Length', pdfBuffer.length);
+
+        // Send PDF
+        res.send(pdfBuffer);
+    } catch (error: any) {
+        console.error('PDF generation failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'PDF generation failed',
+            message: error.message
+        });
+    }
 });
 
 /**
