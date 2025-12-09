@@ -193,7 +193,14 @@ export class EmployerService {
         const results = await Promise.all(credentialIds.map(async (id) => {
             try {
                 const res = await credentialVerificationService.verifyCredential({ credential_id: id });
-                return { id, status: res.status, valid: res.status === 'VALID' };
+                return { 
+                    id, 
+                    status: res.status, 
+                    valid: res.status === 'VALID',
+                    credential: res.credential,
+                    verified_fields: res.verified_fields,
+                    reason: res.reason
+                };
             } catch (e: any) {
                 return { id, status: 'ERROR', error: e.message };
             }

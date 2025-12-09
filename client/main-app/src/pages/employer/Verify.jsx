@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { employerApi } from '../../services/authServices';
-import { FileCheck, AlertCircle, CheckCircle, XCircle, Search, Loader, Globe, FileText, ArrowLeft, Copy, Check } from 'lucide-react';
+import { FileCheck, AlertCircle, CheckCircle, XCircle, Search, Loader, Globe, FileText, ArrowLeft, Copy, Check, Camera, Eye, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import CameraCapture from '../../components/CameraCapture';
 
 const CopyButton = ({ text }) => {
     const [copied, setCopied] = useState(false);
@@ -17,6 +18,99 @@ const CopyButton = ({ text }) => {
     );
 };
 
+const CredentialModal = ({ result, onClose }) => {
+    if (!result || !result.credential) return null;
+    const { credential } = result;
+
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex justify-between items-center z-10">
+                    <h3 className="text-xl font-bold text-gray-900">Credential Details</h3>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
+                        <X size={20} />
+                    </button>
+                </div>
+                
+                <div className="p-6 space-y-6">
+                    {/* Status Header */}
+                    <div className="flex items-center gap-3 p-4 bg-green-50 rounded-xl border border-green-100 text-green-800">
+                        <CheckCircle size={24} className="text-green-600" />
+                        <div>
+                            <p className="font-bold">Valid Credential</p>
+                            <p className="text-sm opacity-90">ID: {credential.credential_id}</p>
+                        </div>
+                    </div>
+
+                    {/* Main Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <div>
+                            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Certificate Title</p>
+                            <p className="font-medium text-gray-900 text-lg">{credential.certificate_title}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Issued On</p>
+                            <p className="font-medium text-gray-900">{formatDate(credential.issued_at)}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Learner Email</p>
+                            <p className="font-medium text-gray-900">{credential.learner_email}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Issuer</p>
+                            <p className="font-medium text-gray-900">{credential.issuer?.name || 'Unknown Issuer'}</p>
+                        </div>
+                    </div>
+
+                    {/* Metadata */}
+                     {credential.metadata && (
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                             <h4 className="text-sm font-bold text-gray-700 mb-3">Additional Metadata</h4>
+                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {Object.entries(credential.metadata).map(([key, value]) => (
+                                    <div key={key}>
+                                        <p className="text-xs text-gray-500 uppercase mb-0.5">{key.replace(/_/g, ' ')}</p>
+                                        <p className="text-sm font-medium text-gray-900 truncate" title={String(value)}>{String(value)}</p>
+                                    </div>
+                                ))}
+                             </div>
+                        </div>
+                    )}
+
+                    {/* Links */}
+                     <div className="flex flex-wrap gap-3 pt-2">
+                        {credential.tx_hash && (
+                            <a
+                                href={`https://sepolia.etherscan.io/tx/${credential.tx_hash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                            >
+                                <Globe className="mr-2 h-4 w-4" /> Blockchain Record
+                            </a>
+                        )}
+                        {credential.pdf_url && (
+                             <a
+                                href={credential.pdf_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center px-4 py-2 bg-blue-chill-600 text-white text-sm font-medium rounded-lg hover:bg-blue-chill-700 transition-colors shadow-lg shadow-blue-chill-600/20"
+                            >
+                                <FileText className="mr-2 h-4 w-4" /> View PDF
+                            </a>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const EmployerVerify = () => {
     const [activeTab, setActiveTab] = useState('single');
     const [inputValue, setInputValue] = useState('');
@@ -27,6 +121,32 @@ const EmployerVerify = () => {
 
     const [bulkIds, setBulkIds] = useState('');
     const [bulkResults, setBulkResults] = useState(null);
+    const [showCamera, setShowCamera] = useState(false);
+    const [selectedResult, setSelectedResult] = useState(null);
+
+    const handleCameraCapture = async (file) => {
+        setLoading(true);
+        setError('');
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await employerApi.extractIdFromDoc(formData);
+            
+            if (res.data.success && res.data.data.found && res.data.data.credential_id) {
+                setInputValue(res.data.data.credential_id);
+                if (res.data.data.status === 'needs_review') {
+                    setError(`ID found with confidence ${res.data.data.confidence}%. Please verify: ${res.data.data.credential_id}`);
+                }
+            } else {
+                setError(res.data.data?.message || 'No Credential ID found in image. Please enter manually.');
+            }
+        } catch (err) {
+            console.error(err);
+            setError(err.response?.data?.message || 'Failed to process image');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Auto-detect input type logic from Verification.jsx
     const detectInputType = (value) => {
@@ -171,10 +291,10 @@ const EmployerVerify = () => {
                             </div>
                         </div>
 
-                         <div className="mb-8">
-                             <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-chill-400 transition-colors cursor-pointer"
-                                  onClick={() => document.getElementById('single-file-upload').click()}>
-                                <div className="space-y-1 text-center">
+                        <div className="mb-8 relative bg-white p-6 rounded-xl border-2 border-dashed border-gray-300 hover:border-blue-chill-400 transition-colors">
+                            <div className="flex flex-col md:flex-row items-center justify-center gap-6">
+                                {/* Upload Option */}
+                                <div className="flex-1 text-center border-r md:border-r-gray-200 md:pr-6 w-full">
                                     {loading ? (
                                         <div className="py-4 flex flex-col items-center justify-center">
                                             <Loader className="h-10 w-10 text-blue-chill-600 animate-spin mb-2" />
@@ -182,51 +302,65 @@ const EmployerVerify = () => {
                                         </div>
                                     ) : (
                                         <>
-                                            <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                                            <div className="flex text-sm text-gray-600">
-                                                <label htmlFor="single-file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-chill-600 hover:text-blue-chill-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-chill-500">
-                                                    <span>Upload Document</span>
-                                                    <input 
-                                                        id="single-file-upload" 
-                                                        name="single-file-upload" 
-                                                        type="file" 
-                                                        accept=".pdf,.png,.jpg,.jpeg" 
-                                                        className="sr-only"
-                                                        onChange={async (e) => {
-                                                            const file = e.target.files[0];
-                                                            if (file) {
-                                                                setLoading(true);
-                                                                setError('');
-                                                                try {
-                                                                    const formData = new FormData();
-                                                                    formData.append('file', file);
-                                                                    const res = await employerApi.extractIdFromDoc(formData);
-                                                                    
-                                                                    if (res.data.success && res.data.data.found && res.data.data.credential_id) {
-                                                                        setInputValue(res.data.data.credential_id);
-                                                                        if (res.data.data.status === 'needs_review') {
-                                                                            setError(`ID found with confidence ${res.data.data.confidence}%. Please verify: ${res.data.data.credential_id}`);
-                                                                        }
-                                                                    } else {
-                                                                        setError(res.data.data?.message || 'No Credential ID found in document. Please enter manually.');
+                                            <FileText className="mx-auto h-10 w-10 text-gray-400 mb-2" />
+                                            <label htmlFor="single-file-upload" className="block relative cursor-pointer group">
+                                                <span className="font-medium text-blue-chill-600 group-hover:text-blue-chill-700">Upload Document</span>
+                                                <input 
+                                                    id="single-file-upload" 
+                                                    type="file" 
+                                                    accept=".pdf,.png,.jpg,.jpeg" 
+                                                    className="sr-only"
+                                                    disabled={loading}
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files[0];
+                                                        if (file) {
+                                                            setLoading(true);
+                                                            setError('');
+                                                            try {
+                                                                const formData = new FormData();
+                                                                formData.append('file', file);
+                                                                const res = await employerApi.extractIdFromDoc(formData);
+                                                                
+                                                                if (res.data.success && res.data.data.found && res.data.data.credential_id) {
+                                                                    setInputValue(res.data.data.credential_id);
+                                                                    if (res.data.data.status === 'needs_review') {
+                                                                        setError(`ID found with confidence ${res.data.data.confidence}%. Please verify: ${res.data.data.credential_id}`);
                                                                     }
-                                                                } catch (err) {
-                                                                    console.error(err);
-                                                                    setError(err.response?.data?.message || 'Failed to process document');
-                                                                } finally {
-                                                                    setLoading(false);
-                                                                    // Reset file input
-                                                                    e.target.value = null;
+                                                                } else {
+                                                                    setError(res.data.data?.message || 'No Credential ID found in document. Please enter manually.');
                                                                 }
+                                                            } catch (err) {
+                                                                console.error(err);
+                                                                setError(err.response?.data?.message || 'Failed to process document');
+                                                            } finally {
+                                                                setLoading(false);
+                                                                e.target.value = null;
                                                             }
-                                                        }}
-                                                    />
-                                                </label>
-                                                <p className="pl-1">PDF or Image</p>
-                                            </div>
-                                            <p className="text-xs text-gray-500">Supported: PDF, PNG, JPG</p>
+                                                        }
+                                                    }}
+                                                />
+                                            </label>
+                                            <p className="text-xs text-gray-500 mt-1">PDF, PNG, JPG</p>
                                         </>
                                     )}
+                                </div>
+
+                                {/* Divider or "OR" text for mobile */}
+                                <div className="block md:hidden w-full border-b border-gray-200 relative my-2">
+                                     <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-white px-2 text-xs text-gray-400">OR</span>
+                                </div>
+
+                                {/* Camera Option */}
+                                <div className="flex-1 text-center w-full">
+                                    <button 
+                                        onClick={() => setShowCamera(true)}
+                                        disabled={loading}
+                                        className="flex flex-col items-center justify-center w-full group"
+                                    >
+                                        <Camera className="h-10 w-10 text-gray-400 mb-2 group-hover:text-blue-chill-500 transition-colors" />
+                                        <span className="font-medium text-blue-chill-600 group-hover:text-blue-chill-700">Scan with Camera</span>
+                                        <p className="text-xs text-gray-500 mt-1">Take a photo directly</p>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -401,11 +535,60 @@ const EmployerVerify = () => {
                                                 type="file" 
                                                 accept=".zip" 
                                                 className="sr-only"
-                                                onChange={(e) => {
+                                                onChange={async (e) => {
                                                     const file = e.target.files[0];
                                                     if (file) {
-                                                        console.log("ZIP Selected:", file.name);
-                                                        alert("ZIP extraction and bulk verification logic to be implemented.");
+                                                        setLoading(true);
+                                                        setBulkResults(null);
+                                                        setError('');
+                                                        try {
+                                                            const formData = new FormData();
+                                                            formData.append('file', file);
+                                                            const res = await employerApi.bulkVerifyUpload(formData);
+                                                            
+                                                            // The backend returns { report: { ... } }
+                                                            // We normalize it to a flat list for the table if possible, or handle report structure
+                                                            if (res.data.data.report) {
+                                                                // Use the detailed verification results
+                                                                const flatResults = res.data.data.report.verification_results.map(r => ({
+                                                                    id: r.credential?.credential_id || r.id || r.credential_id || 'Unknown',
+                                                                    status: r.status,
+                                                                    valid: r.status === 'VALID',
+                                                                    error: r.error || r.reason,
+                                                                    credential: r.credential,
+                                                                    verified_fields: r.verified_fields
+                                                                }));
+                                                                
+                                                                // If there were extraction errors, append them too
+                                                                if (res.data.data.report.extraction_errors && res.data.data.report.extraction_errors.length > 0) {
+                                                                    res.data.data.report.extraction_errors.forEach(err => {
+                                                                        flatResults.push({
+                                                                            id: err.filename,
+                                                                            status: 'ERROR',
+                                                                            valid: false,
+                                                                            error: `Extraction failed: ${err.error}`
+                                                                        });
+                                                                    });
+                                                                }
+
+                                                                if (flatResults.length === 0 && res.data.data.report.processed_files === 0) {
+                                                                     setError("No valid certificate files found in ZIP.");
+                                                                } else if (flatResults.length === 0) {
+                                                                     setError("No credential IDs could be extracted from the files.");
+                                                                } else {
+                                                                    setBulkResults(flatResults);
+                                                                }
+                                                            } else {
+                                                                // Fallback for CSV direct list
+                                                                setBulkResults(res.data.data);
+                                                            }
+                                                        } catch (err) {
+                                                            console.error("Bulk upload failed", err);
+                                                            setError(err.response?.data?.message || 'Bulk verify upload failed');
+                                                        } finally {
+                                                            setLoading(false);
+                                                            e.target.value = null;
+                                                        }
                                                     }
                                                 }}
                                             />
@@ -439,7 +622,19 @@ const EmployerVerify = () => {
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 text-gray-500">
-                                                        {res.error || (res.valid ? <span className="flex items-center gap-1 text-green-600"><CheckCircle size={14} /> Verified</span> : 'Verification Failed')}
+                                                        {!res.valid ? (
+                                                            <span className="text-red-600 text-xs">{res.error || 'Verification Failed'}</span>
+                                                        ) : (
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="flex items-center gap-1 text-green-600 text-xs font-medium"><CheckCircle size={14} /> Verified</span>
+                                                                <button 
+                                                                    onClick={() => setSelectedResult(res)}
+                                                                    className="flex items-center gap-1 text-blue-chill-600 bg-blue-chill-50 px-2 py-1 rounded-md text-xs font-bold hover:bg-blue-chill-100 transition-colors"
+                                                                >
+                                                                    <Eye size={12} /> View
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -451,6 +646,19 @@ const EmployerVerify = () => {
                     </div>
                 )}
             </div>
+            {showCamera && (
+                <CameraCapture 
+                    onCapture={handleCameraCapture} 
+                    onClose={() => setShowCamera(false)} 
+                />
+            )}
+            
+            {selectedResult && (
+                <CredentialModal 
+                    result={selectedResult} 
+                    onClose={() => setSelectedResult(null)} 
+                />
+            )}
         </div>
     );
 };

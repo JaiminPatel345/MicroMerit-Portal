@@ -3,7 +3,7 @@ import { logger } from './utils/logger';
 import { connectPrisma, disconnectPrisma } from './utils/prisma';
 import { externalCredentialSyncScheduler, externalCredentialSyncService } from './modules/external-credential-sync';
 
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT || '3000', 10);
 
 let server: any;
 
@@ -20,7 +20,7 @@ const startServer = async () => {
     }
 
     // Start the server only if database connection is successful
-    server = app.listen(PORT, () => {
+    server = app.listen(PORT, '0.0.0.0', () => {
       logger.info(`Server is running on port ${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`Health check: http://localhost:${PORT}/health`);

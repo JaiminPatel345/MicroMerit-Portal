@@ -171,8 +171,9 @@ class OCRService:
         ]
 
         CERT_PATTERNS = [
+            re.compile(r'\b[0-9a-f]{8}\-[0-9a-f]{4}\-[0-9a-f]{4}\-[0-9a-f]{4}\-[0-9a-f]{12}\b', re.I), # UUID (e.g. 2851e07c-a5ee...)
             re.compile(r'\b[A-Z]{2,8}\-?\d{3,12}\b', re.I),     # ABC-12345 or ACTNAADO2008500-001904
-            re.compile(r'\b[A-Z0-9]{6,30}\b', re.I),           # fallback alnum 6-30
+            re.compile(r'\b[A-Z0-9\-]{6,40}\b', re.I),           # fallback alnum 6-40 chars, NOW WITH DASHES
             re.compile(r'\b\d{4}\/\d{2,8}\b'),                 # 2021/12345
             re.compile(r'\b\d{6,12}\b')                        # 6-12 digits
         ]
