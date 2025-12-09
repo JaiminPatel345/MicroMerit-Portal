@@ -1,9 +1,9 @@
-import { ObjectManager } from '@filebase/sdk';
+import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { logger } from './logger';
 
 /**
  * Filebase IPFS pinning service
- * Uses @filebase/sdk for uploading files to IPFS via Filebase
+ * Uses S3-compatible API for uploading files to IPFS via Filebase
  */
 
 export interface FilebaseUploadResult {
@@ -12,7 +12,7 @@ export interface FilebaseUploadResult {
 }
 
 /**
- * Upload a file to Filebase (IPFS)
+ * Upload a file to Filebase (IPFS) using S3-compatible API
  * Returns the IPFS CID and gateway URL
  */
 export async function uploadToFilebase(
@@ -30,34 +30,62 @@ export async function uploadToFilebase(
             throw new Error('Filebase credentials not configured. Please set FILEBASE_ACCESS_KEY_ID, FILEBASE_SECRET_ACCESS_KEY, and FILEBASE_BUCKET_NAME environment variables.');
         }
 
-        // Initialize ObjectManager
-        const objectManager = new ObjectManager(accessKeyId, secretAccessKey, {
-            bucket: bucketName,
+        // Initialize S3 client for Filebase
+        const s3Client = new S3Client({
+            endpoint: 'https://s3.filebase.com',
+            region: 'us-east-1',
+            credentials: {
+                accessKeyId,
+                secretAccessKey,
+            },
         });
 
-        logger.info('Uploading to Filebase', {
+        logger.info('Uploading to Filebase via S3 API', {
             fileName,
             size: fileBuffer.length,
             bucket: bucketName,
         });
 
-        // Upload the file
-        // Pass ContentType in options if supported, otherwise just upload
-        // @ts-expect-error - Filebase SDK types might be incorrect or outdated
-        const uploadedObject = await objectManager.upload(fileName, fileBuffer, {
-            ContentType: contentType
+        // Upload the file to Filebase
+        const uploadCommand = new PutObjectCommand({
+            Bucket: bucketName,
+            Key: fileName,
+            Body: fileBuffer,
+            ContentType: contentType,
         });
 
-        // The SDK returns an object with cid property
-        const cid = uploadedObject.cid || '';
+        const uploadResponse = await s3Client.send(uploadCommand);
+
+        logger.info('File uploaded to Filebase, retrieving CID', {
+            fileName,
+            etag: uploadResponse.ETag,
+        });
+
+        // Filebase needs time to process IPFS pinning and generate CID
+        // Wait 2-3 seconds before retrieving metadata
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        // Get the CID from object metadata
+        const headCommand = new HeadObjectCommand({
+            Bucket: bucketName,
+            Key: fileName,
+        });
+
+        const headResponse = await s3Client.send(headCommand);
+        const cid = headResponse.Metadata?.cid || '';
 
         if (!cid) {
-            throw new Error('Failed to retrieve CID from Filebase response');
+            logger.error('No CID found in metadata', {
+                fileName,
+                metadata: headResponse.Metadata,
+                etag: headResponse.ETag,
+            });
+            throw new Error('Failed to retrieve CID from Filebase response - metadata does not contain CID');
         }
 
         const gatewayUrl = `${process.env.FILEBASE_GATEWAY_URL || 'https://ipfs.filebase.io/ipfs/'}${cid}`;
 
-        logger.info('Filebase upload successful', {
+        logger.info('Filebase upload successful via S3 API', {
             fileName,
             cid,
             gateway_url: gatewayUrl,
@@ -70,6 +98,8 @@ export async function uploadToFilebase(
     } catch (error: any) {
         logger.error('Filebase upload failed', {
             error: error.message,
+            error_code: error.code,
+            error_name: error.name,
             fileName,
         });
         throw new Error(`Failed to upload file to Filebase: ${error.message}`);

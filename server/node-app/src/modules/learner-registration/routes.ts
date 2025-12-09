@@ -4,11 +4,19 @@ import {
   startRegistrationSchema,
   verifyOTPSchema,
   completeRegistrationSchema,
+  forgotPasswordSchema,
+  verifyResetOTPSchema,
+  resetPasswordSchema,
+  resendOTPSchema,
 } from './schema';
 import {
   startRegistration,
   verifyOTP,
   completeRegistration,
+  forgotPassword,
+  verifyResetOTP,
+  resetPassword,
+  resendOTP,
 } from './controller';
 import { uploadProfilePhoto } from '../../utils/multerConfig';
 
@@ -47,6 +55,50 @@ router.post(
   uploadProfilePhoto,
   validate(completeRegistrationSchema),
   completeRegistration
+);
+
+/**
+ * @route   POST /auth/learner/forgot-password
+ * @desc    Request password reset by sending OTP
+ * @access  Public
+ */
+router.post(
+  '/forgot-password',
+  validate(forgotPasswordSchema),
+  forgotPassword
+);
+
+/**
+ * @route   POST /auth/learner/verify-reset-otp
+ * @desc    Verify OTP for password reset
+ * @access  Public
+ */
+router.post(
+  '/verify-reset-otp',
+  validate(verifyResetOTPSchema),
+  verifyResetOTP
+);
+
+/**
+ * @route   POST /auth/learner/reset-password
+ * @desc    Reset password with verified OTP
+ * @access  Public
+ */
+router.post(
+  '/reset-password',
+  validate(resetPasswordSchema),
+  resetPassword
+);
+
+/**
+ * @route   POST /auth/learner/resend-otp
+ * @desc    Resend OTP for any verification session
+ * @access  Public
+ */
+router.post(
+  '/resend-otp',
+  validate(resendOTPSchema),
+  resendOTP
 );
 
 export default router;

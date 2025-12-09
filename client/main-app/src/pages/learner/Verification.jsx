@@ -14,8 +14,10 @@ import {
     Loader2,
     ArrowRight,
     Copy,
-    Check
+    Check,
+    Camera
 } from 'lucide-react';
+import CameraCapture from '../../components/CameraCapture';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000/api';
 
@@ -46,6 +48,42 @@ const Verification = () => {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
+    const [showCamera, setShowCamera] = useState(false);
+
+    const handleCameraCapture = async (file) => {
+        setLoading(true);
+        setError(null);
+        setResult(null);
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            // Use public endpoint
+            const res = await axios.post(`${API_BASE_URL}/credentials/extract-id`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            
+            if (res.data.success && res.data.data.found && res.data.data.credential_id) {
+                const id = res.data.data.credential_id;
+                setInputValue(id);
+                setInputType('credential_id'); 
+                
+                if (res.data.data.status === 'needs_review') {
+                        setError(`ID found with confidence ${res.data.data.confidence}%. Please verify: ${id}`);
+                } else {
+                    handleVerify(id, 'credential_id');
+                }
+            } else {
+                setError(res.data.data?.message || 'No Credential ID found in image. Please manually enter.');
+                setLoading(false);
+            }
+        } catch (err) {
+            console.error(err);
+            setError(err.response?.data?.message || 'Failed to extract ID from image');
+            setLoading(false);
+        }
+    };
 
     // Initial load handler
     useEffect(() => {
@@ -191,34 +229,83 @@ const Verification = () => {
                         </div>
 
                         <div className="mt-6">
-                             <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-chill-400 transition-colors cursor-pointer"
-                                  onClick={() => document.getElementById('file-upload').click()}>
-                                <div className="space-y-1 text-center">
-                                    <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                                    <div className="flex text-sm text-gray-600">
-                                        <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-chill-600 hover:text-blue-chill-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-chill-500">
-                                            <span>Upload a PDF Certificate</span>
-                                            <input 
-                                                id="file-upload" 
-                                                name="file-upload" 
-                                                type="file" 
-                                                accept=".pdf" 
-                                                className="sr-only"
-                                                onChange={(e) => {
-                                                    const file = e.target.files[0];
-                                                    if (file) {
-                                                        // Placeholder for PDF extraction
-                                                        console.log("PDF Selected:", file.name);
-                                                        // Logic to extract CID would go here, updating setInputValue and setInputType
-                                                        // Example: extractCid(file).then(cid => { setInputValue(cid); setInputType('ipfs_cid'); });
-                                                        alert("PDF extraction logic to be implemented. Please enter CID manually for now.");
-                                                    }
-                                                }}
-                                            />
-                                        </label>
-                                        <p className="pl-1">to auto-extract CID</p>
+                             <div className="bg-white p-6 rounded-xl border-2 border-dashed border-gray-300 hover:border-blue-chill-400 transition-colors">
+                                <div className="flex flex-col md:flex-row items-center justify-center gap-6">
+                                    {/* Upload Option */}
+                                    <div className="flex-1 text-center border-r md:border-r-gray-200 md:pr-6 w-full">
+                                        {loading && !result ? (
+                                            <div className="py-2 flex flex-col items-center justify-center">
+                                                 <Loader2 className="h-8 w-8 text-blue-chill-600 animate-spin mb-1" />
+                                                 <p className="text-xs text-gray-500">Scanning...</p>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <FileText className="mx-auto h-10 w-10 text-gray-400 mb-2" />
+                                                <label htmlFor="file-upload" className="block relative cursor-pointer group">
+                                                    <span className="font-medium text-blue-chill-600 group-hover:text-blue-chill-700">Upload Document</span>
+                                                    <input 
+                                                        id="file-upload" 
+                                                        name="file-upload" 
+                                                        type="file" 
+                                                        accept=".pdf,.png,.jpg,.jpeg" 
+                                                        className="sr-only"
+                                                        onChange={async (e) => {
+                                                            const file = e.target.files[0];
+                                                            if (file) {
+                                                                setLoading(true);
+                                                                setError(null);
+                                                                setResult(null);
+                                                                try {
+                                                                    const formData = new FormData();
+                                                                    formData.append('file', file);
+                                                                    const res = await axios.post(`${API_BASE_URL}/credentials/extract-id`, formData, {
+                                                                        headers: { 'Content-Type': 'multipart/form-data' }
+                                                                    });
+                                                                    
+                                                                    if (res.data.success && res.data.data.found && res.data.data.credential_id) {
+                                                                        const id = res.data.data.credential_id;
+                                                                        setInputValue(id);
+                                                                        setInputType('credential_id'); 
+                                                                        if (res.data.data.status === 'needs_review') {
+                                                                             setError(`ID found with confidence ${res.data.data.confidence}%. Please verify: ${id}`);
+                                                                        } else {
+                                                                            handleVerify(id, 'credential_id');
+                                                                        }
+                                                                    } else {
+                                                                        setError(res.data.data?.message || 'No Credential ID found in document. Please manually enter.');
+                                                                        setLoading(false);
+                                                                    }
+                                                                } catch (err) {
+                                                                    console.error(err);
+                                                                    setError(err.response?.data?.message || 'Failed to extract ID from document');
+                                                                    setLoading(false);
+                                                                }
+                                                            }
+                                                        }}
+                                                    />
+                                                </label>
+                                                <p className="text-xs text-gray-500 mt-1">PDF, PNG, JPG</p>
+                                            </>
+                                        )}
                                     </div>
-                                    <p className="text-xs text-gray-500">PDF up to 10MB</p>
+
+                                    {/* Divider or "OR" text for mobile */}
+                                    <div className="block md:hidden w-full border-b border-gray-200 relative my-2">
+                                         <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-white px-2 text-xs text-gray-400">OR</span>
+                                    </div>
+
+                                    {/* Camera Option */}
+                                    <div className="flex-1 text-center w-full">
+                                        <button 
+                                            onClick={() => setShowCamera(true)}
+                                            disabled={loading}
+                                            className="flex flex-col items-center justify-center w-full group"
+                                        >
+                                            <Camera className="h-10 w-10 text-gray-400 mb-2 group-hover:text-blue-chill-500 transition-colors" />
+                                            <span className="font-medium text-blue-chill-600 group-hover:text-blue-chill-700">Scan with Camera</span>
+                                            <p className="text-xs text-gray-500 mt-1">Take a photo directly</p>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -442,6 +529,12 @@ const Verification = () => {
                     </div>
                 )}
             </main>
+            {showCamera && (
+                <CameraCapture 
+                    onCapture={handleCameraCapture} 
+                    onClose={() => setShowCamera(false)} 
+                />
+            )}
         </div>
     );
 };

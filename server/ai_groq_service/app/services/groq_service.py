@@ -1,6 +1,9 @@
 import os
 import logging
-from groq import Groq
+try:
+    from groq import Groq
+except ImportError:
+    Groq = None
 from typing import Optional
 
 logger = logging.getLogger(__name__)

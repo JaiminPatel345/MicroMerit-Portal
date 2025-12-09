@@ -461,27 +461,45 @@ export function getCredentialsSince(
     limit: number = 10,
     offset: number = 0
 ): { credentials: MockCredential[]; total: number; hasMore: boolean } {
-    // Check if this is a new fetch (force fetch) - add at least one credential
     const now = new Date();
-    const lastFetch = lastFetchTime[provider];
+    // 24 hours ago check for "first fetch" condition
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const isFirstFetch = since < oneDayAgo;
 
-    // If it's been more than 10 seconds since last fetch, generate a new credential
+    // Generate new credential if needed (throttled)
+    const lastFetch = lastFetchTime[provider];
     if (!lastFetch || (now.getTime() - lastFetch.getTime() > 10000)) {
+        // Only generate if we are NOT in the middle of pagination for a first fetch
+        // (Though here we are simplifying to 1 item so pagination implies no more)
         const newCred = generateDynamicCredential(provider);
         allCredentials = allCredentials || generateCredentials();
-        allCredentials.unshift(newCred); // Add to beginning
-        console.log(`Generated new dynamic credential for ${provider}: ${newCred.certificate_title}`);
+        allCredentials.unshift(newCred);
+        console.log(`Generated new dynamic credential for ${provider}`);
     }
     lastFetchTime[provider] = now;
 
+    // Filter relevant credentials
     const providerCreds = getCredentialsByProvider(provider)
         .filter(c => c.issued_at > since);
 
-    const total = providerCreds.length;
-    const credentials = providerCreds.slice(offset, offset + limit);
+    let finalCredentials = providerCreds;
+
+    // All providers are now active - each returns 1 credential per sync
+    if (isFirstFetch) {
+        console.log(`Initial fetch request for ${provider} (since ${since.toISOString()}). Limiting to 1.`);
+        finalCredentials = providerCreds.slice(0, 1);
+    } else {
+        // For frequent polls, return 1 new credential
+        console.log(`Incremental fetch for ${provider} (since ${since.toISOString()}). Found ${providerCreds.length}.`);
+        finalCredentials = providerCreds.slice(0, 1);
+    }
+
+    // Apply pagination
+    const paginated = finalCredentials.slice(offset, offset + limit);
+    const total = finalCredentials.length;
     const hasMore = offset + limit < total;
 
-    return { credentials, total, hasMore };
+    return { credentials: paginated, total, hasMore };
 }
 
 // Reset credentials (for testing)

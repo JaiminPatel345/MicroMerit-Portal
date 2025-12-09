@@ -5,6 +5,10 @@ import {
   StartRegistrationInput,
   VerifyOTPInput,
   CompleteRegistrationInput,
+  ForgotPasswordInput,
+  VerifyResetOTPInput,
+  ResetPasswordInput,
+  ResendOTPInput,
 } from './schema';
 import { sendSuccess, sendError } from '../../utils/response';
 import { verifyAccessToken } from '../../utils/jwt';
@@ -91,6 +95,74 @@ export const completeRegistration = async (
 
     const result = await service.completeRegistration(sessionId, req.body, profilePhotoFile);
     sendSuccess(res, result, 'Registration completed successfully', 201);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Controller: Forgot Password (Step 1)
+ * POST /auth/learner/forgot-password
+ */
+export const forgotPassword = async (
+  req: Request<{}, {}, ForgotPasswordInput>,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const result = await service.forgotPassword(req.body);
+    sendSuccess(res, result, 'Password reset OTP sent successfully', 200);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Controller: Verify Reset OTP (Step 2)
+ * POST /auth/learner/verify-reset-otp
+ */
+export const verifyResetOTP = async (
+  req: Request<{}, {}, VerifyResetOTPInput>,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const result = await service.verifyResetOTP(req.body);
+    sendSuccess(res, result, 'OTP verified successfully', 200);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Controller: Reset Password (Step 3)
+ * POST /auth/learner/reset-password
+ */
+export const resetPassword = async (
+  req: Request<{}, {}, ResetPasswordInput>,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const result = await service.resetPassword(req.body);
+    sendSuccess(res, result, 'Password reset successfully', 200);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Controller: Resend OTP
+ * POST /auth/learner/resend-otp
+ */
+export const resendOTP = async (
+  req: Request<{}, {}, ResendOTPInput>,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const result = await service.resendOTP(req.body);
+    sendSuccess(res, result, 'OTP resent successfully', 200);
   } catch (error) {
     next(error);
   }

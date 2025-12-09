@@ -128,7 +128,7 @@ const Home = () => {
     const steps = [
         {
             icon: <Upload className="w-6 h-6" />,
-            title: 'Issuer upload or Auto-Sync Certificates',
+            title: 'Auto-Sync Certificates',
         },
         {
             icon: <Brain className="w-6 h-6" />,
@@ -624,93 +624,6 @@ const Home = () => {
                 </div>
             </section>
 
-
-            {/* ---------------------------------- Join as Issuer CTA (White Theme) ---------------------------------- */}
-            <section
-                className="py-12 md:py-16 bg-white border-t border-gray-100">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div
-                        className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-                        {/* Right Content - Feature Cards */}
-                        <div className="grid gap-5">
-                            {/* Feature Card 1: Manual Issuance */}
-                            <div
-                                className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-300 group">
-                                <div className="flex items-start">
-                                    <div
-                                        className="bg-blue-chill-50 p-3 rounded-xl mr-5 group-hover:bg-blue-chill-100 transition-colors">
-                                        <Upload
-                                            className="w-6 h-6 text-blue-chill-600" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-bold text-gray-900 mb-1">Bulk
-                                            Upload & Issue</h3>
-                                        <p className="text-gray-600 text-sm leading-relaxed">
-                                            Upload CSV/Excel files to issue
-                                            thousands of certificates in
-                                            minutes. Perfect for universities,
-                                            training centers, and event
-                                            organizers.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Feature Card 2: API Integration */}
-                            <div
-                                className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-300 group">
-                                <div className="flex items-start">
-                                    <div
-                                        className="bg-blue-chill-50 p-3 rounded-xl mr-5 group-hover:bg-blue-chill-100 transition-colors">
-                                        <Network
-                                            className="w-6 h-6 text-blue-chill-600" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-bold text-gray-900 mb-1">Developer
-                                            API</h3>
-                                        <p className="text-gray-600 text-sm leading-relaxed">
-                                            Integrate our REST API directly into
-                                            your LMS or ERP. Automate issuance
-                                            upon course completion with seamless
-                                            backend syncing.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {/* Left Content */}
-                        <div>
-                            <span
-                                className="inline-block py-1 px-3 rounded-full bg-blue-chill-50 text-blue-chill-600 text-xs font-bold tracking-wider uppercase mb-4 border border-blue-chill-100">
-                                For Organizations & Institutions
-                            </span>
-                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-gray-900 mb-4 leading-tight">
-                                Empower Your Learners with <span
-                                    className="text-blue-chill-600">Verifiable Credentials</span>
-                            </h2>
-                            <p className="text-base md:text-lg text-gray-600 mb-6 max-w-xl leading-relaxed">
-                                Join the MicroMerit ecosystem to issue
-                                tamper-proof e-certificates instantly.
-                                Streamline your certification process with our
-                                secure platform.
-                            </p>
-
-                            <div className="flex flex-col sm:flex-row gap-4">
-                                <Link to="/issuer/signup"
-                                    className="flex items-center justify-center px-6 py-3 bg-blue-chill-600 text-white rounded-xl font-bold text-base hover:bg-blue-chill-700 transition shadow-lg hover:shadow-blue-chill-200 transform hover:-translate-y-1">
-                                    Join as Issuer <ChevronRight
-                                        className="w-5 h-5 ml-2" />
-                                </Link>
-                                <Link to="/issuer/login"
-                                    className="flex items-center justify-center px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-bold text-base hover:border-blue-chill-600 hover:text-blue-chill-600 transition">
-                                    Sign In
-                                </Link>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </section>
 
 
             {/* ---------------------------------- Top Issuers Section (Logo Wall Premium Redesign) ---------------------------------- */}

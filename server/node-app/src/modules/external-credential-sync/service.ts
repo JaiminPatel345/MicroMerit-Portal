@@ -5,16 +5,17 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
+import axios from 'axios';
 import { Connector, CanonicalCredential, SyncJobResult, SyncState } from './types';
 import { createConnector, getAllEnabledConnectors, getProviderConfig } from './connector.factory';
 import { externalCredentialSyncRepository } from './repository';
 import { credentialIssuanceRepository } from '../credential-issuance/repository';
 import { uploadToFilebase } from '../../utils/filebase';
-import { writeToBlockchain } from '../../services/blockchainClient';
+import { writeToBlockchainQueued } from '../../services/blockchainClient';
 import { buildCanonicalJson, computeDataHash } from '../../utils/canonicalJson';
 import { logger } from '../../utils/logger';
 
-class ExternalCredentialSyncService {
+export class ExternalCredentialSyncService {
     private possibleMaxHour: number;
 
     constructor() {
@@ -63,23 +64,11 @@ class ExternalCredentialSyncService {
             const sinceISO = lastSync.toISOString();
             logger.info(`[${providerId}] Fetching credentials since ${sinceISO}`);
 
-            // Fetch all pages
-            let pageToken: string | undefined;
-            let allItems: any[] = [];
+            // Fetch only 1 credential per sync (not all pages)
+            const fetchResult = await connector.fetchSince(sinceISO);
+            const allItems = fetchResult.items;
 
-            do {
-                const fetchResult = await connector.fetchSince(sinceISO, pageToken);
-                allItems = allItems.concat(fetchResult.items);
-                pageToken = fetchResult.next;
-
-                // Safety limit
-                if (allItems.length > 1000) {
-                    logger.warn(`[${providerId}] Reached item limit (1000)`);
-                    break;
-                }
-            } while (pageToken);
-
-            logger.info(`[${providerId}] Fetched ${allItems.length} credentials`);
+            logger.info(`[${providerId}] Fetched ${allItems.length} credential(s)`);
 
             // Process each credential
             for (const item of allItems) {
@@ -91,7 +80,9 @@ class ExternalCredentialSyncService {
                 } catch (error: any) {
                     if (error.message?.includes('duplicate') || error.message?.includes('exists')) {
                         result.credentials_skipped++;
+                        logger.debug(`[${providerId}] Skipped duplicate`, { error: error.message });
                     } else {
+                        logger.error(`[${providerId}] Credential processing failed`, { error: error.message });
                         result.errors.push(`${error.message}`);
                     }
                 }
@@ -252,7 +243,114 @@ class ExternalCredentialSyncService {
             blockchain_status: 'pending',
         };
 
-        // Compute data hash
+        // Download PDF from external provider and upload to IPFS FIRST
+        let pdfUrl: string | null = null;
+        let ipfsCid: string | null = null;
+
+        if (canonical.certificate_url) {
+            try {
+                logger.info('Attempting to download PDF from external provider', {
+                    credential_id: credentialId,
+                    certificate_url: canonical.certificate_url,
+                    external_id: canonical.external_id
+                });
+
+                // Get provider config for authentication
+                const providerId = canonical.tags && canonical.tags.length > 0 ? canonical.tags[0] : null;
+                const providerConfig = providerId ? getProviderConfig(providerId) : null;
+
+                logger.debug('Provider config retrieved', {
+                    credential_id: credentialId,
+                    provider_id: providerId,
+                    has_config: !!providerConfig,
+                    has_api_key: !!providerConfig?.credentials?.api_key
+                });
+
+                // Download PDF from external provider
+                const headers: Record<string, string> = {};
+                if (providerConfig?.credentials.api_key) {
+                    headers['X-API-Key'] = providerConfig.credentials.api_key;
+                    logger.debug('Added API key to request headers', {
+                        credential_id: credentialId
+                    });
+                }
+
+                logger.info('Starting PDF download from URL', {
+                    credential_id: credentialId,
+                    url: canonical.certificate_url,
+                    has_auth_headers: Object.keys(headers).length > 0
+                });
+
+                const response = await axios.get(canonical.certificate_url, {
+                    responseType: 'arraybuffer',
+                    headers,
+                    timeout: 30000, // 30 second timeout
+                });
+
+                logger.info('PDF download response received', {
+                    credential_id: credentialId,
+                    status: response.status,
+                    content_type: response.headers['content-type'],
+                    content_length: response.headers['content-length']
+                });
+
+                const pdfBuffer = Buffer.from(response.data);
+
+                if (pdfBuffer.length === 0) {
+                    throw new Error('Downloaded PDF is empty (0 bytes)');
+                }
+
+                logger.info('PDF downloaded successfully, uploading directly to IPFS', {
+                    credential_id: credentialId,
+                    buffer_size: pdfBuffer.length
+                });
+
+                // Upload to Filebase/IPFS
+                const uploadResult = await uploadToFilebase(
+                    pdfBuffer,
+                    `credential-${credentialId}.pdf`,
+                    'application/pdf'
+                );
+
+                ipfsCid = uploadResult.cid;
+                pdfUrl = uploadResult.gateway_url;
+
+                logger.info('PDF uploaded to IPFS', {
+                    credential_id: credentialId,
+                    ipfs_cid: ipfsCid,
+                    gateway_url: pdfUrl
+                });
+
+            } catch (error: any) {
+                logger.error('Failed to download/upload PDF from external provider', {
+                    credential_id: credentialId,
+                    certificate_url: canonical.certificate_url,
+                    error_message: error.message,
+                    error_code: error.code,
+                    error_name: error.name,
+                    response_status: error.response?.status,
+                    response_data: error.response?.data ? 
+                        (typeof error.response.data === 'string' ? error.response.data.substring(0, 200) : JSON.stringify(error.response.data).substring(0, 200)) 
+                        : undefined,
+                    is_timeout: error.code === 'ECONNABORTED' || error.message?.includes('timeout'),
+                    is_network: error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT'
+                });
+
+                // Optional Mode: Log error but continue credential creation without PDF
+                logger.warn('Proceeding with credential creation without PDF/IPFS', {
+                    credential_id: credentialId,
+                    reason: 'PDF download or upload failed'
+                });
+                pdfUrl = null;
+                ipfsCid = null;
+            }
+        } else {
+            logger.info('No certificate_url provided, creating credential without PDF', {
+                credential_id: credentialId
+            });
+        }
+
+        // NOW compute data hash with the IPFS CID included in canonical JSON
         const canonicalJson = buildCanonicalJson({
             credential_id: credentialId,
             learner_id: learnerId,
@@ -262,16 +360,12 @@ class ExternalCredentialSyncService {
             issued_at: canonical.issued_at,
             network,
             contract_address: contractAddress,
-            ipfs_cid: null,
-            pdf_url: canonical.certificate_url || null, // Use certificate URL if provided by external provider
+            ipfs_cid: ipfsCid,  // Include the CID we just got from IPFS
+            pdf_url: pdfUrl,     // Include the PDF URL
             tx_hash: null,
             data_hash: null,
         });
         const dataHash = computeDataHash(canonicalJson);
-
-        // Store certificate_url from external provider as the pdf_url
-        const pdfUrl = canonical.certificate_url || null;
-        const ipfsCid = canonical.certificate_url || null; // Store URL as ipfs_cid for external credentials
 
         logger.info('Creating external credential', {
             credential_id: credentialId,
@@ -312,15 +406,17 @@ class ExternalCredentialSyncService {
             provider: canonical.tags[0],
         });
 
-        // Optionally trigger blockchain write async (if not mocked)
+        // Queue blockchain write (if not mocked)
         if (process.env.BLOCKCHAIN_MOCK_ENABLED !== 'true') {
-            logger.info(`Triggering blockchain write for external credential`, { credential_id: credentialId });
-            this.processBlockchainAsync(credentialId, dataHash).catch(err => {
-                logger.error(`Blockchain write failed for ${credentialId}`, {
-                    error: err.message,
-                    stack: err.stack
+            try {
+                await writeToBlockchainQueued(credentialId, dataHash, ipfsCid || '');
+                logger.info(`Blockchain write queued for external credential`, { credential_id: credentialId });
+            } catch (err: any) {
+                logger.error(`Failed to queue blockchain write for ${credentialId}`, {
+                    error: err.message
                 });
-            });
+                // Continue even if queueing fails - status remains 'pending'
+            }
         } else {
             logger.info(`Blockchain write skipped (mock mode) for ${credentialId}`);
         }
@@ -328,54 +424,21 @@ class ExternalCredentialSyncService {
 
     /**
      * Process blockchain write asynchronously
+     * @deprecated This method is no longer used - blockchain writes are handled by BullMQ queue
      */
     private async processBlockchainAsync(credentialId: string, dataHash: string): Promise<void> {
+        logger.warn('processBlockchainAsync called but is deprecated - use queue instead', {
+            credential_id: credentialId
+        });
+        
         try {
-            logger.info(`Starting blockchain write for external credential`, {
-                credential_id: credentialId,
-                data_hash: dataHash
-            });
-
-            const result = await writeToBlockchain(credentialId, dataHash, '');
-
-            logger.info(`Blockchain write succeeded, updating credential`, {
-                credential_id: credentialId,
-                tx_hash: result.tx_hash
-            });
-
-            await credentialIssuanceRepository.updateCredential(credentialId, {
-                tx_hash: result.tx_hash,
-                metadata: {
-                    blockchain_status: 'confirmed',
-                },
-            });
-
-            logger.info(`External credential updated with blockchain info`, {
-                credential_id: credentialId,
-                tx_hash: result.tx_hash
-            });
-
-            // Verify the update worked
-            const updated = await credentialIssuanceRepository.findCredentialById(credentialId);
-            logger.info(`Verified external credential blockchain update`, {
-                credential_id: credentialId,
-                tx_hash_in_db: updated?.tx_hash,
-                blockchain_status: (updated?.metadata as any)?.blockchain_status
-            });
-
+            await writeToBlockchainQueued(credentialId, dataHash, '');
         } catch (error: any) {
-            logger.error(`External credential blockchain processing failed`, {
+            logger.error('Failed to queue blockchain write in deprecated method', {
                 credential_id: credentialId,
-                error: error.message,
-                stack: error.stack
+                error: error.message
             });
-
-            await credentialIssuanceRepository.updateCredential(credentialId, {
-                metadata: {
-                    blockchain_status: 'failed',
-                    blockchain_error: error.message,
-                },
-            });
+            throw error;
         }
     }
 

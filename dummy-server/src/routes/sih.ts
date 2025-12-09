@@ -6,6 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { getCredentialsSince, getCredentialsByProvider } from '../data/seed.js';
 import { SIHCredentialResponse } from '../types/index.js';
+import { generatePDFFromCredential } from '../utils/pdf-generator.js';
 
 const router = Router();
 
@@ -63,7 +64,8 @@ router.get('/api/credentials', verifyApiKey, (req: Request, res: Response) => {
         proficiency_level: c.nsqf_level,
         training_duration: c.max_hr,
         completion_date: c.issued_at.toISOString().split('T')[0], // YYYY-MM-DD format
-        certifying_authority: c.awarding_body,
+        certifying_authority: c.awarding_bodies[0] || 'Smart India Hackathon',
+        certificate_url: `${req.protocol}://${req.get('host')}/sih/api/credentials/${c.id}/pdf`,
     }));
 
     res.json({
@@ -106,13 +108,55 @@ router.get('/api/credentials/:id', verifyApiKey, (req: Request, res: Response) =
         proficiency_level: credential.nsqf_level,
         training_duration: credential.max_hr,
         completion_date: credential.issued_at.toISOString().split('T')[0],
-        certifying_authority: credential.awarding_body,
+        certifying_authority: credential.awarding_bodies[0] || 'Smart India Hackathon',
+        certificate_url: `${req.protocol}://${req.get('host')}/sih/api/credentials/${credential.id}/pdf`,
     };
 
     res.json({
         success: true,
         data: sihCredential,
     });
+});
+
+/**
+ * GET /sih/api/credentials/:id/pdf
+ * Download certificate PDF
+ */
+router.get('/api/credentials/:id/pdf', async (req: Request, res: Response) => {
+    const credentials = getCredentialsByProvider('sih');
+    const credential = credentials.find(c => c.id === req.params.id);
+
+    if (!credential) {
+        res.status(404).json({
+            success: false,
+            error: 'Not found',
+            message: 'Credential not found'
+        });
+        return;
+    }
+
+    try {
+        // Generate PDF
+        const pdfBuffer = await generatePDFFromCredential(credential);
+
+        // Set headers for PDF download
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader(
+            'Content-Disposition',
+            `inline; filename="credential-${credential.id}.pdf"`
+        );
+        res.setHeader('Content-Length', pdfBuffer.length);
+
+        // Send PDF
+        res.send(pdfBuffer);
+    } catch (error: any) {
+        console.error('PDF generation failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'PDF generation failed',
+            message: error.message
+        });
+    }
 });
 
 /**
@@ -157,7 +201,7 @@ router.post('/api/verify', verifyApiKey, (req: Request, res: Response) => {
         credential: {
             skill_title: credential.certificate_title,
             completion_date: credential.issued_at.toISOString().split('T')[0],
-            certifying_authority: credential.awarding_body,
+            certifying_authority: credential.awarding_bodies[0] || 'Smart India Hackathon',
         },
     });
 });

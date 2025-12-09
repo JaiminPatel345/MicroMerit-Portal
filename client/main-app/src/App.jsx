@@ -1,15 +1,18 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import VerifyOTP from './pages/VerifyOTP';
+import ResetPassword from './pages/ResetPassword';
 import ProfileBuilder from './pages/learner/ProfileBuilder';
 import Terms from './pages/Terms';
 import Login from './pages/learner/Login';
+import LearnerForgotPassword from './pages/learner/ForgotPassword';
 import Contact from './pages/Contact';
 import Signup from './pages/learner/Signup';
 import FAQ from './pages/FAQ';
 import { useLocation } from 'react-router-dom';
 import IssuerSignUp from './pages/issuer/Signup';
 import IssuerLogin from './pages/issuer/Login';
+import IssuerForgotPassword from './pages/issuer/ForgotPassword';
 import IssuerDashboard from './pages/issuer/Dashboard';
 import LearnerDashboard from './pages/learner/Dashboard';
 import Wallet from './pages/learner/Wallet';
@@ -42,6 +45,7 @@ import AuthRoutes from './components/AuthRoutes';
 import PublicIssuerProfile from './pages/public/PublicIssuerProfile';
 import PublicCredential from './pages/public/PublicCredential';
 import EmployerLogin from './pages/employer/Login';
+import EmployerForgotPassword from './pages/employer/ForgotPassword';
 import EmployerSignup from './pages/employer/Signup';
 import EmployerDashboard from './pages/employer/Dashboard';
 import EmployerVerify from './pages/employer/Verify';
@@ -49,7 +53,7 @@ import EmployerSearch from './pages/employer/Search';
 import EmployerProfile from './pages/employer/Properties';
 import EmployerHeader from './pages/employer/Header';
 
-const HideHeaderRoutes = ["/login", "/signup", "/verify-otp", "/profile-builder", "/issuer/login", "/issuer/signup", "/google-callback", "/digilocker-callback", "/employer/login", "/employer/signup"];
+const HideHeaderRoutes = ["/login", "/signup", "/verify-otp", "/reset-password", "/forgot-password", "/profile-builder", "/issuer/login", "/issuer/signup", "/issuer/forgot-password", "/google-callback", "/digilocker-callback", "/employer/login", "/employer/signup", "/employer/forgot-password"];
 
 function Layout() {
 
@@ -69,9 +73,12 @@ function Layout() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<LearnerForgotPassword />} />
               <Route path="/verify-otp" element={<VerifyOTP />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path='/issuer/signup' element={<IssuerSignUp />} />
               <Route path='/issuer/login' element={<IssuerLogin />} />
+              <Route path='/issuer/forgot-password' element={<IssuerForgotPassword />} />
               <Route path="/google-callback" element={<GoogleCallback />} />
               <Route path="/digilocker-callback" element={<DigilockerCallback />} />
               <Route path="/auth/learner/oauth/google/callback" element={<GoogleCallback />} />
@@ -164,6 +171,7 @@ function Layout() {
 
               <Route path='/employer/signup' element={<EmployerSignup />} />
               <Route path='/employer/login' element={<EmployerLogin />} />
+              <Route path='/employer/forgot-password' element={<EmployerForgotPassword />} />
               <Route path='/employer' element={
                 // Ideally use AuthRoutes role="employer" but for MVP we might skip strict role check if AuthRoutes not ready
                 // Assuming AuthRoutes handles it or we use a simple wrapper

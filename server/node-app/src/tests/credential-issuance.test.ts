@@ -1,7 +1,7 @@
 import { credentialIssuanceService } from '../modules/credential-issuance/service';
 import { credentialIssuanceRepository } from '../modules/credential-issuance/repository';
 import { uploadToFilebase } from '../utils/filebase';
-import { writeToBlockchain } from '../services/blockchainClient';
+import { writeToBlockchain, writeToBlockchainQueued } from '../services/blockchainClient';
 
 // Mock uuid module
 jest.mock('uuid', () => {
@@ -15,7 +15,15 @@ jest.mock('uuid', () => {
 
 jest.mock('../modules/credential-issuance/repository');
 jest.mock('../utils/filebase');
-jest.mock('../services/blockchainClient');
+jest.mock('../services/blockchainClient', () => ({
+    writeToBlockchain: jest.fn().mockResolvedValue({
+        tx_hash: '0xMockTxHash',
+        network: 'sepolia',
+        contract_address: '0xMockContract',
+        timestamp: new Date(),
+    }),
+    writeToBlockchainQueued: jest.fn().mockResolvedValue('job-id-123'),
+}));
 jest.mock('../utils/logger');
 
 describe('Credential Issuance Service', () => {
