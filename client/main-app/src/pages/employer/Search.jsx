@@ -142,12 +142,28 @@ const EmployerSearch = () => {
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Sector</label>
-                                    <input
+                                    <select
                                         className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:bg-white focus:border-blue-200 outline-none transition-all"
-                                        placeholder="e.g. IT-ITeS"
                                         value={filters.sector}
                                         onChange={(e) => setFilters({ ...filters, sector: e.target.value })}
-                                    />
+                                    >
+                                        <option value="">Any Sector</option>
+                                        {[
+                                            "Aerospace & Aviation", "Agriculture", "Apparel", "Automotive", "Beauty & Wellness", "BFSI", 
+                                            "Capital Goods & Manufacturing", "Chemicals & Petrochemicals", "Construction", 
+                                            "Education, Training & Research", "Electronics & HW", "Environmental Science", 
+                                            "Food Industry/Food Processing", "Gem & Jewellery", "Glass & Ceramics", "Handicrafts & Carpets", 
+                                            "Healthcare", "Home Management and Caregiving", "Hydrocarbon", "Infrastructure", "Instrumentation", 
+                                            "Iron & Steel", "IT-ITeS", "Leather", "Life Sciences", "Media & Entertainment", "Mining", 
+                                            "Office Administration & Facility Management", "Paints & Coatings", "Paper & Paper Products", 
+                                            "Persons with Disability", "Plumbing", "Power", "Private Security", "Retail", "Rubber Industry", 
+                                            "Sports, Physical Education, Fitness & Leisure", "Telecom", "Textile & Handloom", 
+                                            "Tourism & Hospitality", "Transportation, Logistics & Warehousing", 
+                                            "Water Supply, Sewerage, Waste Management & Remediation activities", "Wood & Carpentry"
+                                        ].map(sec => (
+                                            <option key={sec} value={sec}>{sec}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">NSQF Level</label>
