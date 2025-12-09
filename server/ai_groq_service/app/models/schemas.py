@@ -132,3 +132,34 @@ class EmployerChatResponse(BaseModel):
         description="Certificate titles that were referenced in the answer"
     )
     confidence: float = Field(ge=0.0, le=1.0, description="Confidence in the answer")
+
+
+class StackabilityRequest(BaseModel):
+    code: Optional[str] = Field(None, description="Qualification Code")
+    level: Optional[float] = Field(None, description="NSQF Level")
+    progression_pathway: Optional[str] = Field(None, description="Progression Pathway text")
+    qualification_type: Optional[str] = Field(None, description="Qualification Type")
+    sector_name: Optional[str] = Field(None, description="Sector Name")
+    training_delivery_hours: Optional[str] = Field(None, description="Training Delivery Hours")
+    min_notational_hours: Optional[float] = Field(None, description="Min Notational Hours")
+    max_notational_hours: Optional[float] = Field(None, description="Max Notational Hours")
+    proposed_occupation: Optional[str] = Field(None, description="Proposed Occupation")
+    skills: List[str] = Field(default=[], description="List of current skills")
+
+
+class PathwaySkill(BaseModel):
+    name: str = Field(description="Name of the skill")
+    credits_earned: int = Field(description="Credits earned by learner")
+    credits_total: int = Field(description="Total credits required for this skill")
+    status: str = Field(description="completed, in_progress, or missing")
+
+
+class StackablePathwayReport(BaseModel):
+    pathway_title: str = Field(description="Title of the pathway (e.g. 'Full Stack Developer')")
+    progress_percentage: int = Field(description="Overall completion percentage")
+    skills: List[PathwaySkill] = Field(description="Breakdown of skills in this pathway")
+
+
+class StackabilityResponse(BaseModel):
+    """Response containing list of potential pathways"""
+    pathways: List[StackablePathwayReport]
