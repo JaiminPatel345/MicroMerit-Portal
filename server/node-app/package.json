@@ -12,6 +12,8 @@
     "test:coverage": "jest --coverage",
     "test:s3": "tsx src/scripts/test-s3-upload.ts",
     "test:signed-urls": "tsx src/scripts/test-signed-urls.ts",
+    "load-test": "tsx load-test.ts",
+    "load-test:bash": "./load-test.sh",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
