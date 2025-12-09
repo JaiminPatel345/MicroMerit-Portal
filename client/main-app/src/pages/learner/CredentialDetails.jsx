@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { aiServices } from '../../services/aiServices';
 import { jsPDF } from 'jspdf';
 import {
     CheckCircle,
@@ -71,70 +72,102 @@ const CredentialDetails = () => {
         fetchCredential();
     }, [id]);
 
+    // const handleDownloadPDF = async () => {
+    //     if (credential?.pdf_url) {
+    //         try {
+    //             // Fetch the file as a blob
+    //             const response = await fetch(credential.pdf_url);
+    //             const blob = await response.blob();
+
+    //             // Get content type
+    //             const contentType = blob.type.toLowerCase();
+    //             console.log('Downloaded file type:', contentType);
+
+    //             let pdfBlob;
+                
+    //             if (contentType.includes('image/')) {
+    //                 // Convert image to PDF
+    //                 console.log('Converting image to PDF...');
+                    
+    //                 // Create image element to get dimensions
+    //                 const img = new Image();
+    //                 const imageUrl = URL.createObjectURL(blob);
+                    
+    //                 await new Promise((resolve, reject) => {
+    //                     img.onload = () => resolve();
+    //                     img.onerror = reject;
+    //                     img.src = imageUrl;
+    //                 });
+                    
+    //                 // Create PDF with jsPDF
+    //                 const pdf = new jsPDF({
+    //                     orientation: img.width > img.height ? 'landscape' : 'portrait',
+    //                     unit: 'px',
+    //                     format: [img.width, img.height]
+    //                 });
+                    
+    //                 // Add image to PDF (fill entire page)
+    //                 pdf.addImage(img, 'JPEG', 0, 0, img.width, img.height);
+                    
+    //                 // Get PDF as blob
+    //                 pdfBlob = pdf.output('blob');
+                    
+    //                 // Clean up
+    //                 URL.revokeObjectURL(imageUrl);
+    //             } else if (contentType.includes('pdf')) {
+    //                 // Already a PDF
+    //                 pdfBlob = blob;
+    //             } else {
+    //                 // Unknown type, try as PDF
+    //                 pdfBlob = blob;
+    //             }
+
+    //             // Download the PDF
+    //             const blobUrl = window.URL.createObjectURL(pdfBlob);
+    //             const link = document.createElement('a');
+    //             link.href = blobUrl;
+    //             link.download = `${credential.certificate_title}.pdf`;
+    //             document.body.appendChild(link);
+    //             link.click();
+
+    //             // Clean up
+    //             document.body.removeChild(link);
+    //             window.URL.revokeObjectURL(blobUrl);
+    //         } catch (error) {
+    //             console.error('Download failed:', error);
+    //             alert('Download failed. Please try again or contact support.');
+    //         }
+    //     }
+    // };
+
     const handleDownloadPDF = async () => {
+        console.log(import.meta.env.VITE_AI_SERVICE_URL);
         if (credential?.pdf_url) {
             try {
-                // Fetch the file as a blob
+                // Fetch the original PDF
                 const response = await fetch(credential.pdf_url);
                 const blob = await response.blob();
-
-                // Get content type
-                const contentType = blob.type.toLowerCase();
-                console.log('Downloaded file type:', contentType);
-
-                let pdfBlob;
+                const file = new File([blob], 'credential.pdf', { type: 'application/pdf' });
                 
-                if (contentType.includes('image/')) {
-                    // Convert image to PDF
-                    console.log('Converting image to PDF...');
-                    
-                    // Create image element to get dimensions
-                    const img = new Image();
-                    const imageUrl = URL.createObjectURL(blob);
-                    
-                    await new Promise((resolve, reject) => {
-                        img.onload = () => resolve();
-                        img.onerror = reject;
-                        img.src = imageUrl;
-                    });
-                    
-                    // Create PDF with jsPDF
-                    const pdf = new jsPDF({
-                        orientation: img.width > img.height ? 'landscape' : 'portrait',
-                        unit: 'px',
-                        format: [img.width, img.height]
-                    });
-                    
-                    // Add image to PDF (fill entire page)
-                    pdf.addImage(img, 'JPEG', 0, 0, img.width, img.height);
-                    
-                    // Get PDF as blob
-                    pdfBlob = pdf.output('blob');
-                    
-                    // Clean up
-                    URL.revokeObjectURL(imageUrl);
-                } else if (contentType.includes('pdf')) {
-                    // Already a PDF
-                    pdfBlob = blob;
-                } else {
-                    // Unknown type, try as PDF
-                    pdfBlob = blob;
-                }
-
+                // Add QR code with verification URL
+                // Use credential_id as primary, fallback to uid
+                const credId = credential.credential_id || credential.uid;
+                const qrData = `${window.location.origin}/verify?id=${credId}`;
+                
+                const pdfWithQr = await aiServices.appendQrToCredential(file, qrData);
+                
                 // Download the PDF
-                const blobUrl = window.URL.createObjectURL(pdfBlob);
+                const blobUrl = window.URL.createObjectURL(pdfWithQr);
                 const link = document.createElement('a');
                 link.href = blobUrl;
-                link.download = `${credential.certificate_title}.pdf`;
+                link.download = `${credential.certificate_title}_with_qr.pdf`;
                 document.body.appendChild(link);
                 link.click();
-
-                // Clean up
                 document.body.removeChild(link);
                 window.URL.revokeObjectURL(blobUrl);
             } catch (error) {
                 console.error('Download failed:', error);
-                alert('Download failed. Please try again or contact support.');
+                alert('Download failed. Please try again.');
             }
         }
     };

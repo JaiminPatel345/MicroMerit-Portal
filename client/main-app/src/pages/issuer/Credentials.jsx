@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { aiServices } from '../../services/aiServices';
 import { credentialServices } from '../../services/credentialServices';
 import { Award, CheckCircle, Clock, XCircle } from './icons';
 import { setNotification } from '../../utils/notification';
@@ -59,6 +60,31 @@ const Credentials = () => {
             setNotification("Failed to update verification status", "error");
         } finally {
             setProcessingVerification(false);
+        }
+    };
+
+    const handleDownloadWithQr = async (credential) => {
+        try {
+            const response = await fetch(credential.pdf_url);
+            const blob = await response.blob();
+            const file = new File([blob], 'credential.pdf', { type: 'application/pdf' });
+            
+            // Add QR code with verification URL
+            const qrData = `${window.location.origin}/verify?id=${credential.credential_id}`;
+            
+            const pdfWithQr = await aiServices.appendQrToCredential(file, qrData);
+            
+            const url = URL.createObjectURL(pdfWithQr);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `credential_${credential.credential_id}_with_qr.pdf`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            setNotification('PDF downloaded with QR code!', 'success');
+        } catch (error) {
+            console.error('Failed to add QR:', error);
+            setNotification('Failed to add QR code to PDF', 'error');
         }
     };
 
@@ -206,6 +232,15 @@ const Credentials = () => {
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
+                                                    handleDownloadWithQr(c);
+                                                }}
+                                                className="text-green-600 hover:text-green-800 mr-4 font-semibold cursor-pointer"
+                                            >
+                                                Download QR
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
                                                     navigate(`/verify/${c.tx_hash || c.credential_id}`);
                                                 }}
                                                 className="text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -295,6 +330,15 @@ const Credentials = () => {
                                 >
                                     View PDF
                                 </a>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDownloadWithQr(c);
+                                    }}
+                                    className="text-sm font-medium text-green-600 hover:text-green-800"
+                                >
+                                    Download QR
+                                </button>
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
