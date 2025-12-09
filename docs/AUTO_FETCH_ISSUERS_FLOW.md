@@ -128,12 +128,17 @@ sequenceDiagram
                 alt Not duplicate
                     CONNECTOR->>SERVICE: createCredential()
                     SERVICE->>REPO: Find/Create learner
+                    SERVICE->>API: Download PDF from provider
+                    API-->>SERVICE: PDF Buffer
                     SERVICE->>STORAGE: Upload PDF to IPFS
-                    STORAGE-->>SERVICE: IPFS CID
-                    SERVICE->>STORAGE: Write to Blockchain
-                    STORAGE-->>SERVICE: Transaction Hash
+                    STORAGE-->>SERVICE: IPFS CID & Gateway URL
+                    SERVICE->>SERVICE: Build canonical JSON with CID
+                    SERVICE->>SERVICE: Compute data hash
                     SERVICE->>DB: Create credential record
-                    Note over DB: Status: 'issued' or 'unclaimed'
+                    Note over DB: Status: 'issued' or 'unclaimed'<br/>With IPFS CID and data hash
+                    SERVICE->>STORAGE: Write to Blockchain (async)
+                    STORAGE-->>SERVICE: Transaction Hash
+                    SERVICE->>DB: Update with tx_hash
                 else Duplicate
                     CONNECTOR->>SERVICE: Skip (duplicate)
                 end
@@ -203,10 +208,12 @@ flowchart TD
     SET_ISSUED --> GEN_UID[Generate Credential UID]
     SET_UNCLAIMED --> GEN_UID
     
-    GEN_UID --> HASH[Compute Data Hash]
-    HASH --> UPLOAD_IPFS[Upload PDF to IPFS]
-    UPLOAD_IPFS --> BLOCKCHAIN[Write to Blockchain]
-    BLOCKCHAIN --> CREATE_DB[Create Credential in Database]
+    GEN_UID --> UPLOAD_IPFS[Download & Upload PDF to IPFS]
+    UPLOAD_IPFS --> GET_CID[Get IPFS CID]
+    GET_CID --> BUILD_CANONICAL[Build Canonical JSON with CID]
+    BUILD_CANONICAL --> HASH[Compute Data Hash]
+    HASH --> CREATE_DB[Create Credential in Database]
+    CREATE_DB --> BLOCKCHAIN[Write to Blockchain Async]
     
     CREATE_DB --> SUCCESS[Success: Credential Created]
     
@@ -444,9 +451,12 @@ POSSIBLE_MAX_HOUR=1000       # Skip credentials exceeding hours
        ├─> Normalize to canonical format
        ├─> Verify and validate credentials
        ├─> Check for duplicates
-       ├─> Upload PDFs to IPFS
-       ├─> Record on blockchain
-       └─> Create credential in database
+       ├─> Download PDF from provider
+       ├─> Upload PDF to IPFS and get CID
+       ├─> Build canonical JSON with IPFS CID
+       ├─> Compute data hash from canonical JSON
+       ├─> Create credential in database
+       └─> Write to blockchain asynchronously
 
 3. MANUAL SYNC (Admin triggered)
    └─> Admin clicks sync button
@@ -464,6 +474,18 @@ POSSIBLE_MAX_HOUR=1000       # Skip credentials exceeding hours
    └─> Track credentials synced per provider
    └─> View sync errors and failures
    └─> Control scheduler (start/stop)
+
+6. CREDENTIAL CREATION ORDER (Important!)
+   └─> Step 1: Download PDF from external provider
+   └─> Step 2: Upload PDF to IPFS and get CID
+   └─> Step 3: Build canonical JSON including the IPFS CID
+   └─> Step 4: Compute data hash from canonical JSON
+   └─> Step 5: Store credential in database with hash and CID
+   └─> Step 6: Write to blockchain asynchronously
+   
+   Note: The IPFS CID is included in the canonical JSON BEFORE 
+   computing the hash. This ensures the hash represents the 
+   complete credential including its storage location.
 ```
 
 ---
