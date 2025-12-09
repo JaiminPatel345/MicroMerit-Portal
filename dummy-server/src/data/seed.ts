@@ -326,9 +326,9 @@ const QUALIFICATIONS = [
     }
 ];
 
-function getProviderForIndex(index: number): 'nsdc' | 'udemy' | 'jaimin' {
-    const providers: ('nsdc' | 'udemy' | 'jaimin')[] = ['nsdc', 'udemy', 'jaimin'];
-    return providers[index % 3];
+function getProviderForIndex(index: number): 'nsdc' | 'udemy' | 'jaimin' | 'sih' {
+    const providers: ('nsdc' | 'udemy' | 'jaimin' | 'sih')[] = ['nsdc', 'udemy', 'jaimin', 'sih'];
+    return providers[index % 4];
 }
 
 function generateIssuedDate(index: number): Date {
@@ -379,9 +379,9 @@ function generateCredentials(): MockCredential[] {
                 nsqf_level: qual.level,
                 max_hr: qual.maxHours,
                 min_hr: qual.minHours,
-                awarding_body: qual.awardingBody,
-                certifying_body: qual.certifyingBody,
+                awarding_bodies: [qual.awardingBody],
                 occupation: qual.occupation,
+                tags: [provider, 'nsqf', 'skill-india'],
                 description: qual.description,
                 provider,
             });
@@ -403,7 +403,8 @@ let allCredentials: MockCredential[] | null = null;
 const dynamicCredentialCounts: Record<string, number> = {
     nsdc: 0,
     udemy: 0,
-    jaimin: 0
+    jaimin: 0,
+    sih: 0
 };
 
 // Last fetch time per provider - to ensure new credentials on force fetch
@@ -416,12 +417,12 @@ export function getCredentials(): MockCredential[] {
     return allCredentials;
 }
 
-export function getCredentialsByProvider(provider: 'nsdc' | 'udemy' | 'jaimin'): MockCredential[] {
+export function getCredentialsByProvider(provider: 'nsdc' | 'udemy' | 'jaimin' | 'sih'): MockCredential[] {
     return getCredentials().filter(c => c.provider === provider);
 }
 
 // Generate a new dynamic credential for a provider
-function generateDynamicCredential(provider: 'nsdc' | 'udemy' | 'jaimin'): MockCredential {
+function generateDynamicCredential(provider: 'nsdc' | 'udemy' | 'jaimin' | 'sih'): MockCredential {
     dynamicCredentialCounts[provider]++;
     const count = dynamicCredentialCounts[provider];
 
@@ -446,16 +447,16 @@ function generateDynamicCredential(provider: 'nsdc' | 'udemy' | 'jaimin'): MockC
         nsqf_level: qual.level,
         max_hr: qual.maxHours,
         min_hr: qual.minHours,
-        awarding_body: qual.awardingBody,
-        certifying_body: qual.certifyingBody,
+        awarding_bodies: [qual.awardingBody],
         occupation: qual.occupation,
+        tags: [provider, 'nsqf', 'skill-india', 'dynamic'],
         description: qual.description,
         provider,
     };
 }
 
 export function getCredentialsSince(
-    provider: 'nsdc' | 'udemy' | 'jaimin',
+    provider: 'nsdc' | 'udemy' | 'jaimin' | 'sih',
     since: Date,
     limit: number = 10,
     offset: number = 0
@@ -489,6 +490,7 @@ export function resetCredentials(): void {
     dynamicCredentialCounts.nsdc = 0;
     dynamicCredentialCounts.udemy = 0;
     dynamicCredentialCounts.jaimin = 0;
+    dynamicCredentialCounts.sih = 0;
     Object.keys(lastFetchTime).forEach(k => delete lastFetchTime[k]);
 }
 

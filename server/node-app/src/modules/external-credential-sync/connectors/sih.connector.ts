@@ -1,22 +1,22 @@
 /**
- * Jaimin Pvt Ltd Connector - Handles Jaimin API integration
+ * SIH (Smart India Hackathon) Connector - Handles SIH API integration
  */
 
 import { BaseConnector } from './base.connector';
 import { FetchResult, VerifyResult, CanonicalCredential, ProviderConfig } from '../types';
 
-export class JaiminConnector extends BaseConnector {
+export class SIHConnector extends BaseConnector {
     constructor(config: ProviderConfig) {
         super(config);
     }
 
     async authenticate(): Promise<void> {
-        this.log('Setting up Jaimin API key authentication');
+        this.log('Setting up SIH API key authentication');
 
-        // Jaimin uses API key - just set the header
+        // SIH uses API key - just set the header
         const apiKey = this.config.credentials.api_key;
         if (!apiKey) {
-            throw new Error('API key not configured for Jaimin provider');
+            throw new Error('API key not configured for SIH provider');
         }
 
         this.setAuthHeader(apiKey, 'API-Key');
@@ -24,13 +24,13 @@ export class JaiminConnector extends BaseConnector {
     }
 
     async fetchSince(since: string, pageToken?: string): Promise<FetchResult> {
-        this.log('Fetching certificates', { since, pageToken });
+        this.log('Fetching credentials', { since, pageToken });
 
         try {
             // Parse offset from token if provided
             const offset = pageToken ? parseInt(pageToken) : 0;
 
-            const response = await this.httpClient.get('/api/certs', {
+            const response = await this.httpClient.get('/api/credentials', {
                 params: {
                     since,
                     limit: 20,
@@ -40,7 +40,7 @@ export class JaiminConnector extends BaseConnector {
 
             const { data, meta } = response.data;
 
-            this.log('Fetched certificates', {
+            this.log('Fetched credentials', {
                 count: data.length,
                 total: meta.total
             });
@@ -57,19 +57,19 @@ export class JaiminConnector extends BaseConnector {
     }
 
     async verify(payload: any): Promise<VerifyResult> {
-        this.log('Verifying certificate', { cert_id: payload.cert_id });
+        this.log('Verifying credential', { credential_id: payload.credential_id });
 
         try {
             const response = await this.httpClient.post('/api/verify', {
-                cert_id: payload.cert_id,
-                trainee_email: payload.trainee_email,
+                credential_id: payload.credential_id,
+                participant_email: payload.participant_email,
             });
 
             return {
                 ok: response.data.verified,
                 meta: {
                     verified_at: new Date().toISOString(),
-                    method: 'jaimin_api',
+                    method: 'sih_api',
                     ...response.data,
                 },
             };
@@ -80,27 +80,26 @@ export class JaiminConnector extends BaseConnector {
     }
 
     normalize(payload: any): CanonicalCredential {
-        // Jaimin response format:
+        // SIH response format:
         // {
-        //   cert_id, trainee_email, trainee_name, program_name, program_code,
-        //   industry_sector, skill_level, duration_hours, completed_on, issued_by
+        //   credential_id, participant_email, participant_name, skill_title, skill_code,
+        //   sector, proficiency_level, training_duration, completion_date, certifying_authority
         // }
 
         return {
-            learner_email: payload.trainee_email,
-            learner_name: payload.trainee_name,
-            certificate_title: payload.program_name,
-            issued_at: new Date(payload.completed_on),
-            certificate_code: payload.program_code,
-            sector: payload.industry_sector,
-            nsqf_level: payload.skill_level,
-            max_hr: payload.duration_hours,
-            min_hr: payload.duration_hours,
-            awarding_bodies: Array.isArray(payload.issued_by) ? payload.issued_by : (payload.issued_by ? [payload.issued_by] : ['Jaimin Pvt Ltd']),
-            occupation: payload.role || payload.industry_sector,
-            tags: payload.tags || ['jaimin', 'corporate-training'],
-            certificate_url: payload.certificate_url, // Capture the PDF/certificate URL if provided
-            external_id: payload.cert_id,
+            learner_email: payload.participant_email,
+            learner_name: payload.participant_name,
+            certificate_title: payload.skill_title,
+            issued_at: new Date(payload.completion_date),
+            certificate_code: payload.skill_code,
+            sector: payload.sector,
+            nsqf_level: payload.proficiency_level,
+            max_hr: payload.training_duration,
+            min_hr: payload.training_duration,
+            awarding_bodies: payload.certifying_authority ? [payload.certifying_authority] : ['SIH (Smart India Hackathon)'],
+            occupation: payload.sector,
+            tags: ['sih', 'government-initiative', 'innovation'],
+            external_id: payload.credential_id,
             raw_data: payload,
         };
     }

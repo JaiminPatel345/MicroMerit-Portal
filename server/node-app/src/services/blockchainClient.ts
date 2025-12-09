@@ -18,10 +18,17 @@ export async function writeToBlockchain(
     data_hash: string,
     ipfs_cid: string
 ): Promise<BlockchainWriteResult> {
+    // For external credentials without IPFS uploads, use a placeholder
+    // The blockchain still records the data hash for tamper detection
+    const effectiveIpfsCid = (!ipfs_cid || ipfs_cid.trim() === '')
+        ? 'external-credential-no-ipfs'
+        : ipfs_cid;
+
     try {
         logger.info('Calling blockchain service - write', {
             credential_id,
             service_url: BLOCKCHAIN_SERVICE_URL,
+            has_ipfs: ipfs_cid && ipfs_cid.trim() !== '',
         });
 
         const response = await axios.post(
@@ -29,7 +36,7 @@ export async function writeToBlockchain(
             {
                 credential_id,
                 data_hash,
-                ipfs_cid,
+                ipfs_cid: effectiveIpfsCid,
             },
             {
                 headers: {

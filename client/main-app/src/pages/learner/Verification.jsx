@@ -180,6 +180,48 @@ const Verification = () => {
                                 {loading ? 'Verifying on Blockchain...' : 'Verify Authenticity'}
                             </button>
                         </form>
+
+                        <div className="mt-8 relative">
+                            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                                <div className="w-full border-t border-gray-200" />
+                            </div>
+                            <div className="relative flex justify-center">
+                                <span className="bg-white px-2 text-sm text-gray-500">Or verify using file</span>
+                            </div>
+                        </div>
+
+                        <div className="mt-6">
+                             <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-chill-400 transition-colors cursor-pointer"
+                                  onClick={() => document.getElementById('file-upload').click()}>
+                                <div className="space-y-1 text-center">
+                                    <FileText className="mx-auto h-12 w-12 text-gray-400" />
+                                    <div className="flex text-sm text-gray-600">
+                                        <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-chill-600 hover:text-blue-chill-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-chill-500">
+                                            <span>Upload a PDF Certificate</span>
+                                            <input 
+                                                id="file-upload" 
+                                                name="file-upload" 
+                                                type="file" 
+                                                accept=".pdf" 
+                                                className="sr-only"
+                                                onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) {
+                                                        // Placeholder for PDF extraction
+                                                        console.log("PDF Selected:", file.name);
+                                                        // Logic to extract CID would go here, updating setInputValue and setInputType
+                                                        // Example: extractCid(file).then(cid => { setInputValue(cid); setInputType('ipfs_cid'); });
+                                                        alert("PDF extraction logic to be implemented. Please enter CID manually for now.");
+                                                    }
+                                                }}
+                                            />
+                                        </label>
+                                        <p className="pl-1">to auto-extract CID</p>
+                                    </div>
+                                    <p className="text-xs text-gray-500">PDF up to 10MB</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Loading State Overlay */}

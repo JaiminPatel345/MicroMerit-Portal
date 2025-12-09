@@ -367,6 +367,7 @@ export class AdminService {
     if (process.env.NSDC_ISSUER_ID) connectorIssuerIds.push(parseInt(process.env.NSDC_ISSUER_ID, 10));
     if (process.env.UDEMY_ISSUER_ID) connectorIssuerIds.push(parseInt(process.env.UDEMY_ISSUER_ID, 10));
     if (process.env.JAIMIN_ISSUER_ID) connectorIssuerIds.push(parseInt(process.env.JAIMIN_ISSUER_ID, 10));
+    if (process.env.SIH_ISSUER_ID) connectorIssuerIds.push(parseInt(process.env.SIH_ISSUER_ID, 10));
 
     const where: any = {};
 
@@ -377,28 +378,52 @@ export class AdminService {
       where.issuer_id = { notIn: connectorIssuerIds };
     }
 
-    const credentials = await prisma.credential.findMany({
-      where,
-      orderBy: { issued_at: 'desc' },
-      take: filters.limit || 50,
-      include: {
-        issuer: {
-          select: {
-            id: true,
-            name: true,
-            logo_url: true,
+    // Get total count, credentials, and stats in parallel
+    const [total, credentials, issuedCount, unclaimedCount, pendingCount, revokedCount, issuerStats] = await Promise.all([
+      prisma.credential.count({ where }),
+      prisma.credential.findMany({
+        where,
+        orderBy: { issued_at: 'desc' },
+        take: filters.limit,
+        include: {
+          issuer: {
+            select: {
+              id: true,
+              name: true,
+              logo_url: true,
+            },
+          },
+          learner: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
         },
-        learner: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
+      }),
+      prisma.credential.count({ where: { ...where, status: 'issued' } }),
+      prisma.credential.count({ where: { ...where, status: 'unclaimed' } }),
+      prisma.credential.count({ where: { ...where, status: 'pending' } }),
+      prisma.credential.count({ where: { ...where, status: 'revoked' } }),
+      prisma.credential.groupBy({
+        by: ['issuer_id'],
+        where,
+        _count: true,
+      }),
+    ]);
 
-    return credentials;
+    return {
+      credentials,
+      total,
+      limit: filters.limit,
+      stats: {
+        issued: issuedCount,
+        unclaimed: unclaimedCount,
+        pending: pendingCount,
+        revoked: revokedCount,
+        uniqueIssuers: issuerStats.length,
+      },
+    };
   }
 }
 

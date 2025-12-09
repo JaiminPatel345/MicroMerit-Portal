@@ -63,7 +63,9 @@ router.get('/api/certs', verifyApiKey, (req: Request, res: Response) => {
         skill_level: c.nsqf_level,
         duration_hours: c.max_hr,
         completed_on: c.issued_at.toISOString().split('T')[0], // YYYY-MM-DD format
-        issued_by: c.awarding_body,
+        issued_by: c.awarding_bodies,
+        role: c.occupation,
+        tags: c.tags,
     }));
 
     res.json({
@@ -106,7 +108,9 @@ router.get('/api/certs/:id', verifyApiKey, (req: Request, res: Response) => {
         skill_level: credential.nsqf_level,
         duration_hours: credential.max_hr,
         completed_on: credential.issued_at.toISOString().split('T')[0],
-        issued_by: credential.awarding_body,
+        issued_by: credential.awarding_bodies,
+        role: credential.occupation,
+        tags: credential.tags,
     };
 
     res.json({
@@ -157,7 +161,7 @@ router.post('/api/verify', verifyApiKey, (req: Request, res: Response) => {
         certificate: {
             program_name: credential.certificate_title,
             completed_on: credential.issued_at.toISOString().split('T')[0],
-            issued_by: credential.awarding_body,
+            issued_by: credential.awarding_bodies,
         },
     });
 });

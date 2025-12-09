@@ -113,6 +113,17 @@ model Credential {
   data_hash         String
   metadata          Json
   status            String   @default("issued")
+  
+  // External credential fields
+  certificate_code  String?  // NPR code (e.g., "SSC/Q2601")
+  sector            String?  // Sector name (e.g., "Information Technology")
+  nsqf_level        Int?     // NSQF Level (1-10)
+  max_hr            Int?     // Maximum hours
+  min_hr            Int?     // Minimum hours
+  awarding_bodies   Json?    // Array of awarding body names
+  occupation        String?  // Occupation/job role
+  tags              Json?    // Tags array (e.g., ["digilocker", "nsdc"])
+  
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   
@@ -136,6 +147,9 @@ model Credential {
 
   @@index([metadata(ops: JsonbPathOps)], type: Gin) // GIN index for JSON queries (skills/keywords search)
   @@index([certificate_title])
+  @@index([certificate_code])
+  @@index([sector])
+  @@index([nsqf_level])
 }
 
 model SkillKnowledgeBase {
@@ -186,8 +200,8 @@ model employer {
   email             String      @unique
   phone             String?
   password_hash     String
-  company_doc_url   String?      // Uploaded proof document - made optional for initial flexibility or filebase upload
-  status            String      @default("pending") // pending | approved | rejected
+  pan_number      String?      @unique      // Added PAN number for verification (Optional for migration compatibility)
+  status            String      @default("active") // pending | approved | rejected - Changed default to active
   approved_at       DateTime?
   rejected_reason   String?
   created_at        DateTime    @default(now())

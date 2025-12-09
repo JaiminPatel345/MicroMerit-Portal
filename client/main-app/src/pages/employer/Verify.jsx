@@ -162,6 +162,45 @@ const EmployerVerify = () => {
                             </p>
                         </form>
 
+                        <div className="mb-6 relative">
+                            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                                <div className="w-full border-t border-gray-200" />
+                            </div>
+                            <div className="relative flex justify-center">
+                                <span className="bg-white px-2 text-sm text-gray-500">Or verify using file</span>
+                            </div>
+                        </div>
+
+                         <div className="mb-8">
+                             <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-chill-400 transition-colors cursor-pointer"
+                                  onClick={() => document.getElementById('single-file-upload').click()}>
+                                <div className="space-y-1 text-center">
+                                    <FileText className="mx-auto h-12 w-12 text-gray-400" />
+                                    <div className="flex text-sm text-gray-600">
+                                        <label htmlFor="single-file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-chill-600 hover:text-blue-chill-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-chill-500">
+                                            <span>Upload a PDF Certificate</span>
+                                            <input 
+                                                id="single-file-upload" 
+                                                name="single-file-upload" 
+                                                type="file" 
+                                                accept=".pdf" 
+                                                className="sr-only"
+                                                onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) {
+                                                        console.log("PDF Selected:", file.name);
+                                                        alert("PDF extraction logic to be implemented. Please enter credentials manually for now.");
+                                                    }
+                                                }}
+                                            />
+                                        </label>
+                                        <p className="pl-1">to extract hash/ID</p>
+                                    </div>
+                                    <p className="text-xs text-gray-500">PDF documents only</p>
+                                </div>
+                            </div>
+                        </div>
+
                         {error && !verifyResult && (
                             <div className="bg-red-50 text-red-600 p-4 rounded-xl flex items-center gap-3 border border-red-100">
                                 <AlertCircle size={20} />
@@ -307,6 +346,45 @@ const EmployerVerify = () => {
                             >
                                 {loading ? <Loader className="animate-spin" /> : <>Verify Bulk List <FileCheck size={18} /></>}
                             </button>
+                        </div>
+
+                        <div className="mb-6 relative">
+                            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                                <div className="w-full border-t border-gray-200" />
+                            </div>
+                            <div className="relative flex justify-center">
+                                <span className="bg-white px-2 text-sm text-gray-500">Or upload bulk ZIP</span>
+                            </div>
+                        </div>
+
+                        <div className="mb-8">
+                             <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-chill-400 transition-colors cursor-pointer"
+                                  onClick={() => document.getElementById('bulk-zip-upload').click()}>
+                                <div className="space-y-1 text-center">
+                                    <FileCheck className="mx-auto h-12 w-12 text-gray-400" />
+                                    <div className="flex text-sm text-gray-600">
+                                        <label htmlFor="bulk-zip-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-chill-600 hover:text-blue-chill-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-chill-500">
+                                            <span>Upload ZIP of Certificates</span>
+                                            <input 
+                                                id="bulk-zip-upload" 
+                                                name="bulk-zip-upload" 
+                                                type="file" 
+                                                accept=".zip" 
+                                                className="sr-only"
+                                                onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) {
+                                                        console.log("ZIP Selected:", file.name);
+                                                        alert("ZIP extraction and bulk verification logic to be implemented.");
+                                                    }
+                                                }}
+                                            />
+                                        </label>
+                                        <p className="pl-1">to verify multiple PDFs</p>
+                                    </div>
+                                    <p className="text-xs text-gray-500">ZIP archive containing PDFs</p>
+                                </div>
+                            </div>
                         </div>
 
                         {bulkResults && (

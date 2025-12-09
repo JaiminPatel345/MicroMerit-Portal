@@ -26,6 +26,14 @@ interface Credential {
 const Credentials = () => {
     const { viewMode } = useAppSelector((state) => state.externalSync);
     const [credentials, setCredentials] = useState<Credential[]>([]);
+    const [totalCount, setTotalCount] = useState(0);
+    const [stats, setStats] = useState({
+        issued: 0,
+        unclaimed: 0,
+        pending: 0,
+        revoked: 0,
+        uniqueIssuers: 0,
+    });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -39,12 +47,58 @@ const Credentials = () => {
             params.append('limit', '50');
 
             const response = await axiosInstance.get(`/admin/credentials?${params.toString()}`);
-            const data = response.data?.data || response.data || [];
-            setCredentials(Array.isArray(data) ? data : []);
+            const responseData = response.data?.data || response.data || {};
+
+            // Handle new response structure with total count and stats
+            if (responseData.credentials && Array.isArray(responseData.credentials)) {
+                setCredentials(responseData.credentials);
+                setTotalCount(responseData.total || responseData.credentials.length);
+                if (responseData.stats) {
+                    setStats(responseData.stats);
+                } else {
+                    // Fallback to calculating from fetched credentials
+                    setStats({
+                        issued: responseData.credentials.filter((c: Credential) => c.status === 'issued').length,
+                        unclaimed: responseData.credentials.filter((c: Credential) => c.status === 'unclaimed').length,
+                        pending: responseData.credentials.filter((c: Credential) => c.status === 'pending').length,
+                        revoked: responseData.credentials.filter((c: Credential) => c.status === 'revoked').length,
+                        uniqueIssuers: new Set(responseData.credentials.map((c: Credential) => c.issuer?.id).filter(Boolean)).size,
+                    });
+                }
+            } else if (Array.isArray(responseData)) {
+                // Fallback for old response format
+                setCredentials(responseData);
+                setTotalCount(responseData.length);
+                setStats({
+                    issued: responseData.filter((c: Credential) => c.status === 'issued').length,
+                    unclaimed: responseData.filter((c: Credential) => c.status === 'unclaimed').length,
+                    pending: responseData.filter((c: Credential) => c.status === 'pending').length,
+                    revoked: responseData.filter((c: Credential) => c.status === 'revoked').length,
+                    uniqueIssuers: new Set(responseData.map((c: Credential) => c.issuer?.id).filter(Boolean)).size,
+                });
+            } else {
+                setCredentials([]);
+                setTotalCount(0);
+                setStats({
+                    issued: 0,
+                    unclaimed: 0,
+                    pending: 0,
+                    revoked: 0,
+                    uniqueIssuers: 0,
+                });
+            }
         } catch (err: any) {
             console.error('Failed to fetch credentials:', err);
             setError(err.response?.data?.message || err.message || 'Failed to fetch credentials');
             setCredentials([]);
+            setTotalCount(0);
+            setStats({
+                issued: 0,
+                unclaimed: 0,
+                pending: 0,
+                revoked: 0,
+                uniqueIssuers: 0,
+            });
         } finally {
             setLoading(false);
         }
@@ -122,7 +176,7 @@ const Credentials = () => {
                             </svg>
                         </div>
                         <div>
-                            <p className="text-2xl font-bold text-gray-900">{credentials.length}</p>
+                            <p className="text-2xl font-bold text-gray-900">{totalCount}</p>
                             <p className="text-sm text-gray-500">Total Credentials</p>
                         </div>
                     </div>
@@ -136,7 +190,7 @@ const Credentials = () => {
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-gray-900">
-                                {credentials.filter(c => c.status === 'issued').length}
+                                {stats.issued}
                             </p>
                             <p className="text-sm text-gray-500">Issued</p>
                         </div>
@@ -151,7 +205,7 @@ const Credentials = () => {
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-gray-900">
-                                {credentials.filter(c => c.status === 'unclaimed').length}
+                                {stats.unclaimed}
                             </p>
                             <p className="text-sm text-gray-500">Unclaimed</p>
                         </div>
@@ -166,7 +220,7 @@ const Credentials = () => {
                         </div>
                         <div>
                             <p className="text-2xl font-bold text-gray-900">
-                                {new Set(credentials.map(c => c.issuer?.id).filter(Boolean)).size}
+                                {stats.uniqueIssuers}
                             </p>
                             <p className="text-sm text-gray-500">Issuers</p>
                         </div>
@@ -197,6 +251,18 @@ const Credentials = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <p className="text-red-700">{error}</p>
+                </div>
+            )}
+
+            {/* Info banner when showing limited results */}
+            {!loading && totalCount > credentials.length && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
+                    <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-blue-700">
+                        Showing {credentials.length} of {totalCount} total credentials. Use the search to filter results.
+                    </p>
                 </div>
             )}
 

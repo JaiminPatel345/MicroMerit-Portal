@@ -97,6 +97,9 @@ export interface CanonicalCredential {
     /** Description of the credential */
     description?: string;
 
+    /** Certificate/PDF URL from the external provider */
+    certificate_url?: string;
+
     /** External ID from the provider */
     external_id: string;
 
