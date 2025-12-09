@@ -80,4 +80,17 @@ resourceRouter.post(
     asyncHandler(employerController.extractCredentialId.bind(employerController))
 );
 
+resourceRouter.post(
+    '/bulk-verify-upload',
+    authenticateToken,
+    requireEmployer,
+    (req, res, next) => {
+        // Use dynamic import or require to avoid circular dependency issues if any,
+        // but here we just need to import bulkUpload from multerConfig
+        const { bulkUpload } = require('../../utils/multerConfig');
+        bulkUpload.single('file')(req, res, next);
+    },
+    asyncHandler(employerController.bulkVerifyUpload.bind(employerController))
+);
+
 export { authRouter as employerAuthRoutes, resourceRouter as employerResourceRoutes };

@@ -214,6 +214,106 @@ export class EmployerController {
             sendError(res, error.message, 'Extraction Failed', 500);
         }
     }
+
+    async bulkVerifyUpload(req: Request, res: Response) {
+        try {
+            if (!req.user) return sendError(res, 'Unauthorized');
+            if (!req.file) return sendError(res, 'No file uploaded', 'Validation Error', 400);
+
+            const { aiService } = await import('../ai/ai.service');
+
+            const file = req.file;
+            const mimeType = file.mimetype;
+
+            let credentialIds: string[] = [];
+            const report: any = {
+                processed_files: 0,
+                successful_extractions: 0,
+                failed_extractions: 0,
+                extraction_errors: [],
+                verification_results: []
+            };
+
+            // ---- CSV ----
+            if (mimeType.includes('csv') || file.originalname.endsWith('.csv')) {
+                const csvContent = file.buffer.toString('utf-8');
+
+                credentialIds = csvContent
+                    .split(/[\r\n,]+/)
+                    .map(id => id.trim())
+                    .filter(Boolean);
+
+                report.processed_files = credentialIds.length;
+                report.successful_extractions = credentialIds.length;
+            }
+
+            // ---- ZIP ----
+            else if (mimeType.includes('zip') || file.originalname.endsWith('.zip')) {
+                console.log('Processing ZIP file...');
+
+                const extractionResult = await aiService.extractBulkIds(file.buffer, file.originalname);
+                if (!extractionResult?.success) {
+                    return sendError(res, 'Failed to process ZIP file', 'Processing Error', 500);
+                }
+
+                report.processed_files = extractionResult.total;
+
+                const extractedResults = extractionResult.results || [];
+
+                // Efficient streaming-style filtering
+                const validExtractions = [];
+                const errors = [];
+
+                for (const r of extractedResults) {
+                    if (r.certificate_number && (r.status === 'found' || r.status === 'needs_review')) {
+                        validExtractions.push(r);
+                    } else {
+                        errors.push({ filename: r.filename, error: r.error || 'No ID found' });
+                    }
+                }
+
+                credentialIds = validExtractions.map((r: any) => r.certificate_number);
+
+                report.successful_extractions = credentialIds.length;
+                report.failed_extractions = report.processed_files - report.successful_extractions;
+                report.extraction_errors = errors;
+            }
+
+            else {
+                return sendError(res, 'Unsupported file type. Upload CSV or ZIP only.', 'Validation Error', 400);
+            }
+
+            // No extracted IDs
+            if (credentialIds.length === 0) {
+                return sendSuccess(res, { report }, 'No valid credential IDs found to verify.');
+            }
+
+            // ---- Efficient parallel verify (chunk size 100) ----
+            console.log(`Verifying ${credentialIds.length} IDs...`);
+
+            const chunkSize = 100;
+            const chunks = [];
+
+            for (let i = 0; i < credentialIds.length; i += chunkSize) {
+                chunks.push(credentialIds.slice(i, i + chunkSize));
+            }
+
+            const results = await Promise.allSettled(
+                chunks.map(chunk => employerService.bulkVerify(req.user!.id, chunk))
+            );
+
+            // Flatten and filter errors
+            report.verification_results = results.flatMap((r: any) =>
+                r.status === 'fulfilled' ? r.value : [{ error: r.reason }]
+            );
+
+            return sendSuccess(res, { report }, 'Bulk Verification Processed');
+
+        } catch (error: any) {
+            logger.error('Bulk Verify Upload Error:', error);
+            return sendError(res, error.message, 'Bulk Verification Failed', 500);
+        }
+    }
 }
 
 export const employerController = new EmployerController();
