@@ -14,6 +14,7 @@ import { uploadToFilebase } from '../../utils/filebase';
 import { writeToBlockchainQueued } from '../../services/blockchainClient';
 import { buildCanonicalJson, computeDataHash } from '../../utils/canonicalJson';
 import { logger } from '../../utils/logger';
+import { aiService } from '../ai/ai.service';
 
 export class ExternalCredentialSyncService {
     private possibleMaxHour: number;
@@ -246,6 +247,7 @@ export class ExternalCredentialSyncService {
         // Download PDF from external provider and upload to IPFS FIRST
         let pdfUrl: string | null = null;
         let ipfsCid: string | null = null;
+        let pdfBuffer: Buffer | null = null; // Store buffer for AI processing
 
         if (canonical.certificate_url) {
             try {
@@ -294,7 +296,7 @@ export class ExternalCredentialSyncService {
                     content_length: response.headers['content-length']
                 });
 
-                const pdfBuffer = Buffer.from(response.data);
+                pdfBuffer = Buffer.from(response.data);
 
                 if (pdfBuffer.length === 0) {
                     throw new Error('Downloaded PDF is empty (0 bytes)');
@@ -329,8 +331,8 @@ export class ExternalCredentialSyncService {
                     error_code: error.code,
                     error_name: error.name,
                     response_status: error.response?.status,
-                    response_data: error.response?.data ? 
-                        (typeof error.response.data === 'string' ? error.response.data.substring(0, 200) : JSON.stringify(error.response.data).substring(0, 200)) 
+                    response_data: error.response?.data ?
+                        (typeof error.response.data === 'string' ? error.response.data.substring(0, 200) : JSON.stringify(error.response.data).substring(0, 200))
                         : undefined,
                     is_timeout: error.code === 'ECONNABORTED' || error.message?.includes('timeout'),
                     is_network: error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT'
@@ -343,6 +345,7 @@ export class ExternalCredentialSyncService {
                 });
                 pdfUrl = null;
                 ipfsCid = null;
+                pdfBuffer = null;
             }
         } else {
             logger.info('No certificate_url provided, creating credential without PDF', {
@@ -420,6 +423,172 @@ export class ExternalCredentialSyncService {
         } else {
             logger.info(`Blockchain write skipped (mock mode) for ${credentialId}`);
         }
+
+        // AI Analysis Layer: Run OCR, stackability, and pathway analysis asynchronously
+        // All analyses run in parallel after credential creation
+        this.processAIAnalysisAsync(credentialId, canonical, metadata, pdfBuffer, issuer.name).catch(error => {
+            logger.error(`AI analysis failed for ${credentialId}`, { error: error.message });
+            // Don't block credential creation if AI analysis fails
+        });
+    }
+
+    /**
+     * Process AI analysis asynchronously (OCR + stackability + pathway)
+     * Runs after credential creation and updates metadata with AI insights
+     */
+    private async processAIAnalysisAsync(
+        credentialId: string,
+        canonical: CanonicalCredential,
+        metadata: any,
+        pdfBuffer: Buffer | null,
+        issuerName: string
+    ): Promise<void> {
+        try {
+            logger.info(`Starting AI analysis for credential ${credentialId}`, {
+                certificate_title: canonical.certificate_title,
+                nsqf_level: canonical.nsqf_level,
+                occupation: canonical.occupation,
+                has_pdf: !!pdfBuffer
+            });
+
+            let aiExtractedData: any = {
+                skills: [],
+                nsqf: canonical.nsqf_level ? {
+                    level: canonical.nsqf_level,
+                    confidence: 0.8,
+                    reasoning: `External credential from ${canonical.tags?.[0] || 'external source'}`
+                } : { level: 1, confidence: 0.0, reasoning: '' },
+                keywords: canonical.tags || [],
+                description: canonical.description || ''
+            };
+
+            // STEP 1: OCR Processing (if PDF is available)
+            if (pdfBuffer) {
+                try {
+                    logger.info(`Processing OCR for credential ${credentialId}`);
+
+                    const ocrResult = await aiService.processOCR(
+                        pdfBuffer,
+                        `credential-${credentialId}.pdf`,
+                        canonical.learner_email,
+                        canonical.certificate_title,
+                        issuerName,
+                        [] // No NSQF context for external credentials
+                    );
+
+                    // Extract AI data from OCR result
+                    aiExtractedData = {
+                        skills: ocrResult.skills || [],
+                        nsqf: ocrResult.nsqf || aiExtractedData.nsqf,
+                        nsqf_alignment: ocrResult.nsqf_alignment || undefined,
+                        keywords: ocrResult.keywords || [],
+                        description: ocrResult.description || canonical.description || '',
+                        certificate_metadata: ocrResult.certificate_metadata || {}
+                    };
+
+                    logger.info(`OCR processing completed for ${credentialId}`, {
+                        skills_count: aiExtractedData.skills?.length || 0,
+                        nsqf_level: aiExtractedData.nsqf?.level,
+                        keywords_count: aiExtractedData.keywords?.length || 0
+                    });
+
+                } catch (ocrError: any) {
+                    logger.error(`OCR processing failed for ${credentialId}`, {
+                        error: ocrError.message
+                    });
+                    // Continue with default extracted data
+                }
+            } else {
+                logger.info(`No PDF available for OCR processing, using metadata for ${credentialId}`);
+            }
+
+            // Prepare certificate data for pathway analysis
+            const certificateData = {
+                certificate_title: canonical.certificate_title,
+                issuer_name: issuerName,
+                issued_at: canonical.issued_at,
+                metadata: {
+                    ai_extracted: aiExtractedData
+                }
+            };
+
+            // Extract skills names for stackability analysis
+            const skillNames = aiExtractedData.skills?.map((s: any) =>
+                typeof s === 'string' ? s : s.name
+            ) || [];
+
+            // STEP 2: Run stackability and pathway analyses in parallel
+            const [stackabilityResult, pathwayResult] = await Promise.allSettled([
+                // Call 1: Stackability Analysis
+                aiService.analyzeStackability({
+                    code: canonical.certificate_code || undefined,
+                    level: aiExtractedData.nsqf?.level || canonical.nsqf_level || undefined,
+                    progression_pathway: canonical.description || undefined,
+                    qualification_type: canonical.tags?.[0] || undefined,
+                    sector_name: canonical.sector || undefined,
+                    training_delivery_hours: canonical.max_hr ? `${canonical.max_hr} hours` : undefined,
+                    min_notational_hours: canonical.min_hr || undefined,
+                    max_notational_hours: canonical.max_hr || undefined,
+                    proposed_occupation: canonical.occupation || undefined,
+                    skills: skillNames
+                }),
+                // Call 2: Pathway/Roadmap Generation
+                aiService.generatePathway([certificateData], {
+                    occupation: canonical.occupation,
+                    nsqf_level: aiExtractedData.nsqf?.level || canonical.nsqf_level
+                })
+            ]);
+
+            // Process results
+            const aiAnalysis: any = {};
+
+            if (stackabilityResult.status === 'fulfilled' && stackabilityResult.value) {
+                aiAnalysis.stackability = stackabilityResult.value;
+                logger.info(`Stackability analysis completed for ${credentialId}`, {
+                    pathways_count: stackabilityResult.value.pathways?.length || 0
+                });
+            } else if (stackabilityResult.status === 'rejected') {
+                logger.warn(`Stackability analysis failed for ${credentialId}`, {
+                    reason: stackabilityResult.reason
+                });
+            }
+
+            if (pathwayResult.status === 'fulfilled' && pathwayResult.value) {
+                aiAnalysis.pathway = pathwayResult.value;
+                logger.info(`Pathway generation completed for ${credentialId}`);
+            } else if (pathwayResult.status === 'rejected') {
+                logger.warn(`Pathway generation failed for ${credentialId}`, {
+                    reason: pathwayResult.reason
+                });
+            }
+
+            // Update credential metadata with both OCR extracted data and AI analysis
+            const updatedMetadata = {
+                ...metadata,
+                ai_extracted: aiExtractedData,
+                ai_analysis: aiAnalysis,
+                ai_processing_completed_at: new Date().toISOString()
+            };
+
+            await credentialIssuanceRepository.updateCredentialMetadata(
+                credentialId,
+                updatedMetadata
+            );
+
+            logger.info(`AI processing results saved to credential ${credentialId}`, {
+                has_ocr_data: !!pdfBuffer,
+                skills_extracted: aiExtractedData.skills?.length || 0,
+                has_stackability: !!aiAnalysis.stackability,
+                has_pathway: !!aiAnalysis.pathway
+            });
+
+        } catch (error: any) {
+            logger.error(`Unexpected error in AI analysis for ${credentialId}`, {
+                error: error.message,
+                stack: error.stack
+            });
+            throw error;
+        }
     }
 
     /**
@@ -430,7 +599,7 @@ export class ExternalCredentialSyncService {
         logger.warn('processBlockchainAsync called but is deprecated - use queue instead', {
             credential_id: credentialId
         });
-        
+
         try {
             await writeToBlockchainQueued(credentialId, dataHash, '');
         } catch (error: any) {

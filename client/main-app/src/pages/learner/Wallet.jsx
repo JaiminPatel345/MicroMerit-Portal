@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
     Search,
     Hash,
@@ -30,6 +30,29 @@ const Wallet = () => {
     
     const [limit] = useState(10);
 
+    const fetchCertificates = async () => {
+        setLoading(true);
+        try {
+            const res = await learnerApi.getCertificates({
+                page,
+                limit,
+                search: searchTerm,
+                status: statusFilter,
+                duration: durationFilter,
+                tag: tagFilter
+            });
+            const data = res.data?.data?.data || [];
+            const pagination = res.data?.data?.pagination || {};
+
+            setCertificates(data);
+            setTotalPages(pagination.totalPages || 1);
+        } catch (error) {
+            console.error("Failed to fetch certificates", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         const timer = setTimeout(() => {
             // Logic to determine parameters
@@ -39,11 +62,24 @@ const Wallet = () => {
             if (isCustomDate && startDate) {
                 apiStartDate = startDate.toISOString();
                 if (endDate) apiEndDate = endDate.toISOString();
+            } else if (!isCustomDate && durationFilter && durationFilter !== 'all') {
+                // If using preset duration, let backend handle it? Or we can calculate it here?
+                // The backend currently handles 'duration' param nicely.
+                // But if we want consistent API, we can just pass 'duration' param as before if not custom.
+                // Or better: Let's stick to 'duration' param for presets to keep backend logic simple,
+                // and use startDate/endDate for custom.
             }
 
             setLoading(true);
             learnerApi.getCertificates({
                 page,
+                limit,
+                search: searchTerm,
+                status: statusFilter,
+                duration: isCustomDate ? undefined : durationFilter,
+                page,
+                limit,
+                search: searchTerm,
                 limit,
                 search: searchTerm,
                 status: statusFilter,
@@ -62,8 +98,9 @@ const Wallet = () => {
             }).finally(() => setLoading(false));
 
         }, 300);
+
         return () => clearTimeout(timer);
-    }, [page, searchTerm, statusFilter, sortBy, durationFilter, tagFilter, startDate, endDate, isCustomDate, limit]);
+    }, [page, searchTerm, statusFilter, sortBy, durationFilter, tagFilter, startDate, endDate, isCustomDate]);
 
     // Popular tags for filtering
     const filterTags = [
@@ -75,11 +112,11 @@ const Wallet = () => {
     return (
         <div className="min-h-screen bg-gray-50 p-6 lg:p-10">
             <div className="max-w-5xl mx-auto">
-
-                {/* Header Section */}
                 <div className="mb-8">
                     <h1 className="text-2xl font-bold text-gray-900">My Wallet</h1>
-                    <p className="text-gray-500 mt-1">Manage your verified credentials and achievements.</p>
+                    <p className="text-gray-500 mt-1">
+                        Manage your verified credentials and achievements.
+                    </p>
                 </div>
 
                 {/* Search and Filter Bar */}
@@ -250,19 +287,15 @@ const Wallet = () => {
                     </div>
                 </div>
 
-                {/* Content Area */}
+                {/* Certificate List */}
                 {loading ? (
-                    <div className="py-20 text-center text-gray-500">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-chill-600 mx-auto mb-4"></div>
-                        Loading certificates...
-                    </div>
+                    <div className="text-center py-16">Loading...</div>
                 ) : certificates.length === 0 ? (
-                    <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
-                        <h3 className="text-lg font-bold text-gray-900">No certificates found</h3>
-                        <p className="text-gray-500 mt-1">Try adjusting your search or filters.</p>
+                    <div className="text-center py-16 bg-white rounded-xl border">
+                        No certificates found
                     </div>
                 ) : (
-                    <div className="bg-white rounded-xl divide-y divide-gray-300 overflow-hidden">
+                    <div className="bg-white rounded-xl divide-y divide-gray-200 overflow-hidden">
                         {certificates.map((cert) => (
                             <CertificateRow key={cert.id} cert={cert} />
                         ))}
@@ -271,23 +304,21 @@ const Wallet = () => {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                    <div className="flex justify-center items-center gap-2 mt-8">
+                    <div className="flex justify-center gap-3 mt-8">
                         <button
-                            onClick={() => setPage(p => Math.max(1, p - 1))}
                             disabled={page === 1}
-                            className="px-3 py-1 text-sm text-blue-chill-600 hover:bg-blue-chill-50 rounded disabled:opacity-50 disabled:hover:bg-transparent disabled:text-gray-400"
+                            onClick={() => setPage((p) => p - 1)}
                         >
-                            &lt; Previous
+                            Previous
                         </button>
-                        <span className="text-sm text-gray-600 px-2">
+                        <span>
                             {page} / {totalPages}
                         </span>
                         <button
-                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                             disabled={page === totalPages}
-                            className="px-3 py-1 text-sm text-blue-chill-600 hover:bg-blue-chill-50 rounded disabled:opacity-50 disabled:hover:bg-transparent disabled:text-gray-400"
+                            onClick={() => setPage((p) => p + 1)}
                         >
-                            Next &gt;
+                            Next
                         </button>
                     </div>
                 )}
@@ -297,21 +328,21 @@ const Wallet = () => {
 };
 
 const CertificateRow = ({ cert }) => {
-    // Generate a random color for the language/skill dot
-    const dotColor = ['#f1e05a', '#3178c6', '#e34c26', '#563d7c'][Math.floor(Math.random() * 4)];
+    const dotColor = ["#f1e05a", "#3178c6", "#e34c26", "#563d7c"][
+        Math.floor(Math.random() * 4)
+    ];
 
-    // Try to get description from metadata, or fallback
-    const description = cert.metadata?.description ||
-        `Issued by ${cert.issuer?.name || 'Unknown Issuer'}. This credential verifies the completion of the course and mastery of the subject matter.`;
+    const description =
+        cert.metadata?.description ||
+        `Issued by ${cert.issuer?.name || "Unknown Issuer"}.`;
 
     return (
-         <Link to={`/credential/${cert.id}`} >
         <div className="p-6 flex flex-col sm:flex-row justify-between items-start gap-4 hover:bg-gray-50 transition-colors">
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg font-bold text-blue-chill-600 hover:underline truncate">
+                    <Link to={`/credential/${cert.id}`} className="text-lg font-bold text-blue-chill-600 hover:underline truncate">
                         {cert.certificate_title}
-                    </span>
+                    </Link>
                     <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${cert.status === 'revoked'
                         ? 'bg-red-50 text-red-700 border-red-100'
                         : 'bg-green-50 text-green-700 border-green-100'
@@ -330,27 +361,40 @@ const CertificateRow = ({ cert }) => {
                         <span>{cert.issuer?.type || 'Certificate'}</span>
                     </div>
 
-                    <div className="flex items-center gap-1" title="Credential ID">
-                        <Hash size={14} />
-                        <span className="font-mono">{cert.credential_id || cert.id.substring(0, 8)}</span>
-                    </div>
+                    <p className="text-sm text-gray-600">{description}</p>
 
-                    <div className="flex items-center gap-1" title="Issued Date">
-                        <Clock size={14} />
-                        <span>{new Date(cert.issued_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    <div className="flex gap-4 text-xs mt-2 text-gray-500">
+                        <span className="flex items-center gap-1">
+                            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: dotColor }}></span>
+                            {cert.issuer?.type}
+                        </span>
+
+                        <span className="flex items-center gap-1">
+                            <Hash size={14} />
+                            {cert.credential_id}
+                        </span>
+
+                        <span className="flex items-center gap-1">
+                            <Clock size={14} />
+                            {new Date(cert.issued_at).toDateString()}
+                        </span>
                     </div>
+                </div>
+
+                <div className="shrink-0">
+                    <span className="border px-3 py-2 rounded">View Details</span>
                 </div>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-                <span
+                <Link
+                    to={`/credential/${cert.id}`}
                     className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                    >
+                >
                     View Details
-                </span>
+                </Link>
             </div>
         </div>
-     </Link>
     );
 };
 

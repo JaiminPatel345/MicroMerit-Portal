@@ -54,7 +54,7 @@ app.add_middleware(
 )
 
 # Include routes
-app.include_router(ai_router, tags=["AI"])
+app.include_router(ai_router, prefix="/ai", tags=["AI"])
 
 @app.get("/")
 async def root():

@@ -5,7 +5,8 @@ import { authenticateToken } from '../../middleware/auth';
 import { requireIssuer } from '../../middleware/role';
 import { asyncHandler } from '../../middleware/error';
 import { authRateLimiter, registrationRateLimiter, apiKeyRateLimiter } from '../../middleware/rateLimit';
-import { imageUpload } from '../../utils/multerConfig';
+import { imageUpload, zipUpload } from '../../utils/multerConfig';
+import { bulkUploadController } from './bulkUpload.controller';
 
 // Multer middleware for logo upload
 const uploadLogo: any = imageUpload.single('logo');
@@ -110,6 +111,22 @@ resourceRouter.post(
 resourceRouter.get(
   '/public/:id',
   asyncHandler(issuerController.getPublicProfile.bind(issuerController))
+);
+
+// Bulk Upload routes
+resourceRouter.post(
+  '/bulk-upload',
+  authenticateToken,
+  requireIssuer,
+  zipUpload.single('file'), 
+  asyncHandler(bulkUploadController.upload)
+);
+
+resourceRouter.get(
+  '/bulk-upload/:batchId',
+  authenticateToken,
+  requireIssuer,
+  asyncHandler(bulkUploadController.getStatus)
 );
 
 export { authRouter as issuerAuthRoutes, resourceRouter as issuerResourceRoutes };

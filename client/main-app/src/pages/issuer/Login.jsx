@@ -144,6 +144,16 @@ export default function IssuerLogin() {
             )}
           </div>
 
+          {/* Forgot Password Link */}
+          <div className="flex justify-end">
+            <Link
+              to="/issuer/forgot-password"
+              className="text-sm text-blue-chill-600 hover:text-blue-chill-700 font-medium"
+            >
+              Forgot password?
+            </Link>
+          </div>
+
           {/* Login Button */}
           <button
             onClick={login}

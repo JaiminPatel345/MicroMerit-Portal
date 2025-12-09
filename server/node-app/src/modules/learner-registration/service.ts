@@ -7,10 +7,15 @@ import {
   StartRegistrationInput,
   VerifyOTPInput,
   CompleteRegistrationInput,
+  ForgotPasswordInput,
+  VerifyResetOTPInput,
+  ResetPasswordInput,
+  ResendOTPInput,
 } from './schema';
 import { ConflictError, NotFoundError, ValidationError } from '../../utils/errors';
 import { handleProfilePhotoFileUpload } from '../../utils/imageUpload';
 import { logger } from '../../utils/logger';
+import { prisma } from '../../utils/prisma';
 
 export class RegistrationService {
   private repository: RegistrationRepository;
@@ -285,6 +290,212 @@ export class RegistrationService {
       },
       accessToken,
       refreshToken,
+    };
+  }
+
+  /**
+   * Forgot Password Step 1: Request password reset
+   */
+  async forgotPassword(input: ForgotPasswordInput) {
+    const { email, phone } = input;
+
+    // Determine verification method
+    const verificationMethod = email ? 'email' : 'phone';
+    const recipient = email || phone!;
+
+    // Check if learner exists
+    let learner;
+    if (email) {
+      learner = await this.repository.findLearnerByEmail(email);
+    } else if (phone) {
+      learner = await prisma.learner.findUnique({ where: { phone } });
+    }
+
+    if (!learner) {
+      throw new NotFoundError('No account found with this email or phone', 404, 'ACCOUNT_NOT_FOUND');
+    }
+
+    // Check if learner has a password (OAuth users might not have passwords)
+    if (!learner.hashed_password) {
+      throw new ValidationError(
+        'This account was created using OAuth (Google/DigiLocker). Please use that method to sign in.',
+        400,
+        'OAUTH_ACCOUNT_NO_PASSWORD'
+      );
+    }
+
+    // Delete any old password reset sessions for this contact
+    await prisma.verification_session.deleteMany({
+      where: {
+        session_type: 'password_reset',
+        OR: [
+          email ? { email } : {},
+          phone ? { phone } : {},
+        ].filter(obj => Object.keys(obj).length > 0),
+      },
+    });
+
+    // Generate OTP
+    const otp = generateOTP(6);
+    const otpHash = await hashOTP(otp);
+    const expiresAt = getOTPExpiry();
+
+    // Create password reset session
+    const session = await prisma.verification_session.create({
+      data: {
+        session_type: 'password_reset',
+        email,
+        phone,
+        otp_hash: otpHash,
+        metadata: { verification_method: verificationMethod, learner_id: learner.id },
+        expires_at: expiresAt,
+      },
+    });
+
+    // Send OTP
+    await sendOTP(verificationMethod, recipient, otp);
+
+    return {
+      sessionId: session.id,
+      message: `Password reset OTP sent to ${verificationMethod === 'email' ? 'email' : 'phone'}`,
+      expiresAt: session.expires_at,
+    };
+  }
+
+  /**
+   * Forgot Password Step 2: Verify reset OTP
+   */
+  async verifyResetOTP(input: VerifyResetOTPInput) {
+    const { sessionId, otp } = input;
+
+    // Find session
+    const session = await this.repository.findSessionById(sessionId);
+    if (!session || session.session_type !== 'password_reset') {
+      throw new NotFoundError('Invalid password reset session', 404, 'SESSION_NOT_FOUND');
+    }
+
+    // Check if already verified
+    if (session.is_verified) {
+      throw new ValidationError('OTP already verified', 400, 'OTP_ALREADY_VERIFIED');
+    }
+
+    // Check if expired
+    if (new Date() > session.expires_at) {
+      throw new ValidationError('OTP expired', 400, 'OTP_EXPIRED');
+    }
+
+    // Verify OTP
+    const isValid = await verifyOTP(otp, session.otp_hash);
+    if (!isValid) {
+      throw new ValidationError('Invalid OTP', 400, 'INVALID_OTP');
+    }
+
+    // Mark as verified
+    await this.repository.markSessionAsVerified(sessionId);
+
+    return {
+      message: 'OTP verified successfully. You can now reset your password.',
+      sessionId,
+    };
+  }
+
+  /**
+   * Forgot Password Step 3: Reset password
+   */
+  async resetPassword(input: ResetPasswordInput) {
+    const { sessionId, otp, newPassword } = input;
+
+    // Find and validate session
+    const session = await this.repository.findSessionById(sessionId);
+    if (!session || session.session_type !== 'password_reset') {
+      throw new NotFoundError('Invalid password reset session', 404, 'SESSION_NOT_FOUND');
+    }
+
+    // Verify OTP again for security
+    const isValid = await verifyOTP(otp, session.otp_hash);
+    if (!isValid) {
+      throw new ValidationError('Invalid OTP', 400, 'INVALID_OTP');
+    }
+
+    // Check if expired
+    if (new Date() > session.expires_at) {
+      throw new ValidationError('Session expired. Please request a new password reset', 400, 'SESSION_EXPIRED');
+    }
+
+    // Get learner ID from session metadata
+    const metadata = session.metadata as any;
+    const learnerId = metadata?.learner_id;
+    if (!learnerId) {
+      throw new ValidationError('Invalid session data', 400, 'INVALID_SESSION_DATA');
+    }
+
+    // Hash new password
+    const hashedPassword = await hashPassword(newPassword);
+
+    // Update learner password
+    await this.repository.updateLearner(learnerId, {
+      hashedPassword,
+    });
+
+    // Delete the password reset session
+    await prisma.verification_session.delete({
+      where: { id: sessionId },
+    });
+
+    logger.info('Password reset successfully', { learnerId });
+
+    return {
+      message: 'Password reset successfully. You can now log in with your new password.',
+    };
+  }
+
+  /**
+   * Resend OTP for any verification session
+   */
+  async resendOTP(input: ResendOTPInput) {
+    const { sessionId } = input;
+
+    // Find session
+    const session = await this.repository.findSessionById(sessionId);
+    if (!session) {
+      throw new NotFoundError('Invalid session', 404, 'SESSION_NOT_FOUND');
+    }
+
+    // Check if session is too old (don't allow resend after expiry)
+    if (new Date() > session.expires_at) {
+      throw new ValidationError('Session expired. Please start the process again', 400, 'SESSION_EXPIRED');
+    }
+
+    // Determine verification method from metadata
+    const metadata = session.metadata as any;
+    const verificationMethod = metadata?.verification_method || 'email';
+    const recipient = session.email || session.phone;
+
+    if (!recipient) {
+      throw new ValidationError('No recipient found in session', 400, 'NO_RECIPIENT');
+    }
+
+    // Generate new OTP
+    const otp = generateOTP(6);
+    const otpHash = await hashOTP(otp);
+    const expiresAt = getOTPExpiry();
+
+    // Update session with new OTP and expiry
+    await prisma.verification_session.update({
+      where: { id: sessionId },
+      data: {
+        otp_hash: otpHash,
+        expires_at: expiresAt,
+        is_verified: false, // Reset verification status
+      },
+    });
+
+    // Send new OTP
+    await sendOTP(verificationMethod, recipient, otp);
+
+    return {
+      message: `New OTP sent to ${verificationMethod === 'email' ? 'email' : 'phone'}`,
+      expiresAt,
     };
   }
 }

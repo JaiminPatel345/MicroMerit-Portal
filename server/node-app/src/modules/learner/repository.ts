@@ -280,11 +280,10 @@ export class LearnerRepository {
     status?: string,
     issuerId?: number,
     certificateTitle?: string,
-    sortBy?: string,
-    duration?: string,
+    tags?: string[],
     startDate?: Date,
     endDate?: Date,
-    tags?: string[]
+    sortBy?: string
   ) {
     const skip = (page - 1) * limit;
     const where: any = {
@@ -303,53 +302,47 @@ export class LearnerRepository {
       where.certificate_title = { contains: certificateTitle, mode: 'insensitive' };
     }
 
-    if (search) {
-      where.OR = [
-        { certificate_title: { contains: search, mode: 'insensitive' } },
-        { issuer: { name: { contains: search, mode: 'insensitive' } } },
-      ];
-    }
-
-    // Date Filters
     if (startDate || endDate) {
-        where.issued_at = {};
-        if (startDate) where.issued_at.gte = startDate;
-        if (endDate) where.issued_at.lte = endDate;
-    } else if (duration && duration !== 'all' && duration !== 'custom') {
-        const months = parseInt(duration, 10);
-        if (!isNaN(months)) {
-             const date = new Date();
-             date.setMonth(date.getMonth() - months);
-             where.issued_at = { gte: date };
-        }
+      where.issued_at = {};
+      if (startDate) where.issued_at.gte = startDate;
+      if (endDate) where.issued_at.lte = endDate;
     }
 
-    // Tag Filters (checking sector or occupation)
     if (tags && tags.length > 0) {
-        if (!where.OR) where.OR = [];
-        // We want certificates where sector IN tags OR occupation IN tags
-        // But since where.OR is already used for search, we need to be careful.
-        // Prisma doesn't support nested ORs easily combined with AND at top level in older versions,
-        // but let's try strict AND grouping.
-        
-        const tagConditions = [
-             { sector: { in: tags, mode: 'insensitive' } },
-             { occupation: { in: tags, mode: 'insensitive' } }
-        ];
-
-        if (where.OR && where.OR.length > 0) {
-            // Both search AND tags must match
-             where.AND = [
-                 { OR: where.OR },
-                 { OR: tagConditions }
-             ];
-             delete where.OR; // Move existing OR to inside AND
-        } else {
-             where.OR = tagConditions;
-        }
+      const tagConditions = tags.flatMap(t => [
+          { sector: { contains: t, mode: 'insensitive' } },
+          { tags: { array_contains: t } }
+      ]);
+      where.OR = tagConditions;
     }
 
-    // Sorting
+    if (search) {
+      // If we already have an OR for tag, we need to be careful not to overwrite it
+      // We can use AND to combine them
+      const searchCondition = {
+        OR: [
+            { certificate_title: { contains: search, mode: 'insensitive' } },
+            { issuer: { name: { contains: search, mode: 'insensitive' } } },
+        ]
+      };
+
+      if (where.OR) {
+        // If we have tags filter, we want (Tags Condition) AND (Search Condition)
+        // But Prisma 'where' structure with top-level OR and AND can be tricky.
+        // If we assign where.AND = [searchCondition], it preserves the top-level where.OR (Tags)
+        // effective query: (Tag1 OR Tag2) AND (Search1 OR Search2)
+        // This is usually what we want.
+        
+        // However, we must be careful if where.AND acts as an override or merge.
+        // In Prisma, 'AND' is an array. We should safely append if it exists (though here it doesn't).
+        where.AND = [
+            searchCondition
+        ];
+      } else {
+        where.OR = searchCondition.OR;
+      }
+    }
+
     let orderBy: any = { issued_at: 'desc' };
     if (sortBy === 'max_hr_desc') {
         orderBy = { max_hr: 'desc' };

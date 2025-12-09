@@ -652,26 +652,12 @@ export class LearnerService {
     limit: number = 10,
     search?: string,
     status?: string,
-    sortBy?: string,
-    duration?: string,
+    tags?: string[],
     startDate?: Date,
     endDate?: Date,
-    tags?: string[]
+    sortBy?: string
   ) {
-    return learnerRepository.getLearnerCredentials(
-      learnerId, 
-      page, 
-      limit, 
-      search, 
-      status, 
-      undefined, 
-      undefined,
-      sortBy,
-      duration,
-      startDate,
-      endDate,
-      tags
-    );
+    return learnerRepository.getLearnerCredentials(learnerId, page, limit, search, status, undefined, undefined, tags, startDate, endDate, sortBy);
   }
   /**
    * Get public profile

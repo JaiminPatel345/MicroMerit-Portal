@@ -271,7 +271,7 @@ export class AIService {
                     timeout: 20000 // 20s timeout for OCR
                 }
             );
-            
+
             // Map new python response to old service interface + new fields
             const data = response.data;
             return {
@@ -285,7 +285,7 @@ export class AIService {
         } catch (error: any) {
             console.error('AI Service - Extract ID Error:', error.message);
             if (error.response) {
-                 console.error('AI Service Detailed Error:', JSON.stringify(error.response.data));
+                console.error('AI Service Detailed Error:', JSON.stringify(error.response.data));
             }
             throw {
                 status: error.response?.status || 500,
@@ -317,6 +317,64 @@ export class AIService {
                 status: error.response?.status || 500,
                 message: error.response?.data?.detail || 'Failed to process bulk extraction'
             };
+        }
+    }
+
+    /**
+     * Analyze stackability for a qualification
+     * Used for external credential sync to determine progression pathways
+     */
+    async analyzeStackability(stackabilityRequest: {
+        code?: string;
+        level?: number;
+        progression_pathway?: string;
+        qualification_type?: string;
+        sector_name?: string;
+        training_delivery_hours?: string;
+        min_notational_hours?: number;
+        max_notational_hours?: number;
+        proposed_occupation?: string;
+        skills?: string[];
+    }): Promise<any> {
+        try {
+            const response = await axios.post(
+                `${this.aiServiceUrl}/stackability`,
+                stackabilityRequest,
+                {
+                    headers: { 'Content-Type': 'application/json' },
+                    timeout: 30000
+                }
+            );
+            return response.data;
+        } catch (error: any) {
+            console.error('AI Service - Stackability Analysis Error:', error.response?.data || error.message);
+            // Return empty pathways on error instead of throwing
+            return { pathways: [] };
+        }
+    }
+
+    /**
+     * Generate career pathway/roadmap for a credential
+     * Used for external credential sync to provide career guidance
+     */
+    async generatePathway(certificates: any[], learnerProfile?: any): Promise<any> {
+        try {
+            const response = await axios.post(
+                `${this.aiServiceUrl}/generate-roadmap`,
+                {
+                    certificates,
+                    learner_profile: learnerProfile || {}
+                },
+                {
+                    headers: { 'Content-Type': 'application/json' },
+                    timeout: 45000
+                }
+            );
+            return response.data;
+        } catch (error: any) {
+            console.error('AI Service - Pathway Generation Error:', error.response?.data || error.message);
+            // Return null on error
+            return null;
         }
     }
 }
