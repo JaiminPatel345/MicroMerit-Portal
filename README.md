@@ -1,341 +1,259 @@
 # MicroMerit Portal
 
-A comprehensive digital credential management system with blockchain integration, supporting multiple user roles and OAuth authentication.
+A comprehensive AI-powered digital credential management system with blockchain integration, external credential sync, skill profiling, and employer matching capabilities.
 
 ## 🌟 Features
 
-### Authentication & User Management
-- **Multi-Role Authentication**: Issuer, Learner, and Admin roles
-- **Two-Step OTP Verification**: For both Issuer and Learner registration
-- **Email Management**: Verified email addition for learners
-- **OAuth Integration**: Google and DigiLocker sign-in
+### 🔐 Authentication & User Management
+- **Multi-Role Authentication**: Issuer, Learner, Employer, and Admin roles
+- **Two-Step OTP Verification**: For Issuer and Learner registration
+- **OAuth Integration**: Google and DigiLocker sign-in for learners
 - **API Key Management**: For programmatic issuer access
+- **Email Management**: Verified email addition for learners
 
-### Blockchain-Backed Credentials (New!)
-- **Credential Issuance**: Issue verifiable credentials with blockchain anchoring
+### 🎓 Credential Management
+- **Blockchain-Backed Credentials**: Issue verifiable credentials with blockchain anchoring
 - **IPFS Integration**: Decentralized storage via Filebase for certificates
 - **Multi-Identifier Verification**: Verify by credential_id, tx_hash, ipfs_cid, or QR code
 - **QR Code Generation**: Generate shareable QR codes for credentials
 - **Data Integrity**: SHA256 hashing ensures tamper-proof credentials
 - **Unclaimed Credentials**: Support for pre-issuing credentials to unregistered learners
+- **External Credential Sync**: Automatic syncing from external providers (NSDC, Udemy, etc.)
 
-### Legacy Features
-- **PDF Certificates**: Generate professional certificates with QR codes
-- **Cloud Storage**: Amazon S3 integration for certificates
+### 🤖 AI-Powered Features
+- **OCR Processing**: Extract credential details from PDF certificates using Tesseract
+- **Skill Profile Generation**: AI-generated skill profiles from credentials
+- **Learning Roadmap**: Personalized learning paths based on learner credentials
+- **Employer AI Chatbot**: Query learner profiles, credentials, and skills via AI
+- **Course Recommendations**: AI-powered course suggestions
+
+### 👔 Employer Features
+- **Candidate Search**: Search learners by skills, NSQF level, location, and credentials
+- **AI Chatbot**: Ask questions about learner profiles and get intelligent answers
+- **Profile Viewing**: View detailed learner profiles with credentials and skills
+
+### 📊 Admin Dashboard
+- **Issuer Management**: Approve/reject issuer registrations
+- **Credential Oversight**: Monitor all credentials in the system
+- **External Sync Control**: Force sync external credentials
+- **NSQF Verification**: Verify and approve NSQF levels for credentials
+- **Analytics**: View system statistics and metrics
 
 ## 📁 Project Structure
 
 ```
 MicroMerit-Portal/
-├── client/                 # React + Vite frontend
+├── client/
+│   ├── main-app/              # Main learner/issuer/employer frontend (React + Vite)
+│   └── admin/                 # Admin dashboard (React + Vite)
 ├── server/
-│   ├── node-app/          # Node.js + Express backend
-│   └── ai-service/        # AI-related services (optional)
-├── docs/                  # API documentation (OpenAPI specs)
-└── README.md             # This file
+│   ├── node-app/              # Main backend API (Node.js + Express + TypeScript)
+│   ├── ai_groq_service/       # AI service (Python + FastAPI + Groq)
+│   ├── blockchain/            # Blockchain service (TypeScript + Hardhat + Ethers.js)
+│   └── digilocker_handle_server/  # DigiLocker OAuth handler
+├── dummy-server/              # Mock credential provider server for development
+├── docs/                      # API documentation (OpenAPI specs)
+└── README.md                  # This file
 ```
 
 ## 🚀 Quick Start
 
+For detailed setup instructions, see [QUICKSTART.md](./QUICKSTART.md)
+
 ### Prerequisites
 
-- Node.js 18+ and npm/yarn
-- PostgreSQL 14+
-- Git
+- **Node.js** 18+
+- **Python** 3.8+
+- **PostgreSQL** 14+
+- **Redis** (for BullMQ queue)
+- **Tesseract OCR** (for AI service)
+- **Groq API Key** (for AI features)
+- **Filebase Account** (for IPFS storage)
 
-### 1. Clone the Repository
+### Quick Setup
 
-```bash
-git clone https://github.com/JaiminPatel345/MicroMerit-Portal.git
-cd MicroMerit-Portal
-```
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/JaiminPatel345/MicroMerit-Portal.git
+   cd MicroMerit-Portal
+   ```
 
-### 2. Backend Setup
+2. **Setup PostgreSQL database**
+   ```bash
+   sudo -u postgres psql
+   CREATE DATABASE micromerit;
+   CREATE USER micromerit_user WITH PASSWORD 'your_password';
+   GRANT ALL PRIVILEGES ON DATABASE micromerit TO micromerit_user;
+   \q
+   ```
 
-See detailed backend setup instructions in [Backend Setup Guide](./docs/BACKEND_SETUP.md)
-
-**Quick Setup:**
-
-```bash
-cd server/node-app
-
-# Install dependencies
-yarn install
-
-# Setup environment variables
-cp .env.example .env
-# Edit .env with your configuration
-
-# Setup database
-npx prisma generate
-npx prisma migrate dev
-
-# Seed default admin (admin@micromerit.com / admin123)
-npx prisma db seed
-
-# Start development server
-yarn dev
-```
-
-Server will run on `http://localhost:3000`
-
-### 3. Frontend Setup
-
-```bash
-cd client
-
-# Install dependencies
-yarn install
-
-# Setup environment variables
-cp .env.example .env
-# Edit .env with your configuration
-
-# Start development server
-yarn dev
-```
-
-Frontend will run on `http://localhost:5173`
-
-## 🔐 Default Admin Credentials
-
-After seeding the database:
-
-- **Email**: `admin@micromerit.com`
-- **Password**: `admin123`
-
-⚠️ **Important**: Change these credentials in production!
-
-## 📚 Documentation
-
-- **[API Documentation](./docs/README.md)** - Complete OpenAPI specifications
-- **[Backend Setup Guide](./docs/BACKEND_SETUP.md)** - Detailed backend setup instructions
-- **[API Structure](./docs/API_STRUCTURE.md)** - API endpoints quick reference
-- **[Authentication Flow](docs/apis/auth.openapi.yml)** - Authentication API details
-- **[Registration Flow](docs/apis/learner-registration.openapi.yml)** - Learner registration with OTP
+3. **Setup and start all modules** (see [QUICKSTART.md](./QUICKSTART.md) for details)
 
 ## 🛠️ Technology Stack
 
 ### Backend
-- **Runtime**: Node.js with TypeScript
+- **Runtime**: Node.js 18+ with TypeScript
 - **Framework**: Express.js
-- **Database**: PostgreSQL with Prisma ORM
-- **Authentication**: JWT, OAuth 2.0
-- **Cloud Storage**: Amazon S3
+- **Database**: PostgreSQL 14+ with Prisma ORM
+- **Queue**: BullMQ with Redis
+- **Authentication**: JWT, OAuth 2.0 (Google, DigiLocker)
+- **Blockchain**: Ethers.js, Hardhat (Sepolia testnet)
+- **Storage**: Amazon S3, Filebase IPFS
 - **Email**: Nodemailer
 - **SMS**: Twilio
 
+### AI Service
+- **Runtime**: Python 3.8+
+- **Framework**: FastAPI
+- **AI Model**: Groq (llama-3.1-8b-instant)
+- **OCR**: Tesseract OCR, pytesseract
+- **PDF Processing**: pdf2image, PyPDF2
+
 ### Frontend
-- **Framework**: React 18
+- **Framework**: React 19
 - **Build Tool**: Vite
-- **Styling**: CSS/Tailwind (TBD)
+- **Styling**: Tailwind CSS 4
+- **State Management**: Redux Toolkit
+- **Routing**: React Router v7
+- **UI Components**: Lucide React, Framer Motion
+- **Charts**: Recharts
 
-## 🔄 Recent Updates (v1.0.0 - November 2025)
+### Blockchain Service
+- **Runtime**: Node.js with TypeScript
+- **Framework**: Express.js
+- **Blockchain**: Ethers.js v6, Hardhat
+- **Network**: Sepolia testnet
 
-### Breaking Changes
-- **Learner Registration**: Removed `other_emails` field from Step 3
-- **Issuer Registration**: Now requires 2-step OTP verification
+## 📦 Modules
 
-### New Features
-- Email management system for learners (`/learner/add-email/*`)
-- Issuer OTP verification before admin approval
-- Enhanced security with mandatory email verification
+### 1. Main Backend (`server/node-app`)
+- Port: `3000`
+- Main API server handling authentication, credentials, employer search, etc.
+- **Setup**: `cd server/node-app && yarn install && cp .env.example .env`
+- **Run**: `yarn dev`
 
-## 🧪 Testing
+### 2. AI Service (`server/ai_groq_service`)
+- Port: `8000`
+- Handles OCR, skill profiling, roadmap generation, and AI chatbot
+- **Setup**: `cd server/ai_groq_service && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt && cp .env.example .env`
+- **Run**: `python main.py`
 
-```bash
-cd server/node-app
+### 3. Blockchain Service (`server/blockchain`)
+- Port: `3001`
+- Handles blockchain interactions for credential anchoring
+- **Setup**: `cd server/blockchain && yarn install && cp .env.example .env`
+- **Run**: `yarn dev`
 
-# Run all tests
-yarn test
+### 4. Main App (`client/main-app`)
+- Port: `5173`
+- Frontend for learners, issuers, and employers
+- **Setup**: `cd client/main-app && yarn install && cp .env.example .env`
+- **Run**: `yarn dev`
 
-```
+### 5. Admin Dashboard (`client/admin`)
+- Port: `5174`
+- Admin panel for system management
+- **Setup**: `cd client/admin && yarn install && cp .env.example .env`
+- **Run**: `yarn dev`
 
-## 📖 API Endpoints Overview
+### 6. Dummy Server (`dummy-server`)
+- Port: `4000`
+- Mock external credential provider for development/testing
+- **Setup**: `cd dummy-server && yarn install`
+- **Run**: `yarn dev`
 
-### Issuer
-- `POST /api/auth/issuer/start-register` - Start registration with OTP
-- `POST /api/auth/issuer/verify-register` - Verify OTP and complete registration
-- `POST /api/auth/issuer/login` - Login
-- `GET /api/auth/issuer/me` - Get profile
+## 🔐 Default Credentials
 
-### Learner
-- `POST /api/auth/learner/start-register` - Start registration
-- `POST /api/auth/learner/verify-otp` - Verify OTP
-- `POST /api/auth/learner/complete-register` - Complete registration
-- `POST /api/auth/learner/login` - Login
-- `POST /api/auth/learner/add-email/request` - Request to add email
-- `POST /api/auth/learner/add-email/verify` - Verify and add email
+After running the seed script (`npx tsx prisma/seed.ts` in `server/node-app`):
 
-### Admin
-- `POST /api/auth/admin/login` - Login
-- `GET /api/auth/admin/issuer/list` - List issuers
-- `POST /api/auth/admin/issuer/approve/:id` - Approve issuer
-- `POST /api/auth/admin/issuer/reject/:id` - Reject issuer
+- **Admin**: `admin@micromerit.com` / `admin123`
+- **Test Learner**: `learner@test.com` / `password123`
+- **Test Issuer**: `issuer@test.com` / `password123`
+- **Test Employer**: `employer@test.com` / `password123`
 
-### Credentials
-- `POST /api/credential/issue` - Issue credential
-- `POST /api/credential/claim` - Claim credential
-- `GET /api/credential/verify/:uid` - Verify credential
-
-For complete API documentation, see [docs/README.md](./docs/README.md)
+⚠️ **Important**: Change these credentials in production!
 
 ## 🔧 Environment Variables
 
-### Backend Required Variables
+Each module requires its own `.env` file. Copy `.env.example` to `.env` in each directory:
 
+- `server/node-app/.env` - Main backend config
+- `server/ai_groq_service/.env` - AI service config
+- `server/blockchain/.env` - Blockchain service config
+- `client/main-app/.env` - Main app config
+- `client/admin/.env` - Admin dashboard config
+
+See [QUICKSTART.md](./QUICKSTART.md) for detailed environment variable setup.
+
+## 📖 Key Features Documentation
+
+### External Credential Sync
+Automatically syncs credentials from external providers:
+- **NSDC**: National Skill Development Corporation
+- **Udemy**: Online learning platform
+- **Custom Providers**: Jaimin Pvt Ltd, SIH
+
+Configure in `server/node-app/.env`:
 ```env
-# Server
-NODE_ENV=development
-PORT=3000
-
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/micromerit
-
-# JWT
-JWT_SECRET=your-secret-key
-JWT_REFRESH_SECRET=your-refresh-secret
-
-# Email (Nodemailer)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-
-# AWS S3
-AWS_REGION=us-east-1
-AWS_S3_BUCKET=micromerit-certificates
-AWS_ACCESS_KEY_ID=your-access-key
-AWS_SECRET_ACCESS_KEY=your-secret-key
+ENABLE_EXTERNAL_SYNC=true
+POLL_INTERVAL_HOURS=1
+NSDC_ENABLED=true
+UDEMY_ENABLED=true
 ```
 
-See [BACKEND_SETUP.md](./docs/BACKEND_SETUP.md) for complete environment configuration.
+### AI Chatbot for Employers
+Employers can ask questions about learner profiles:
+- "What skills does this learner have?"
+- "Show me their blockchain certifications"
+- "What is their NSQF level?"
 
-## 📜 API Endpoints
+### Skill Profile Generation
+AI automatically generates skill profiles from credentials, including:
+- Technical skills
+- Soft skills
+- Domain knowledge
+- Proficiency levels
 
-### Authentication
-- `POST /auth/issuer/register` - Issuer registration
-- `POST /auth/learner/start-register` -Start learner registration
-- `POST /auth/admin/login` - Admin login
-
-### Credentials (New!)
-- `POST /credentials/issue` - Issue a new blockchain-backed credential
-- `POST /credentials/verify` - Verify credential authenticity
-- `GET /learner/:learner_id/credentials/:credential_id/qr` - Get QR code payload
-
-### Legacy Endpoints
-- `POST /pdf` - Generate PDF certificate
-- `GET /pdf/:credentialUid` - Download PDF certificate
-
-Full API documentation available in `/docs/apis/` directory.
-
----
-
-## 🔐 Environment Variables
-
-### New Required Variables (Credentials System)
-
+### Course Hour Validation
+Credentials are validated for course duration:
 ```env
-# Filebase IPFS Configuration
-FILEBASE_ACCESS_KEY_ID=your_access_key
-FILEBASE_SECRET_ACCESS_KEY=your_secret_key
-FILEBASE_BUCKET_NAME=your_bucket_name
-FILEBASE_GATEWAY_URL=https://ipfs.filebase.io/ipfs/
-
-# Blockchain Configuration
-BLOCKCHAIN_MOCK_ENABLED=true
-BLOCKCHAIN_NETWORK=sepolia
-BLOCKCHAIN_CONTRACT_ADDRESS=mock_contract
+MIN_HOUR_LEN=7.5
+MAX_HOUR_LEN=30
 ```
-
-### Obtaining Filebase Credentials
-
-1. Sign up at [Filebase.com](https://filebase.com)
-2. Create an IPFS bucket
-3. Generate Access Keys from dashboard
-4. Add keys to `.env` file
-
----
-
-## 🎯 Credential System Usage
-
-### Issuing a Credential
-
-```bash
-curl -X POST http://localhost:3000/api/credentials/issue \
-  -H "Authorization: Bearer YOUR_ISSUER_TOKEN" \
-  -F "learner_email=learner@example.com" \
-  -F "issuer_id=1" \
-  -F "certificate_title=Web Development Certificate" \
-  -F "issued_at=2024-01-15T10:00:00Z" \
-  -F "original_pdf=@certificate.pdf"
-```
-
-### Verifying a Credential
-
-```bash
-# By credential ID
-curl -X POST http://localhost:3000/api/credentials/verify \
-  -H "Content-Type: application/json" \
-  -d '{"credential_id": "123e4567-e89b-12d3-a456-426614174000"}'
-
-# By transaction hash
-curl -X POST http://localhost:3000/api/credentials/verify \
-  -H "Content-Type: application/json" \
-  -d '{"tx_hash": "0x123e4567e89b12d3a456426614174000"}'
-
-# By QR payload (Base64 encoded JSON)
-curl -X POST http://localhost:3000/api/credentials/verify \
-  -H "Content-Type: application/json" \
-  -d '{"qr_payload": "eyJjcmVkZW50aWFsX2lkIjoi..."}'
-```
-
-### Getting QR Code Data
-
-```bash
-curl -X GET http://localhost:3000/api/learner/42/credentials/123e4567.../qr \
-  -H "Authorization: Bearer YOUR_LEARNER_TOKEN"
-```
-
----
-
-## 🏗️ Architecture
-
-### Database Schema
-
-**New Credential Model** (Consolidated):
-- Replaces old `credential`, `blockchain_record`, and `pdf_certificate` tables
-- Single source of truth for all credential data
-- Includes blockchain tx_hash, IPFS CID, and data integrity hash
-
-### Credential Workflow
-
-1. **Issuance**: Issuer uploads PDF → System generates credential_id → PDF pinned to IPFS → Data hash computed → Mock blockchain write → Credential stored
-2. **Verification**: User provides identifier → System retrieves credential → Canonical JSON reconstructed → Hash recomputed → Blockchain verified → Result returned
-3. **QR Sharing**: Learner requests QR data → System returns JSON with all identifiers → Frontend generates QR code → Others scan to verify
-
----
 
 ## 🧪 Testing
 
-### Running Tests
-
 ```bash
+# Backend tests
 cd server/node-app
 yarn test
+yarn test:coverage
+
+# Run specific test suites
+yarn test credential
+yarn test auth
 ```
 
-### Manual Testing Checklist
+## 📚 API Documentation
 
-- [ ] Issue credential with existing learner email
-- [ ] Issue credential with unknown email (unclaimed)
-- [ ] Verify credential by ID, tx_hash, and IPFS CID
-- [ ] Generate QR code payload
-- [ ] Test tampered credential detection
+- **[Complete API Docs](./docs/README.md)** - OpenAPI specifications
+- **[Authentication Flow](./docs/apis/auth.openapi.yml)**
+- **[Credential APIs](./docs/apis/credential.openapi.yml)**
+- **[AI Service APIs](./docs/AI_API_DOCS.md)**
 
----
+## 🏗️ Architecture
 
-## 🤝 Contributors
+### Credential Workflow
+1. **Issuance**: Issuer uploads PDF → OCR extraction → AI skill profiling → IPFS upload → Blockchain anchoring → Database storage
+2. **Verification**: User provides identifier → Retrieve credential → Verify hash → Check blockchain → Return verification result
+3. **External Sync**: Cron job polls external APIs → Validates credentials → Processes with AI → Stores in database
+
+### Database Schema
+- **Unified Credential Model**: Single table for internal and external credentials
+- **Skill Knowledge Base**: NSQF qualifications and skill mappings
+- **User Models**: Learner, Issuer, Employer, Admin
+
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
@@ -345,7 +263,7 @@ yarn test
 
 ## 📝 License
 
-MicroMerit Portal - Proprietary Software
+MicroMerit Portal - Proprietary Software  
 © 2025 MicroMerit Team. All rights reserved.
 
 ## 👥 Team
@@ -362,3 +280,5 @@ For questions or issues:
 ---
 
 **Note**: This project is under active development. Features and documentation are subject to change.
+
+For detailed setup instructions, see [QUICKSTART.md](./QUICKSTART.md)

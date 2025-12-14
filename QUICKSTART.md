@@ -1,100 +1,137 @@
-# 🚀 Quick Start Guide - MicroMerit AI Integration
+# 🚀 Quick Start Guide - MicroMerit Portal
 
-## Overview
-
-This guide will help you set up and run the complete MicroMerit system with AI integration.
+Complete setup guide for the MicroMerit AI-powered credential management system.
 
 ---
 
-## Prerequisites
+## 📋 Overview
+
+MicroMerit Portal consists of **6 modules**:
+
+1. **Main Backend** (`server/node-app`) - Port 3000
+2. **AI Service** (`server/ai_groq_service`) - Port 8000
+3. **Blockchain Service** (`server/blockchain`) - Port 3001
+4. **Main App** (`client/main-app`) - Port 5173
+5. **Admin Dashboard** (`client/admin`) - Port 5174
+6. **Dummy Server** (`dummy-server`) - Port 4000 (for development/testing)
+
+---
+
+## ⚙️ Prerequisites
 
 ### System Requirements
 - **OS**: Ubuntu 20.04+ / Windows 10+ / macOS
 - **Node.js**: v18 or higher
 - **Python**: 3.8 or higher
 - **PostgreSQL**: 14 or higher
-- **Tesseract OCR**: Latest version
+- **Redis**: Latest version (for BullMQ queue)
+- **Tesseract OCR**: Latest version (for AI service)
 
-### Accounts Needed
-- Groq API Key (for AI features)
-- Filebase Account (for IPFS storage)
+### Required Accounts & API Keys
+- **Groq API Key** - Get from [console.groq.com](https://console.groq.com/)
+- **Filebase Account** - Get from [filebase.com](https://filebase.com/) (for IPFS storage)
+- **AWS S3** (optional) - For additional file storage
+- **Twilio** (optional) - For SMS notifications
+- **Google OAuth** (optional) - For Google sign-in
 
 ---
 
-## Installation Steps
+## 🔧 System Dependencies Installation
 
-### 1. Install System Dependencies
+### Ubuntu/Debian
 
-#### Ubuntu/Debian
 ```bash
 # Update system
 sudo apt update && sudo apt upgrade -y
 
-# Install Node.js
+# Install Node.js 18
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt install -y nodejs
 
-# Install Python
+# Install Python 3
 sudo apt install -y python3 python3-pip python3-venv
 
-# Install PostgreSQL
+# Install PostgreSQL 14
 sudo apt install -y postgresql postgresql-contrib
+
+# Install Redis
+sudo apt install -y redis-server
 
 # Install Tesseract OCR
 sudo apt install -y tesseract-ocr tesseract-ocr-eng
 
 # Verify installations
-node --version  # Should show v18+
-python3 --version  # Should show 3.8+
-psql --version  # Should show 14+
-tesseract --version  # Should show 4.x or 5.x
+node --version    # Should show v18+
+python3 --version # Should show 3.8+
+psql --version    # Should show 14+
+redis-server --version
+tesseract --version
 ```
 
-#### Windows
-1. Install Node.js from: https://nodejs.org/
-2. Install Python from: https://www.python.org/downloads/
-3. Install PostgreSQL from: https://www.postgresql.org/download/windows/
-4. Install Tesseract from: https://github.com/UB-Mannheim/tesseract/wiki
+### Windows
+
+1. **Node.js**: Download from [nodejs.org](https://nodejs.org/)
+2. **Python**: Download from [python.org](https://www.python.org/downloads/)
+3. **PostgreSQL**: Download from [postgresql.org](https://www.postgresql.org/download/windows/)
+4. **Redis**: Download from [redis.io](https://redis.io/download) or use WSL
+5. **Tesseract**: Download from [UB-Mannheim/tesseract](https://github.com/UB-Mannheim/tesseract/wiki)
    - **Important**: Note the installation path (usually `C:\Program Files\Tesseract-OCR`)
 
-#### macOS
+### macOS
+
 ```bash
 # Install Homebrew if not installed
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # Install dependencies
-brew install node python postgresql tesseract
+brew install node python postgresql redis tesseract
+
+# Start services
+brew services start postgresql
+brew services start redis
 
 # Verify installations
 node --version
 python3 --version
 psql --version
+redis-server --version
 tesseract --version
 ```
 
 ---
 
-## Setup Instructions
-
-### Step 1: Clone Repository
+## 📥 Clone Repository
 
 ```bash
-cd ~/My/Dev/Projects/sih/
-# Repository should already be at:
-# /home/jaimin/My/Dev/Projects/sih/MicroMerit-Portal
+git clone https://github.com/JaiminPatel345/MicroMerit-Portal.git
+cd MicroMerit-Portal
 ```
 
 ---
 
-### Step 2: Setup PostgreSQL Database
+## 🗄️ Database Setup
+
+### Start PostgreSQL
 
 ```bash
-# Start PostgreSQL service (Ubuntu)
+# Ubuntu/Debian
 sudo systemctl start postgresql
 sudo systemctl enable postgresql
 
-# Create database
+# macOS
+brew services start postgresql
+
+# Windows - PostgreSQL should start automatically
+```
+
+### Create Database
+
+```bash
+# Connect to PostgreSQL
 sudo -u postgres psql
+
+# Or on macOS/Windows
+psql -U postgres
 ```
 
 In PostgreSQL shell:
@@ -107,66 +144,92 @@ GRANT ALL PRIVILEGES ON DATABASE micromerit TO micromerit_user;
 
 ---
 
-### Step 3: Setup Node.js Backend
+## 🚀 Module Setup
+
+### 1️⃣ Main Backend (`server/node-app`)
 
 ```bash
 cd server/node-app
 
 # Install dependencies
 yarn install
+# or: npm install
 
-# Create .env file
+# Copy environment file
 cp .env.example .env
 
-# Edit .env file
-nano .env
+# Edit .env file with your configuration
+nano .env  # or use your preferred editor
 ```
 
-Configure `.env`:
-```bash
+**Configure `.env`:**
+```env
 # Database
-DATABASE_URL="postgresql://micromerit_user:your_secure_password@localhost:5432/micromerit"
+DATABASE_URL="postgresql://micromerit_user:your_secure_password@localhost:5432/micromerit?schema=public"
 
-# JWT Secrets
-JWT_SECRET=your_jwt_secret_here
-JWT_REFRESH_SECRET=your_jwt_refresh_secret_here
+# JWT Secrets (generate random strings)
+JWT_SECRET=your-super-secret-jwt-key-change-this
+JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-this
 
-# Filebase (IPFS)
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# Service URLs
+BLOCKCHAIN_SERVICE_URL=http://localhost:3001
+AI_SERVICE_URL=http://127.0.0.1:8000
+APP_URL=http://localhost:3000
+
+# Filebase (IPFS) - Get from filebase.com
 FILEBASE_ACCESS_KEY_ID=your_filebase_key
 FILEBASE_SECRET_ACCESS_KEY=your_filebase_secret
-FILEBASE_BUCKET_NAME=micromerit-certificates
+FILEBASE_BUCKET_NAME=micromerit-credentials
+FILEBASE_GATEWAY_URL=https://ipfs.filebase.io/ipfs/
 
-# AI Service
-AI_SERVICE_URL=http://localhost:8000
+# Blockchain
+BLOCKCHAIN_MOCK_ENABLED=true
+BLOCKCHAIN_NETWORK=sepolia
 
-# Blockchain (Optional)
-BLOCKCHAIN_RPC_URL=your_blockchain_rpc_url
+# External Credential Sync
+ENABLE_EXTERNAL_SYNC=true
+NSDC_ENABLED=true
+NSDC_BASE_URL=http://localhost:4000/nsdc
+UDEMY_ENABLED=true
+UDEMY_BASE_URL=http://localhost:4000/udemy
+
+# Email (optional - set SEND_SMAILS_AND_MESSAGES=false for dev)
+SEND_SMAILS_AND_MESSAGES=false
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+
+# Frontend URL
+FRONTEND_URL=http://localhost:5173
+CORS_ORIGIN=http://localhost:5173
 ```
 
-Setup database:
+**Setup database:**
 ```bash
-# Run Prisma migrations
+# Generate Prisma client
+npx prisma generate
+
+# Run migrations
 npx prisma migrate dev
 
-# Generate Prisma client
-nn
-
-
-# Seed database (optional)
-npm run seed
+# Seed database with admin and test users
+npx tsx prisma/seed.ts
 ```
 
-Start backend:
+**Start backend:**
 ```bash
-# Development mode
-npm run dev
-
+yarn dev
 # Backend runs on: http://localhost:3000
 ```
 
 ---
 
-### Step 4: Setup AI Service (Python)
+### 2️⃣ AI Service (`server/ai_groq_service`)
 
 ```bash
 cd server/ai_groq_service
@@ -182,28 +245,27 @@ venv\Scripts\activate     # Windows
 # Install dependencies
 pip install -r requirements.txt
 
-# Create .env file
+# Copy environment file
 cp .env.example .env
 
-# Edit .env
+# Edit .env file
 nano .env
 ```
 
-Configure `.env`:
+**Configure `.env`:**
 
-**For Ubuntu/Linux:**
-```bash
+**For Ubuntu/Linux/macOS:**
+```env
 GROQ_API_KEY=your_groq_api_key_here
 MODEL_NAME=llama-3.1-8b-instant
 MOCK_MODE=false
 GROQ_TIMEOUT_SECONDS=25
 
 # Tesseract - NOT NEEDED (auto-detected)
-# TESSERACT_CMD=/usr/bin/tesseract
 ```
 
 **For Windows:**
-```bash
+```env
 GROQ_API_KEY=your_groq_api_key_here
 MODEL_NAME=llama-3.1-8b-instant
 MOCK_MODE=false
@@ -213,178 +275,272 @@ GROQ_TIMEOUT_SECONDS=25
 TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe
 ```
 
-Start AI service:
+**Start AI service:**
 ```bash
-# Development mode
 python main.py
-
-# Or with uvicorn
-uvicorn main:app --reload --port 8000
-
 # AI Service runs on: http://localhost:8000
 ```
 
 ---
 
-### Step 5: Setup Frontend
-
-```bash
-cd client/main-app
-
-# Install dependencies
-yarn install
-
-# Create .env file
-cp .env.example .env
-
-# Edit .env
-nano .env
-```
-
-Configure `.env`:
-```bash
-VITE_BACKEND_URL=http://localhost:3000
-```
-
-Start frontend:
-```bash
-# Development mode
-yarn dev
-
-# Frontend runs on: http://localhost:5173
-```
-
-
-### Step 6: Setup Blockchain Service (TypeScript)
+### 3️⃣ Blockchain Service (`server/blockchain`)
 
 ```bash
 cd server/blockchain
 
 # Install dependencies
 yarn install
+# or: npm install
 
-# Create .env file
+# Copy environment file
 cp .env.example .env
 
-# Edit .env
+# Edit .env file
 nano .env
 ```
 
-Configure `.env`:
-```bash
-# Blockchain
-SEPOLIA_RPC_URL=your_sepolia_rpc_url
+**Configure `.env`:**
+```env
+NODE_ENV=development
+PORT=3001
+
+BLOCKCHAIN_MOCK_ENABLED=true
+BLOCKCHAIN_NETWORK=sepolia
+BLOCKCHAIN_CONTRACT_ADDRESS=mock_contract
+
+# For real blockchain (optional)
+# SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/YOUR_INFURA_PROJECT_ID
+# PRIVATE_KEY=your_private_key_here
+# CONTRACT_ADDRESS=0x...
 ```
 
-Start blockchain service:
+**Start blockchain service:**
 ```bash
-# Development mode
 yarn dev
-
 # Blockchain Service runs on: http://localhost:3001
-```
-
-**To run with docker**
-```bash
-docker compose up
 ```
 
 ---
 
-## Verify Installation
+### 4️⃣ Main App (`client/main-app`)
+
+```bash
+cd client/main-app
+
+# Install dependencies
+yarn install
+# or: npm install
+
+# Copy environment file
+cp .env.example .env
+
+# Edit .env file
+nano .env
+```
+
+**Configure `.env`:**
+```env
+VITE_BACKEND_URL=http://localhost:3000
+VITE_AI_SERVICE_URL=http://localhost:8000
+```
+
+**Start main app:**
+```bash
+yarn dev
+# Main App runs on: http://localhost:5173
+```
+
+---
+
+### 5️⃣ Admin Dashboard (`client/admin`)
+
+```bash
+cd client/admin
+
+# Install dependencies
+yarn install
+# or: npm install
+
+# Copy environment file
+cp .env.example .env
+
+# Edit .env file
+nano .env
+```
+
+**Configure `.env`:**
+```env
+VITE_API_BASE_URL=http://localhost:3000
+```
+
+**Start admin dashboard:**
+```bash
+yarn dev
+# Admin Dashboard runs on: http://localhost:5174
+```
+
+---
+
+### 6️⃣ Dummy Server (`dummy-server`)
+
+```bash
+cd dummy-server
+
+# Install dependencies
+yarn install
+# or: npm install
+
+# No .env file needed - uses default config
+
+# Start dummy server
+yarn dev
+# Dummy Server runs on: http://localhost:4000
+```
+
+---
+
+## ✅ Verify Installation
 
 ### 1. Check Backend
 ```bash
 curl http://localhost:3000/health
-
-# Expected response:
-# {
-#   "success": true,
-#   "message": "Server is running",
-#   "timestamp": "..."
-# }
+# Expected: {"success": true, "message": "Server is running", ...}
 ```
 
 ### 2. Check AI Service
 ```bash
 curl http://localhost:8000/health
-
-# Expected response:
-# {
-#   "status": "ok",
-#   "model": "llama-3.1-8b-instant",
-#   "mock": false,
-#   "key_loaded": true
-# }
+# Expected: {"status": "ok", "model": "llama-3.1-8b-instant", ...}
 ```
 
-### 3. Check Frontend
-Open browser: `http://localhost:5173`
+### 3. Check Blockchain Service
+```bash
+curl http://localhost:3001/health
+# Expected: {"status": "ok", ...}
+```
 
+### 4. Check Frontend
+Open browser: `http://localhost:5173`  
 Should see the MicroMerit homepage.
 
----
+### 5. Check Admin Dashboard
+Open browser: `http://localhost:5174`  
+Should see the admin login page.
 
-## Testing the AI Integration
-
-### Test OCR Processing (via Backend)
-
+### 6. Check Dummy Server
 ```bash
-# This will be called internally when issuer uploads certificate
-# Create a test certificate PDF first
-
-curl -X POST http://localhost:8000/process-ocr \
-  -H "Content-Type: multipart/form-data" \
-  -F "file=@test_certificate.pdf" \
-  -F "learner_email=test@example.com" \
-  -F "certificate_title=Python Programming" \
-  -F "issuer_name=TechUniversity"
-```
-
-### Test Recommendations (via Backend)
-
-```bash
-# Login as learner first to get token
-# Then call:
-
-curl http://localhost:3000/api/ai/recommendations \
-  -H "Authorization: Bearer YOUR_TOKEN"
+curl http://localhost:4000/health
+# Expected: {"status": "ok", ...}
 ```
 
 ---
 
-## Troubleshooting
+## 🔑 Default Credentials
+
+After running the seed script, you can login with:
+
+### Admin Dashboard (`http://localhost:5174`)
+- **Email**: `admin@micromerit.com`
+- **Password**: `admin123`
+
+### Main App (`http://localhost:5173`)
+- **Test Learner**: `learner@test.com` / `password123`
+- **Test Issuer**: `issuer@test.com` / `password123`
+- **Test Employer**: `employer@test.com` / `password123`
+
+⚠️ **Important**: Change these credentials in production!
+
+---
+
+## 🏃 Running All Services
+
+You need to run **5 services** simultaneously (dummy-server is optional):
+
+### Option 1: Manual (5 separate terminals)
+
+**Terminal 1 - Main Backend:**
+```bash
+cd server/node-app
+yarn dev
+```
+
+**Terminal 2 - AI Service:**
+```bash
+cd server/ai_groq_service
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+python main.py
+```
+
+**Terminal 3 - Blockchain Service:**
+```bash
+cd server/blockchain
+yarn dev
+```
+
+**Terminal 4 - Main App:**
+```bash
+cd client/main-app
+yarn dev
+```
+
+**Terminal 5 - Admin Dashboard:**
+```bash
+cd client/admin
+yarn dev
+```
+
+**Terminal 6 (Optional) - Dummy Server:**
+```bash
+cd dummy-server
+yarn dev
+```
+
+### Option 2: Using tmux (Linux/macOS)
+
+```bash
+# Start tmux session
+tmux new -s micromerit
+
+# Split into panes (Ctrl+b %)
+# Run each service in different panes
+
+# Detach: Ctrl+b d
+# Attach: tmux attach -t micromerit
+```
+
+### Option 3: Using PM2 (Recommended for development)
+
+```bash
+# Install PM2 globally
+npm install -g pm2
+
+# Start all services
+pm2 start ecosystem.config.js
+
+# View logs
+pm2 logs
+
+# Stop all
+pm2 stop all
+```
+
+---
+
+## 🔍 Troubleshooting
 
 ### Issue: Tesseract not found
 
 **Ubuntu:**
 ```bash
-# Check if installed
 which tesseract
-
-# If not found, install
+# If not found:
 sudo apt install tesseract-ocr
-
-# Verify
-tesseract --version
 ```
 
 **Windows:**
 1. Verify Tesseract is installed
 2. Check the path in `.env` matches installation location
 3. Common path: `C:\Program Files\Tesseract-OCR\tesseract.exe`
-
-### Issue: AI Service connection refused
-
-```bash
-# Check if AI service is running
-curl http://localhost:8000/health
-
-# If not running, start it:
-cd server/ai_groq_service
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-python main.py
-```
 
 ### Issue: PostgreSQL connection error
 
@@ -395,8 +551,20 @@ sudo systemctl status postgresql
 # Start if not running
 sudo systemctl start postgresql
 
-# Check connection
+# Test connection
 psql -U micromerit_user -d micromerit
+```
+
+### Issue: Redis connection error
+
+```bash
+# Check Redis is running
+redis-cli ping
+# Should return: PONG
+
+# Start Redis
+sudo systemctl start redis  # Ubuntu
+brew services start redis   # macOS
 ```
 
 ### Issue: Port already in use
@@ -405,104 +573,153 @@ psql -U micromerit_user -d micromerit
 # Check what's using the port
 sudo lsof -i :3000  # Backend
 sudo lsof -i :8000  # AI Service
-sudo lsof -i :5173  # Frontend
+sudo lsof -i :3001  # Blockchain
+sudo lsof -i :5173  # Main App
+sudo lsof -i :5174  # Admin
 
 # Kill process if needed
 kill -9 <PID>
 ```
 
----
+### Issue: Prisma migration errors
 
-## Running All Services
-
-### Option 1: Manual (3 terminals)
-
-**Terminal 1 - Backend:**
 ```bash
 cd server/node-app
-npm run dev
+
+# Reset database (WARNING: deletes all data)
+npx prisma migrate reset
+
+# Or create new migration
+npx prisma migrate dev --name init
 ```
 
-**Terminal 2 - AI Service:**
+### Issue: Python virtual environment
+
 ```bash
-cd server/ai_groq_service
+# Deactivate current venv
+deactivate
+
+# Remove old venv
+rm -rf venv
+
+# Create new venv
+python3 -m venv venv
 source venv/bin/activate
-python main.py
-```
-
-**Terminal 3 - Frontend:**
-```bash
-cd client/main-app
-yarn dev
-```
-
-### Option 2: Using tmux
-
-```bash
-# Start tmux session
-tmux new -s micromerit
-
-# Split panes (Ctrl+b %)
-# Run each service in different panes
-
-# Detach: Ctrl+b d
-# Attach: tmux attach -t micromerit
+pip install -r requirements.txt
 ```
 
 ---
 
-## Quick Reference
+## 📊 Quick Reference
 
-| Service | URL | Port |
-|---------|-----|------|
-| Frontend | http://localhost:5173 | 5173 |
-| Backend | http://localhost:3000 | 3000 |
-| AI Service | http://localhost:8000 | 8000 |
-| PostgreSQL | localhost | 5432 |
-
----
-
-## Next Steps
-
-1. ✅ Create issuer account
-2. ✅ Upload test certificate
-3. ✅ Verify OCR extraction
-4. ✅ Create learner account
-5. ✅ View AI recommendations
-6. ✅ Test complete flow
+| Service | URL | Port | Directory |
+|---------|-----|------|-----------|
+| Main Backend | http://localhost:3000 | 3000 | `server/node-app` |
+| AI Service | http://localhost:8000 | 8000 | `server/ai_groq_service` |
+| Blockchain | http://localhost:3001 | 3001 | `server/blockchain` |
+| Main App | http://localhost:5173 | 5173 | `client/main-app` |
+| Admin Dashboard | http://localhost:5174 | 5174 | `client/admin` |
+| Dummy Server | http://localhost:4000 | 4000 | `dummy-server` |
+| PostgreSQL | localhost | 5432 | - |
+| Redis | localhost | 6379 | - |
 
 ---
 
-## Get Groq API Key
+## 🧪 Testing the System
 
-1. Visit: https://console.groq.com/
+### 1. Test Admin Login
+1. Go to `http://localhost:5174`
+2. Login with `admin@micromerit.com` / `admin123`
+3. You should see the admin dashboard
+
+### 2. Test Learner Registration
+1. Go to `http://localhost:5173`
+2. Click "Register as Learner"
+3. Complete the registration flow
+
+### 3. Test Credential Issuance
+1. Login as issuer
+2. Upload a test certificate PDF
+3. AI should extract details via OCR
+4. Credential should be issued and stored
+
+### 4. Test External Sync
+1. Login as admin
+2. Go to "External Credentials"
+3. Click "Force Sync"
+4. Credentials should sync from dummy server
+
+### 5. Test Employer Search
+1. Login as employer
+2. Go to "Search Candidates"
+3. Search by skills, NSQF level, etc.
+4. View learner profiles
+
+---
+
+## 🔐 Getting API Keys
+
+### Groq API Key
+1. Visit [console.groq.com](https://console.groq.com/)
 2. Sign up / Sign in
 3. Go to API Keys section
 4. Create new key
-5. Copy and paste into `.env` file
+5. Copy and paste into `server/ai_groq_service/.env`
+
+### Filebase (IPFS)
+1. Visit [filebase.com](https://filebase.com/)
+2. Sign up for free account
+3. Create an IPFS bucket
+4. Go to Access Keys
+5. Generate new access key
+6. Copy credentials to `server/node-app/.env`
 
 ---
 
-## Additional Resources
+## 📚 Next Steps
 
-- **Architecture**: See `ARCHITECTURE_CORRECTIONS.md`
-- **API Docs**: See `docs/AI_API_DOCS.md`
-- **Test Guide**: See `docs/AI_TESTS.md`
-- **Complete Summary**: See `FINAL_REFACTOR_SUMMARY.md`
+1. ✅ All services running
+2. ✅ Database seeded
+3. ✅ Test admin login
+4. ✅ Create issuer account
+5. ✅ Upload test certificate
+6. ✅ Create learner account
+7. ✅ View credentials in wallet
+8. ✅ Test employer search
+9. ✅ Test AI chatbot
 
 ---
 
-## Support
+## 📖 Additional Resources
+
+- **[README.md](./README.md)** - Project overview and features
+- **[API Documentation](./docs/README.md)** - Complete API specs
+- **[Architecture Docs](./docs/)** - System architecture
+
+---
+
+## 💡 Tips
+
+- **Development Mode**: Set `BLOCKCHAIN_MOCK_ENABLED=true` and `SEND_SMAILS_AND_MESSAGES=false`
+- **Database Reset**: Use `npx prisma migrate reset` to reset database
+- **View Database**: Use `npx prisma studio` to view database in browser
+- **Logs**: Check terminal output for each service for errors
+- **Hot Reload**: All services support hot reload during development
+
+---
+
+## 🆘 Support
 
 If you encounter issues:
-1. Check logs in terminal
-2. Verify all services are running
-3. Check `.env` configuration
+1. Check all services are running
+2. Verify `.env` configuration in each module
+3. Check terminal logs for errors
 4. Ensure all dependencies are installed
-5. Review error messages carefully
+5. Try restarting services
+6. Check [GitHub Issues](https://github.com/JaiminPatel345/MicroMerit-Portal/issues)
 
 ---
 
 **Quick Start Status**: ✅ Ready to Go!
 
-Start all three services and visit `http://localhost:5173` to begin!
+Start all services and visit `http://localhost:5173` to begin!
