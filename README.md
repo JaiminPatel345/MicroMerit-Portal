@@ -1,6 +1,7 @@
 # MicroMerit Portal
 
-A comprehensive AI-powered digital credential management system with blockchain integration, external credential sync, skill profiling, and employer matching capabilities.
+Micro Credential aggregator platform with Blockchain, IPFS and AI powered skill extraction.
+> A comprehensive AI-powered Micro credential management system with blockchain integration, external credential sync, skill profiling, and employer matching capabilities.
 
 ## 🌟 Features
 
@@ -13,7 +14,7 @@ A comprehensive AI-powered digital credential management system with blockchain 
 
 ### 🎓 Credential Management
 - **Blockchain-Backed Credentials**: Issue verifiable credentials with blockchain anchoring
-- **IPFS Integration**: Decentralized storage via Filebase for certificates
+- **IPFS Integration**: Decentralized storage for certificates
 - **Multi-Identifier Verification**: Verify by credential_id, tx_hash, ipfs_cid, or QR code
 - **QR Code Generation**: Generate shareable QR codes for credentials
 - **Data Integrity**: SHA256 hashing ensures tamper-proof credentials
@@ -189,17 +190,12 @@ See [QUICKSTART.md](./QUICKSTART.md) for detailed environment variable setup.
 
 ### External Credential Sync
 Automatically syncs credentials from external providers:
+> [!NOTE]  
+> For adding any provider you have to get an endpoint and an API key from that provider for auto sync credentials. Configure in `server/node-app/.env` and create an new connector for that specific provider. 
+
 - **NSDC**: National Skill Development Corporation
 - **Udemy**: Online learning platform
-- **Custom Providers**: Jaimin Pvt Ltd, SIH
-
-Configure in `server/node-app/.env`:
-```env
-ENABLE_EXTERNAL_SYNC=true
-POLL_INTERVAL_HOURS=1
-NSDC_ENABLED=true
-UDEMY_ENABLED=true
-```
+- **Custom Providers**: Jaimin Pvt Ltd
 
 ### AI Chatbot for Employers
 Employers can ask questions about learner profiles:
@@ -253,32 +249,18 @@ yarn test auth
 - **Skill Knowledge Base**: NSQF qualifications and skill mappings
 - **User Models**: Learner, Issuer, Employer, Admin
 
-## 🤝 Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📝 License
-
-MicroMerit Portal - Proprietary Software  
-© 2025 MicroMerit Team. All rights reserved.
 
 ## 👥 Team
 
 - **Project**: Smart India Hackathon 2025
 - **Repository**: [github.com/JaiminPatel345/MicroMerit-Portal](https://github.com/JaiminPatel345/MicroMerit-Portal)
+- **Team Members**: @JaiminPatel345, @Tarunnagpal7, @hastimovaliya55, @valiyaparth, @khushigohil11 and @sashi59
+- **Mentor**: @Dharmesh177
 
 ## 📧 Support
 
 For questions or issues:
 - Create an issue on GitHub
-- Email: support@micromerit.com
+- If any of us free, we will fix this. Else fix by your self and open an PR :). 
 
----
-
-**Note**: This project is under active development. Features and documentation are subject to change.
-
-For detailed setup instructions, see [QUICKSTART.md](./QUICKSTART.md)
