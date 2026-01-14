@@ -56,10 +56,10 @@ echo -e "${MAGENTA}[4/5] Starting server-ai...${NC}"
 (cd server/ai_groq_service && source .venv/bin/activate && uvicorn main:app --reload --port 8000 2>&1 | prefix_logs "${MAGENTA}" "server-ai") &
 AI_SERVICE_PID=$!
 
-# Start dummy-server
-echo -e "${CYAN}[5/5] Starting dummy-server...${NC}"
-(cd dummy-server && yarn dev 2>&1 | prefix_logs "${CYAN}" "dummy-server") &
-DUMMY_SERVER_PID=$!
+## Start dummy-server
+#echo -e "${CYAN}[5/5] Starting dummy-server...${NC}"
+#(cd dummy-server && yarn dev 2>&1 | prefix_logs "${CYAN}" "dummy-server") &
+#DUMMY_SERVER_PID=$!
 
 echo -e "\n${CYAN}All services started!${NC}"
 echo -e "${CYAN}Color Legend:${NC}"
