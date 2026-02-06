@@ -45,6 +45,26 @@ export async function writeToBlockchain(
     data_hash: string,
     ipfs_cid: string
 ): Promise<BlockchainWriteResult> {
+    // ============================================================================
+    // MOCKED FOR COLLEGE SUBMISSION - Original code preserved below
+    // ============================================================================
+    logger.info('Blockchain service - MOCKED (returning test data)', {
+        credential_id,
+        data_hash,
+        ipfs_cid,
+    });
+
+    // Return mock blockchain response
+    return {
+        tx_hash: 'TEST_123',
+        network: process.env.BLOCKCHAIN_NETWORK || 'sepolia',
+        contract_address: process.env.BLOCKCHAIN_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000',
+        timestamp: new Date(),
+    };
+
+    /* ============================================================================
+     * ORIGINAL CODE - COMMENTED OUT FOR COLLEGE SUBMISSION
+     * ============================================================================
     // For external credentials without IPFS uploads, use a placeholder
     // The blockchain still records the data hash for tamper detection
     const effectiveIpfsCid = (!ipfs_cid || ipfs_cid.trim() === '')
@@ -93,6 +113,7 @@ export async function writeToBlockchain(
         // If blockchain service is down or fails, throw error
         throw new Error(`Blockchain service error: ${error.message}`);
     }
+    ============================================================================ */
 }
 
 /**

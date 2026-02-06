@@ -27,6 +27,27 @@ export async function uploadToFilebase(
     contentType: string = 'application/pdf'
 ): Promise<FilebaseUploadResult> {
 
+    // ============================================================================
+    // MOCKED FOR COLLEGE SUBMISSION - Original code preserved below
+    // ============================================================================
+    logger.info('Filebase upload - MOCKED (returning test data)', {
+        fileName,
+        size: fileBuffer.length,
+        contentType,
+    });
+
+    // Return mock IPFS response
+    const mockCid = 'TEST_CID';
+    const gatewayUrl = `${process.env.FILEBASE_GATEWAY_URL || 'https://ipfs.filebase.io/ipfs/'}${mockCid}`;
+
+    return {
+        cid: mockCid,
+        gateway_url: gatewayUrl,
+    };
+
+    /* ============================================================================
+     * ORIGINAL CODE - COMMENTED OUT FOR COLLEGE SUBMISSION
+     * ============================================================================
     const maxRetries = 3;
     let lastError: any;
 
@@ -198,6 +219,7 @@ export async function uploadToFilebase(
     });
     
     throw new Error(`Failed to upload file to Filebase after ${maxRetries} attempts: ${lastError.message || lastError.name}`);
+    ============================================================================ */
 }
 
 /**
