@@ -26,8 +26,8 @@ const navigation = [
   { name: 'Dashboard', href: '/issuer/dashboard', icon: LayoutDashboard },
   { name: 'Credentials', href: '/issuer/credentials', icon: Award },
   { name: 'Issuance', href: '/issuer/issuance', icon: Send },
-  { name: 'Bulk Upload', href: '/issuer/bulk-upload', icon: UploadCloud },
-  { name: 'Recipient ', href: '/issuer/recipients', icon: Users },
+  // { name: 'Bulk Upload', href: '/issuer/bulk-upload', icon: UploadCloud },
+  // { name: 'Recipient ', href: '/issuer/recipients', icon: Users },
   { name: 'Analytics', href: '/issuer/analytics', icon: BarChart3 },
   { name: 'API ', href: '/issuer/apis', icon: Key },
 ];
