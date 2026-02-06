@@ -386,9 +386,8 @@ const Home = () => {
                                         className="text-2xl font-extrabold text-gray-900 leading-none flex items-center">
                                         <CountUp
                                             from={0}
-                                            //TODO: Show real count after data seed
-                                            to={123}
-                                            // to={totalCredentials > 0 ? totalCredentials : 123}
+                                            // to={123}
+                                            to={totalCredentials > 0 ? totalCredentials : 123}
                                             separator=","
                                             direction="up"
                                             duration={1.5}
