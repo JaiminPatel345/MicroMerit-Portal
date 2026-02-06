@@ -5,11 +5,11 @@ import { Link } from 'react-router-dom';
 
 const faqs = [
     {
-        question: "What is MicroMerit?",
-        answer: "MicroMerit is a platform that issues secure digital credentials, verifies them using blockchain-backed methods, and maps educational achievements to NSQF levels using automated AI-driven evaluation."
+        question: "What is LegitDoc?",
+        answer: "LegitDoc is a platform that issues secure digital credentials, verifies them using blockchain-backed methods, and maps educational achievements to NSQF levels using automated AI-driven evaluation."
     },
     {
-        question: "How does MicroMerit verify a credential?",
+        question: "How does LegitDoc verify a credential?",
         answer: "Verification happens by checking the cryptographic signature, issuer identity, on-chain proof (if available), and the stored metadata in our verification module. The system validates whether the credential is tampered, revoked, or expired."
     },
     {
@@ -17,7 +17,7 @@ const faqs = [
         answer: "Yes. Employers can upload or submit a credential file/URL on the verification page and instantly see authenticity, issuer details, and NSQF level mapping."
     },
     {
-        question: "How does MicroMerit ensure credentials are tamper-proof?",
+        question: "How does LegitDoc ensure credentials are tamper-proof?",
         answer: "Each credential is hashed, signed by the issuer, and stored with a verifiable proof. Any change in the document invalidates the signature instantly."
     },
     {
@@ -41,7 +41,7 @@ const faqs = [
         answer: "Revoked credentials are marked in the verification system. Anyone verifying them will see a \"Revoked\" status along with the reason."
     },
     {
-        question: "Does MicroMerit integrate with DigiLocker?",
+        question: "Does LegitDoc integrate with DigiLocker?",
         answer: "Yes. The platform supports DigiLocker integration for storing and fetching government-recognized documents. (Sandbox mode available if real partner API keys are not accessible.)"
     },
     {
@@ -49,7 +49,7 @@ const faqs = [
         answer: "All issued credentials appear in the learner dashboard, where they can download, share, or store them in DigiLocker."
     },
     {
-        question: "What technologies does MicroMerit use?",
+        question: "What technologies does LegitDoc use?",
         answer: "A Node.js monolithic backend with module-wise architecture handles issuance, verification, and dashboards. A Python AI service performs NSQF mapping. The app communicates via WebSockets."
     },
     {
@@ -61,16 +61,16 @@ const faqs = [
         answer: "Forgery is detected because the document hash, signature, and stored metadata won’t match. The system instantly flags it as invalid."
     },
     {
-        question: "How does MicroMerit ensure data privacy?",
+        question: "How does LegitDoc ensure data privacy?",
         answer: "Only minimal required data is stored. Sensitive fields are hashed or encrypted, and credential verification reveals only non-sensitive public information."
     },
     {
-        question: "Why does MicroMerit use IPFS for credential storage?",
+        question: "Why does LegitDoc use IPFS for credential storage?",
         answer: "IPFS provides content-addressed, decentralized storage. Each credential is stored as a hash, ensuring that even if a file is moved or replicated across nodes, its integrity remains verifiable."
     },
     {
         question: "How does IPFS make credentials tamper-proof?",
-        answer: "Every file on IPFS is identified by its content hash (CID). If someone alters even a single byte, the CID changes instantly. During verification, MicroMerit recomputes and matches the hash, making tampering detectable."
+        answer: "Every file on IPFS is identified by its content hash (CID). If someone alters even a single byte, the CID changes instantly. During verification, LegitDoc recomputes and matches the hash, making tampering detectable."
     },
     {
         question: "Does IPFS store credentials on multiple computers?",
@@ -90,11 +90,11 @@ const faqs = [
     },
     {
         question: "Can someone delete or modify a file stored on IPFS?",
-        answer: "No one can modify a file because the hash would change. Deletion depends on pinning—if all nodes unpin the file, it may eventually be garbage collected. MicroMerit prevents this by pinning documents."
+        answer: "No one can modify a file because the hash would change. Deletion depends on pinning—if all nodes unpin the file, it may eventually be garbage collected. LegitDoc prevents this by pinning documents."
     },
     {
         question: "Is my credential public on IPFS?",
-        answer: "By design, IPFS is a public network. MicroMerit mitigates this by: Encrypting sensitive metadata before upload, Storing only public credential artifacts, Keeping private fields off-chain and off-IPFS. Verification uses the hash, not the raw private data."
+        answer: "By design, IPFS is a public network. LegitDoc mitigates this by: Encrypting sensitive metadata before upload, Storing only public credential artifacts, Keeping private fields off-chain and off-IPFS. Verification uses the hash, not the raw private data."
     },
     {
         question: "How does IPFS improve verification speed?",
@@ -144,7 +144,7 @@ const FAQ = () => {
                         transition={{ delay: 0.2 }}
                         className="text-xl text-blue-chill-100 mb-10 max-w-2xl mx-auto"
                     >
-                        Everything you need to know about MicroMerit, our secure credentialing, and AI-powered verification.
+                        Everything you need to know about LegitDoc, our secure credentialing, and AI-powered verification.
                     </motion.p>
 
                     {/* Search Bar */}

@@ -236,7 +236,7 @@ const SkillProfile = () => {
                                                         }`}
                                                 />
                                             </div>
-                                            <p className="text-xs text-gray-400 mt-1">Verified by: {skill.verified_by || 'MicroMerit'}</p>
+                                            <p className="text-xs text-gray-400 mt-1">Verified by: {skill.verified_by || 'LegitDoc'}</p>
                                         </div>
                                     ))}
                                 </div>

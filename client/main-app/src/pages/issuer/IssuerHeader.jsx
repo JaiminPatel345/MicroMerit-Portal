@@ -158,7 +158,7 @@ const IssuerLayout = () => {
 
         {/* Portal Branding (UPDATED) */}
         <div className={`flex items-center mb-10 pt-4 ${isCollapsed ? 'justify-center' : ''}`}>
-          <img src={logo_1} alt="MicroMerit Logo" className="w-12 h-12 rounded-lg flex-shrink-0" />
+          <img src={logo_1} alt="LegitDoc Logo" className="w-12 h-12 rounded-lg flex-shrink-0" />
           {!isCollapsed && (
             <div className="flex flex-col ml-3 overflow-hidden">
               <h1 className="text-2xl font-extrabold tracking-tight text-white leading-none truncate">

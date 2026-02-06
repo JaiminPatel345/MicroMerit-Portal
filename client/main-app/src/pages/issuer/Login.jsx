@@ -83,11 +83,11 @@ export default function IssuerLogin() {
         {/* Branding & Context */}
         <div className="text-center mb-2">
           <Link to="/" className="inline-block">
-            <img src={logo_1} alt="MicroMerit" className="h-20 w-auto mx-auto" />
+            <img src={logo_1} alt="LegitDoc" className="h-20 w-auto mx-auto" />
           </Link>
         </div>
         <p className="text-center text-sm font-semibold text-gray-500 mb-2 uppercase tracking-widest">
-          MicroMerit Platform
+          LegitDoc Platform
         </p>
 
         <h2 className="text-3xl sm:text-4xl font-extrabold text-center text-gray-900 mb-2">
@@ -178,7 +178,7 @@ export default function IssuerLogin() {
           {/* Footer Link */}
           <div className="flex justify-center pt-4 border-t border-gray-100 mt-6">
             <span className="text-sm text-gray-500">
-              New to MicroMerit?
+              New to LegitDoc?
             </span>
             <span
               onClick={() => navigate("/issuer/signup")}

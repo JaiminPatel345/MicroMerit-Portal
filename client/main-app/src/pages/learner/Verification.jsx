@@ -150,7 +150,7 @@ const Verification = () => {
                         Verify a Credential
                     </h1>
                     <p className="max-w-2xl mx-auto text-lg text-gray-500">
-                        Instantly verify the authenticity of certificates issued on the MicroMerit blockchain network.
+                        Instantly verify the authenticity of certificates issued on the LegitDoc blockchain network.
                     </p>
                 </div>
             </div>

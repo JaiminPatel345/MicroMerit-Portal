@@ -115,7 +115,7 @@ const LearnerHeader = () => {
           {/* LOGO + NAV */}
           <div className="flex items-center space-x-8">
             <Link to="/" className="flex flex-col">
-              <span className="text-2xl font-bold">MicroMerit</span>
+              <span className="text-2xl font-bold">LegitDoc</span>
               <span className="text-xs text-blue-chill-600 hidden sm:block">Your Skills, Unified.</span>
             </Link>
 

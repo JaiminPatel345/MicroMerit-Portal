@@ -51,7 +51,7 @@ const Login = () => {
                                 />
                             </svg>
                         </div>
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">MicroMerit Portal</h1>
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">LegitDoc Portal</h1>
                         <p className="text-gray-600">Admin Dashboard</p>
                     </div>
 
@@ -75,7 +75,7 @@ const Login = () => {
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
                                 className="input-field"
-                                placeholder="admin@micromerit.com"
+                                placeholder="admin@legitdoc.com"
                                 autoComplete="email"
                             />
                         </div>

@@ -13,7 +13,7 @@ import { aiServices } from '../services/aiServices';
 const handleAppendQrToCredential = async (pdfFile, credentialData) => {
     try {
         // The QR data should contain the verification URL or credential ID
-        const qrData = `https://micromerit.com/verify/${credentialData.id}`;
+        const qrData = `https://legitdoc.com/verify/${credentialData.id}`;
         
         // Call the AI service to append QR code
         const modifiedPdfBlob = await aiServices.appendQrToCredential(pdfFile, qrData);
@@ -50,7 +50,7 @@ const handleFileUpload = async (event) => {
         // Generate QR data based on your credential
         const qrData = JSON.stringify({
             credentialId: 'CRED-12345',
-            verificationUrl: 'https://micromerit.com/verify/CRED-12345',
+            verificationUrl: 'https://legitdoc.com/verify/CRED-12345',
             timestamp: new Date().toISOString()
         });
         
@@ -86,7 +86,7 @@ const issueCredentialWithQr = async (credentialData, originalPdf) => {
         const qrData = JSON.stringify({
             credentialId: issuedCredential.id,
             transactionHash: issuedCredential.blockchain_tx_hash,
-            verificationUrl: `https://micromerit.com/verify/${issuedCredential.uid}`,
+            verificationUrl: `https://legitdoc.com/verify/${issuedCredential.uid}`,
             ipfsCid: issuedCredential.ipfs_cid
         });
         
@@ -120,7 +120,7 @@ const CredentialQrComponent = () => {
         setError(null);
         
         try {
-            const qrData = `https://micromerit.com/verify/${credentialId}`;
+            const qrData = `https://legitdoc.com/verify/${credentialId}`;
             const modifiedPdf = await aiServices.appendQrToCredential(file, qrData);
             
             // Download the file

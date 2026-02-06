@@ -175,7 +175,7 @@ const Header = () => {
         <div className="flex justify-between items-center h-16 gap-4">
           {/* LOGO */}
           <Link to="/" className="flex flex-col flex-shrink-0">
-            <span className="text-2xl font-bold text-gray-900">MicroMerit</span>
+            <span className="text-2xl font-bold text-gray-900">LegitDoc</span>
             <span className="text-xs text-blue-chill-600 hidden sm:block">Your Skills, Unified.</span>
           </Link>
 

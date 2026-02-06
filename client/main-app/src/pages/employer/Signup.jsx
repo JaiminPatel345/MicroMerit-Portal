@@ -188,7 +188,7 @@ const EmployerSignup = () => {
 
                     <div className="text-center mb-8">
                         <Link to="/" className="inline-block mb-4">
-                            <img src={logo_1} alt="MicroMerit" className="h-20 w-auto mx-auto" />
+                            <img src={logo_1} alt="LegitDoc" className="h-20 w-auto mx-auto" />
                         </Link>
                         <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-chill-100 rounded-full mb-4">
                             <Phone className="w-8 h-8 text-blue-chill-600" />
@@ -256,7 +256,7 @@ const EmployerSignup = () => {
             <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-2xl border border-gray-100">
                 <div className="text-center mb-8">
                     <Link to="/" className="inline-block mb-4">
-                        <img src={logo_1} alt="MicroMerit" className="h-20 w-auto mx-auto" />
+                        <img src={logo_1} alt="LegitDoc" className="h-20 w-auto mx-auto" />
                     </Link>
                     <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Employee Registration</h1>
                     <p className="text-gray-500 mt-2 font-medium">Join as an Employer to verify credentials</p>

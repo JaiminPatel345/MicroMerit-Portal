@@ -130,7 +130,7 @@ const ProfileBuilder = () => {
         }
 
         if (!consents.blockchainConsent) {
-            newErrors.consents = 'Blockchain consent is required for using MicroMerit';
+            newErrors.consents = 'Blockchain consent is required for using LegitDoc';
         }
 
         setErrors(newErrors);
@@ -562,7 +562,7 @@ const ProfileBuilder = () => {
                                         </div>
                                         <label
                                             className="ml-3 text-sm text-gray-700">
-                                            I consent to MicroMerit fetching my
+                                            I consent to LegitDoc fetching my
                                             documents from DigiLocker
                                         </label>
                                     </div>
@@ -587,7 +587,7 @@ const ProfileBuilder = () => {
                                         <span className="text-red-500"> *</span>
                                         <p className="text-gray-600 mt-1">
                                             This is mandatory for using
-                                            MicroMerit as per legal
+                                            LegitDoc as per legal
                                             requirements. <a href="/terms"
                                                 target="_blank"
                                                 rel="noopener noreferrer"

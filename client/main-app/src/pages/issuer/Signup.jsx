@@ -301,7 +301,7 @@ function IssuerSignUp() {
         {/* Header & Title */}
         <div className="text-center mb-2">
           <Link to="/" className="inline-block">
-            <img src={logo_1} alt="MicroMerit" className="h-20 w-auto mx-auto" />
+            <img src={logo_1} alt="LegitDoc" className="h-20 w-auto mx-auto" />
           </Link>
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-center text-gray-900 mb-2">

@@ -120,10 +120,10 @@ const Login = () => {
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <Link to="/" className="inline-block mb-2">
-            <img src={logo_1} alt="MicroMerit" className="h-20 w-auto mx-auto" />
+            <img src={logo_1} alt="LegitDoc" className="h-20 w-auto mx-auto" />
           </Link>
           <h2 className="text-4xl font-bold text-gray-900 mb-2">Welcome Back</h2>
-          <p className="text-gray-600">Sign in to your MicroMerit account</p>
+          <p className="text-gray-600">Sign in to your LegitDoc account</p>
         </div>
 
         {errors.submit && (

@@ -57,7 +57,7 @@ const Layout = () => {
                                 </svg>
                             </div>
                             <div>
-                                <h1 className="text-xl font-bold text-gray-900">MicroMerit</h1>
+                                <h1 className="text-xl font-bold text-gray-900">LegitDoc</h1>
                                 <p className="text-xs text-gray-500">Admin Portal</p>
                             </div>
                         </div>

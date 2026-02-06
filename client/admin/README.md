@@ -1,6 +1,6 @@
-# MicroMerit Portal - Admin Dashboard
+# LegitDoc Portal - Admin Dashboard
 
-A modern, feature-rich admin dashboard for managing the MicroMerit Portal platform.
+A modern, feature-rich admin dashboard for managing the LegitDoc Portal platform.
 
 ## Features
 
@@ -141,4 +141,4 @@ All authenticated routes are wrapped with the `ProtectedRoute` component that:
 
 ## License
 
-Private - MicroMerit Portal
+Private - LegitDoc Portal

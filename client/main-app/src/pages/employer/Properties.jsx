@@ -374,7 +374,7 @@ const EmployerProfile = () => {
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="text-xs font-bold text-gray-400 uppercase">Email Us</p>
-                                                <p className="font-semibold truncate">support@micromerit.com</p>
+                                                <p className="font-semibold truncate">support@legitdoc.com</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-4 p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors">
