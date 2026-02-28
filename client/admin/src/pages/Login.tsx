@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAppDispatch, useAppSelector } from '../store/hooks.ts';
 import { login, clearError } from '../store/authSlice.ts';
+import { APP_NAME } from '../config/appConfig';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -51,7 +52,7 @@ const Login = () => {
                                 />
                             </svg>
                         </div>
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">LegitDoc Portal</h1>
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">{`${APP_NAME} Portal`}</h1>
                         <p className="text-gray-600">Admin Dashboard</p>
                     </div>
 
@@ -75,7 +76,7 @@ const Login = () => {
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
                                 className="input-field"
-                                placeholder="admin@legitdoc.com"
+                                placeholder="admin@example.com"
                                 autoComplete="email"
                             />
                         </div>

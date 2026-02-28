@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
 import { setNotification } from '../utils/notification';
+import { APP_NAME } from '../config/appConfig';
 
 const Contact = () => {
     const [formData, setFormData] = useState({
@@ -27,7 +28,7 @@ const Contact = () => {
                 <div className="text-center mb-16">
                     <h1 className="text-4xl font-bold text-gray-900 mb-4">Get in Touch</h1>
                     <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                        Have questions about LegitDoc? We're here to help. Send us a message and we'll respond as soon as possible.
+                        Have questions about {APP_NAME}? We're here to help. Send us a message and we'll respond as soon as possible.
                     </p>
                 </div>
 
@@ -40,7 +41,7 @@ const Contact = () => {
                                 <Mail className="w-6 h-6 mt-1" />
                                 <div>
                                     <p className="font-medium">Email</p>
-                                    <p className="text-blue-chill-100">support@legitdoc.com</p>
+                                    <p className="text-blue-chill-100">{`support@${APP_NAME.toLowerCase()}.com`}</p>
                                 </div>
                             </div>
                             <div className="flex items-start space-x-4">

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Shield, FileText, Lock } from 'lucide-react';
+import { APP_NAME } from '../config/appConfig';
 
 const Terms = () => {
     const navigate = useNavigate();
@@ -29,7 +30,7 @@ const Terms = () => {
                                 <h2 className="text-xl font-bold text-gray-900">1. Data Privacy & Security</h2>
                             </div>
                             <p className="text-gray-600 leading-relaxed pl-9">
-                                LegitDoc takes your privacy seriously. We collect only the minimum necessary information to provide our credentialing services. Your personal data is encrypted both in transit and at rest. We do not sell your personal data to third parties.
+                                {APP_NAME} takes your privacy seriously. We collect only the minimum necessary information to provide our credentialing services. Your personal data is encrypted both in transit and at rest. We do not sell your personal data to third parties.
                             </p>
                         </section>
 
@@ -39,7 +40,7 @@ const Terms = () => {
                                 <h2 className="text-xl font-bold text-gray-900">2. Blockchain Storage</h2>
                             </div>
                             <p className="text-gray-600 leading-relaxed pl-9">
-                                By using LegitDoc, you consent to the storage of cryptographic proofs of your credentials on a public blockchain. This ensures the immutability and verifiability of your achievements. Note that your actual personal data is NOT stored on the blockchain; only a secure hash is recorded.
+                                By using {APP_NAME}, you consent to the storage of cryptographic proofs of your credentials on a public blockchain. This ensures the immutability and verifiability of your achievements. Note that your actual personal data is NOT stored on the blockchain; only a secure hash is recorded.
                             </p>
                         </section>
 
@@ -55,7 +56,7 @@ const Terms = () => {
 
                         <div className="border-t border-gray-200 pt-8 mt-8">
                             <p className="text-sm text-gray-500 text-center">
-                                For any questions regarding these terms, please contact us at support@legitdoc.com
+                                For any questions regarding these terms, please contact us at {`support@${APP_NAME.toLowerCase()}.com`}
                             </p>
                         </div>
                     </div>

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { APP_NAME } from '../config/appConfig';
 import {
     Award,
     Brain,
@@ -140,7 +141,7 @@ const Home = () => {
         },
         {
             icon: <Database className="w-6 h-6" />,
-            title: 'Store in your LegitDoc Wallet',
+            title: `Store in your ${APP_NAME} Wallet`,
         },
         {
             icon: <Share2 className="w-6 h-6" />,
@@ -223,7 +224,7 @@ const Home = () => {
                                     className="text-transparent bg-clip-text bg-gradient-to-r from-blue-chill-600 to-teal-500">Unified & Verified.</span>
                             </h1>
                             <p className="text-lg text-gray-600 mb-8 leading-relaxed max-w-lg">
-                                LegitDoc is India's first decentralized
+                                {APP_NAME} is India's first decentralized
                                 credential wallet. Collect, verify, and showcase
                                 your achievements from universities, government
                                 bodies, and ed-tech platforms in one secure
@@ -486,7 +487,7 @@ const Home = () => {
                         <span
                             className="text-blue-chill-600 font-bold tracking-wider uppercase text-sm mb-2 block">Seamless Experience</span>
                         <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6">How
-                            LegitDoc Works</h2>
+                            {` ${APP_NAME} `}Works</h2>
                         <p className="text-xl text-gray-600 max-w-3xl mx-auto">
                             From certificate upload to verified sharing,
                             experience a secure and transparent journey in five

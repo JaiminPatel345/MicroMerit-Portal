@@ -11,6 +11,7 @@ import {
     Facebook,
     ExternalLink
 } from 'lucide-react';
+import { APP_NAME } from '../config/appConfig';
 
 const Footer = () => {
     const currentYear = new Date().getFullYear();
@@ -26,7 +27,7 @@ const Footer = () => {
                             {/*<div className="bg-blue-chill-600 p-2 rounded-lg group-hover:bg-blue-chill-500 transition-colors">*/}
                             {/*    <Shield className="w-6 h-6 text-white" />*/}
                             {/*</div>*/}
-                            <img src={"/logo_1.png"} alt={"LegitDoc"} />
+                            <img src={"/logo.png"} alt={APP_NAME} />
                         </Link>
                         <p className="text-sm leading-relaxed text-gray-400">
                             India's first decentralized credential wallet. Empowering learners, issuers, and employers with secure, verifiable, and AI-powered skill data.
@@ -120,7 +121,7 @@ const Footer = () => {
                             </li>
                             <li className="flex items-center space-x-3">
                                 <Mail className="w-5 h-5 text-blue-chill-500 flex-shrink-0" />
-                                <a href="mailto:support@legitdoc.com" className="hover:text-white transition-colors">support@legitdoc.com</a>
+                                <a href={`mailto:support@${APP_NAME.toLowerCase()}.com`} className="hover:text-white transition-colors">{`support@${APP_NAME.toLowerCase()}.com`}</a>
                             </li>
                             <li className="flex items-center space-x-3">
                                 <Phone className="w-5 h-5 text-blue-chill-500 flex-shrink-0" />
@@ -131,7 +132,7 @@ const Footer = () => {
                 </div>
 
                 <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
-                    <p>&copy; {currentYear} LegitDoc. All rights reserved.</p>
+                    <p>&copy; {currentYear} {APP_NAME}. All rights reserved.</p>
                     <div className="flex space-x-6 mt-4 md:mt-0">
                         <span className="flex items-center">
                             <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>

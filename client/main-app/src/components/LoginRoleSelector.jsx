@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, User, Building2, GraduationCap, Briefcase, ArrowRight } from 'lucide-react';
+import { APP_NAME } from '../config/appConfig';
 
 const LoginRoleSelector = ({ isOpen, onClose }) => {
     const navigate = useNavigate();
@@ -28,7 +29,7 @@ const LoginRoleSelector = ({ isOpen, onClose }) => {
             <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
                 {/* Header */}
                 <div className="p-6 text-center border-b border-gray-100">
-                    <h2 className="text-2xl font-bold text-gray-900">Welcome to LegitDoc</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">{`Welcome to ${APP_NAME}`}</h2>
                     <p className="text-gray-500 mt-1">Please select your login type to continue</p>
 
                     <button

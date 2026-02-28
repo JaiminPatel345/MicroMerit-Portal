@@ -3,6 +3,7 @@ import { Menu, X, ChevronDown, Globe, Search, Loader2, Award, Building2, User } 
 import { Link, useNavigate } from 'react-router-dom';
 import { publicApi } from '../services/publicServices';
 import LoginRoleSelector from './LoginRoleSelector';
+import { APP_NAME } from '../config/appConfig';
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -175,7 +176,7 @@ const Header = () => {
         <div className="flex justify-between items-center h-16 gap-4">
           {/* LOGO */}
           <Link to="/" className="flex flex-col flex-shrink-0">
-            <span className="text-2xl font-bold text-gray-900">LegitDoc</span>
+            <span className="text-2xl font-bold text-gray-900">{APP_NAME}</span>
             <span className="text-xs text-blue-chill-600 hidden sm:block">Your Skills, Unified.</span>
           </Link>
 

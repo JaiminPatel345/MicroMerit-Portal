@@ -3,6 +3,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Mail } from 'lucide-react';
 import { oauthGoogleLogin, signUpLeaner } from '../../services/authServices';
 import logo_1 from '../../assets/logo_1.png';
+import { APP_NAME } from '../../config/appConfig';
 
 
 const Signup = () => {
@@ -107,10 +108,10 @@ const Signup = () => {
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <Link to="/" className="inline-block mb-2">
-            <img src={logo_1} alt="LegitDoc" className="h-30 w-auto mx-auto" />
+            <img src={logo_1} alt={APP_NAME} className="h-30 w-auto mx-auto" />
           </Link>
           <h2 className="text-4xl font-bold text-gray-900 mb-2">Create Account</h2>
-          <p className="text-gray-600">Sign up to get started with LegitDoc</p>
+          <p className="text-gray-600">{`Sign up to get started with ${APP_NAME}`}</p>
         </div>
 
         {errors.submit && (

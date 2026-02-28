@@ -3,6 +3,7 @@ import { Outlet, useNavigate, NavLink } from 'react-router';
 import { useAppDispatch, useAppSelector } from '../store/hooks.ts';
 import { logout, getProfile } from '../store/authSlice.ts';
 import { setViewMode, fetchSyncStatus } from '../store/externalSyncSlice.ts';
+import { APP_NAME } from '../config/appConfig';
 
 const Layout = () => {
     const dispatch = useAppDispatch();
@@ -57,7 +58,7 @@ const Layout = () => {
                                 </svg>
                             </div>
                             <div>
-                                <h1 className="text-xl font-bold text-gray-900">LegitDoc</h1>
+                                <h1 className="text-xl font-bold text-gray-900">{APP_NAME}</h1>
                                 <p className="text-xs text-gray-500">Admin Portal</p>
                             </div>
                         </div>

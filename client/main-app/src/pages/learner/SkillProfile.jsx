@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { APP_NAME } from '../../config/appConfig';
 import {
     PieChart,
     BarChart2,
@@ -236,7 +237,7 @@ const SkillProfile = () => {
                                                         }`}
                                                 />
                                             </div>
-                                            <p className="text-xs text-gray-400 mt-1">Verified by: {skill.verified_by || 'LegitDoc'}</p>
+                                            <p className="text-xs text-gray-400 mt-1">Verified by: {skill.verified_by || APP_NAME}</p>
                                         </div>
                                     ))}
                                 </div>

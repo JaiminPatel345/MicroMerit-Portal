@@ -4,6 +4,7 @@ import {
     Briefcase, Users, FileText, Verified, Edit3, X, HelpCircle, Send, MessageSquare,
     Loader, User, Building, Phone, Save, Mail, Globe, MapPin, ChevronRight, Layout
 } from 'lucide-react';
+import { APP_NAME } from '../../config/appConfig';
 
 const EmployerProfile = () => {
     const [profile, setProfile] = useState({});
@@ -374,7 +375,7 @@ const EmployerProfile = () => {
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="text-xs font-bold text-gray-400 uppercase">Email Us</p>
-                                                <p className="font-semibold truncate">support@legitdoc.com</p>
+                                                <p className="font-semibold truncate">{`support@${APP_NAME.toLowerCase()}.com`}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-4 p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors">

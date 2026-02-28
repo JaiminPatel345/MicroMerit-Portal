@@ -3,6 +3,7 @@ import { Menu, X, ChevronDown, Globe, UserCircle, Bell, Settings } from 'lucide-
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { learnerLogout } from '../../store/authLearnerSlice';
+import { APP_NAME } from '../../config/appConfig';
 
 const LearnerHeader = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -115,7 +116,7 @@ const LearnerHeader = () => {
           {/* LOGO + NAV */}
           <div className="flex items-center space-x-8">
             <Link to="/" className="flex flex-col">
-              <span className="text-2xl font-bold">LegitDoc</span>
+              <span className="text-2xl font-bold">{APP_NAME}</span>
               <span className="text-xs text-blue-chill-600 hidden sm:block">Your Skills, Unified.</span>
             </Link>
 

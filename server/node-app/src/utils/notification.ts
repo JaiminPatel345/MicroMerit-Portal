@@ -76,10 +76,10 @@ export const sendOTPEmail = async (email: string, otp: string): Promise<void> =>
     const mailOptions = {
       from: process.env.SMTP_USER,
       to: email,
-      subject: 'LegitDoc - Your OTP for Registration',
+      subject: `${process.env.APP_NAME || 'MicroMerit'} - Your OTP for Registration`,
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px;">
-          <h2>Welcome to LegitDoc!</h2>
+          <h2>Welcome to ${process.env.APP_NAME || 'MicroMerit'}!</h2>
           <p>Your OTP for registration is:</p>
           <h1 style="color: #4CAF50; font-size: 32px; letter-spacing: 5px;">${otp}</h1>
           <p>This OTP is valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes.</p>

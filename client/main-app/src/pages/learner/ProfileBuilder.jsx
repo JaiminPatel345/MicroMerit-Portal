@@ -6,6 +6,7 @@ import { learnerLoginSuccess } from '../../store/authLearnerSlice';
 import { completeProfile } from '../../services/authServices';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { APP_NAME } from '../../config/appConfig';
 
 const ProfileBuilder = () => {
     const navigate = useNavigate();
@@ -130,7 +131,7 @@ const ProfileBuilder = () => {
         }
 
         if (!consents.blockchainConsent) {
-            newErrors.consents = 'Blockchain consent is required for using LegitDoc';
+            newErrors.consents = `Blockchain consent is required for using ${APP_NAME}`;
         }
 
         setErrors(newErrors);
@@ -562,7 +563,7 @@ const ProfileBuilder = () => {
                                         </div>
                                         <label
                                             className="ml-3 text-sm text-gray-700">
-                                            I consent to LegitDoc fetching my
+                                            I consent to {APP_NAME} fetching my
                                             documents from DigiLocker
                                         </label>
                                     </div>
@@ -587,7 +588,7 @@ const ProfileBuilder = () => {
                                         <span className="text-red-500"> *</span>
                                         <p className="text-gray-600 mt-1">
                                             This is mandatory for using
-                                            LegitDoc as per legal
+                                            {` ${APP_NAME} `}as per legal
                                             requirements. <a href="/terms"
                                                 target="_blank"
                                                 rel="noopener noreferrer"

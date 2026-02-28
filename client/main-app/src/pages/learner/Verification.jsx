@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import axios from 'axios';
+import { APP_NAME } from '../../config/appConfig';
 import {
     CheckCircle,
     XCircle,
@@ -150,7 +151,7 @@ const Verification = () => {
                         Verify a Credential
                     </h1>
                     <p className="max-w-2xl mx-auto text-lg text-gray-500">
-                        Instantly verify the authenticity of certificates issued on the LegitDoc blockchain network.
+                        Instantly verify the authenticity of certificates issued on the {APP_NAME} blockchain network.
                     </p>
                 </div>
             </div>
