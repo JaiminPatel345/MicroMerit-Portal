@@ -23,6 +23,7 @@ export interface IssueCredentialParams {
     mimetype?: string;
     ai_extracted_data?: any; // Optional pre-verified data
     verification_status?: any; // Optional verification status
+    skip_ai?: boolean; // If true, skip all AI processing (OCR, enrichment, profile update)
 }
 
 export interface IssueCredentialResult {
@@ -53,7 +54,8 @@ export class CredentialIssuanceService {
             original_pdf_filename,
             mimetype,
             ai_extracted_data,
-            verification_status
+            verification_status,
+            skip_ai
         } = params;
 
         // Step 1: Validate issuer exists and is approved
@@ -206,8 +208,10 @@ export class CredentialIssuanceService {
             // Continue even if queueing fails - status remains 'pending'
         }
 
-        // Step 10: Process AI tasks asynchronously
-        if (!ai_extracted_data) {
+        // Step 10: Process AI tasks asynchronously (skip if issuer opted out)
+        if (skip_ai) {
+            logger.info('AI processing skipped by issuer preference', { credential_id });
+        } else if (!ai_extracted_data) {
             // Case 1: No pre-verified data. Run full OCR + Enrichment + Profile Update
             this.processOCRAsync(
                 credential_id,

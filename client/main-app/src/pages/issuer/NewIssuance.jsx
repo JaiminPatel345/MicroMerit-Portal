@@ -42,6 +42,9 @@ const NewIssuance = () => {
     const [showAnalysisModal, setShowAnalysisModal] = useState(false);
     const [isIssuingAfterAnalysis, setIsIssuingAfterAnalysis] = useState(false);
 
+    // AI Data Extraction Toggle (default: enabled)
+    const [aiEnabled, setAiEnabled] = useState(true);
+
     // Check blockchain status when successData is set
     useEffect(() => {
         if (successData?.credential_id && successData.blockchain_status === 'pending') {
@@ -310,32 +313,49 @@ const NewIssuance = () => {
         setMessage('');
 
         try {
-            const payload = new FormData();
-            payload.append('learner_email', formData.learnerEmail);
-            payload.append('certificate_title', formData.courseName);
-            payload.append('original_pdf', formData.file);
+            if (aiEnabled) {
+                // AI enabled: Analyze first, then show NSQF modal
+                const payload = new FormData();
+                payload.append('learner_email', formData.learnerEmail);
+                payload.append('certificate_title', formData.courseName);
+                payload.append('original_pdf', formData.file);
 
-            // Step 1: Analyze Credential
-            const analysisResponse = await credentialServices.analyzeCredential(payload);
+                const analysisResponse = await credentialServices.analyzeCredential(payload);
 
-            if (analysisResponse.success) {
-                // Prepare data for modal
-                const analysisData = {
-                    ...analysisResponse.data,
-                    learner_email: formData.learnerEmail,
-                    certificate_title: formData.courseName,
-                    // Mock metadata structure for the modal
-                    metadata: {
-                        ai_extracted: analysisResponse.data
-                    }
-                };
+                if (analysisResponse.success) {
+                    const analysisData = {
+                        ...analysisResponse.data,
+                        learner_email: formData.learnerEmail,
+                        certificate_title: formData.courseName,
+                        metadata: {
+                            ai_extracted: analysisResponse.data
+                        }
+                    };
 
-                setAnalyzingData(analysisData);
-                setShowAnalysisModal(true);
+                    setAnalyzingData(analysisData);
+                    setShowAnalysisModal(true);
+                }
+            } else {
+                // AI disabled: Issue directly without analysis
+                const payload = new FormData();
+                payload.append('learner_email', formData.learnerEmail);
+                payload.append('certificate_title', formData.courseName);
+                payload.append('issued_at', new Date().toISOString());
+                payload.append('original_pdf', formData.file);
+                payload.append('skip_ai', 'true');
+
+                const response = await credentialServices.issueCredential(payload);
+                if (response.success) {
+                    setSuccessData(response.data);
+                    setMessage('Credential issued successfully!');
+                    setFormData({ learnerEmail: '', courseName: '', file: null });
+                    const fileInput = document.getElementById('certificate-file');
+                    if (fileInput) fileInput.value = '';
+                }
             }
         } catch (error) {
-            console.error("Analysis error:", error);
-            setMessage(error.response?.data?.message || error.response?.data?.error || 'Failed to analyze credential.');
+            console.error(aiEnabled ? "Analysis error:" : "Issuance error:", error);
+            setMessage(error.response?.data?.message || error.response?.data?.error || (aiEnabled ? 'Failed to analyze credential.' : 'Failed to issue credential.'));
         } finally {
             setLoading(false);
         }
@@ -528,6 +548,9 @@ const NewIssuance = () => {
             payload.append('certificate_title', entry.courseName);
             payload.append('issued_at', new Date().toISOString());
             payload.append('original_pdf', entry.fileBlob);
+            if (!aiEnabled) {
+                payload.append('skip_ai', 'true');
+            }
 
             const response = await credentialServices.issueCredential(payload);
             if (response.success) {
@@ -847,6 +870,50 @@ const NewIssuance = () => {
                         </div>
                     </div>
 
+                    {/* AI Data Extraction Toggle */}
+                    <div className={`flex items-center justify-between rounded-lg p-4 border transition-colors duration-200 ${
+                        aiEnabled
+                            ? 'bg-blue-chill-50 border-blue-chill-200'
+                            : 'bg-gray-50 border-gray-200'
+                    }`}>
+                        <div className="flex items-center space-x-3">
+                            <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-200 ${
+                                aiEnabled ? 'bg-blue-chill-100 text-blue-chill-700' : 'bg-gray-200 text-gray-400'
+                            }`}>
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 00.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M19 14.5l-2.47 4.518a2.252 2.252 0 01-1.987 1.232H9.457a2.252 2.252 0 01-1.987-1.232L5 14.5m14 0H5" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p className={`text-sm font-semibold transition-colors duration-200 ${
+                                    aiEnabled ? 'text-gray-800' : 'text-gray-500'
+                                }`}>AI Data Extraction</p>
+                                <p className="text-xs text-gray-500">
+                                    {aiEnabled
+                                        ? 'AI will analyze your certificate for skills, NSQF level & metadata before issuance.'
+                                        : 'Certificate will be issued directly without AI analysis.'
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-checked={aiEnabled}
+                            onClick={() => setAiEnabled(!aiEnabled)}
+                            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:ring-offset-2 ${
+                                aiEnabled ? 'bg-blue-chill-600' : 'bg-gray-300'
+                            }`}
+                        >
+                            <span className="sr-only">Toggle AI Data Extraction</span>
+                            <span
+                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                    aiEnabled ? 'translate-x-5' : 'translate-x-0'
+                                }`}
+                            />
+                        </button>
+                    </div>
+
                     <button type="submit" disabled={loading} className="w-full bg-blue-chill-600 text-white p-3 rounded-lg font-bold shadow-lg hover:bg-blue-chill-700 transition duration-200 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed">
                         {loading ? (
                             <>
@@ -854,11 +921,11 @@ const NewIssuance = () => {
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
-                                Issuing Credential...
+                                {aiEnabled ? 'Analyzing Credential...' : 'Issuing Credential...'}
                             </>
                         ) : (
                             <>
-                                <Send className="w-5 h-5 mr-2" /> Issue Credential
+                                <Send className="w-5 h-5 mr-2" /> {aiEnabled ? 'Analyze & Issue' : 'Issue Credential'}
                             </>
                         )}
                     </button>

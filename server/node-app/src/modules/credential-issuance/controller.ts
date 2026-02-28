@@ -41,6 +41,9 @@ export class CredentialIssuanceController {
                 ? new Date(validatedData.issued_at)
                 : validatedData.issued_at;
 
+            // Parse skip_ai flag from FormData
+            const skip_ai = req.body.skip_ai === 'true' || req.body.skip_ai === true;
+
             // Parse JSON strings from FormData if present
             let ai_extracted_data = req.body.ai_extracted_data;
             let verification_status = req.body.verification_status;
@@ -88,7 +91,8 @@ export class CredentialIssuanceController {
                 original_pdf: req.file.buffer,
                 original_pdf_filename: req.file.originalname,
                 ai_extracted_data,
-                verification_status
+                verification_status,
+                skip_ai
             });
 
             sendSuccess(res, result, 'Credential issued successfully', 201);
@@ -129,6 +133,9 @@ export class CredentialIssuanceController {
                 ? new Date(validatedData.issued_at)
                 : validatedData.issued_at;
 
+            // Parse skip_ai flag from FormData
+            const skip_ai = req.body.skip_ai === 'true' || req.body.skip_ai === true;
+
             // Parse JSON strings from FormData if present
             let ai_extracted_data = req.body.ai_extracted_data;
             let verification_status = req.body.verification_status;
@@ -167,7 +174,8 @@ export class CredentialIssuanceController {
                 original_pdf: req.file.buffer,
                 original_pdf_filename: req.file.originalname,
                 ai_extracted_data,
-                verification_status
+                verification_status,
+                skip_ai
             });
 
             // Return streamlined response for API
