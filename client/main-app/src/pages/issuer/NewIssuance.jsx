@@ -6,6 +6,7 @@ import JSZip from 'jszip';
 import Papa from 'papaparse';
 import { setNotification } from '../../utils/notification';
 import NSQFVerificationModal from '../../components/NSQFVerificationModal';
+import CredentialIssuedResult from '../../components/CredentialIssuedResult';
 
 const NewIssuance = () => {
     const { issuer } = useSelector((state) => state.authIssuer);
@@ -122,229 +123,25 @@ const NewIssuance = () => {
         const txHash = blockchainStatus?.tx_hash || successData.tx_hash;
         const ipfsCid = blockchainStatus?.ipfs_cid || successData.ipfs_cid;
         const pdfUrl = blockchainStatus?.pdf_url || successData.pdf_url;
-        const allConfirmed = currentBcStatus === 'confirmed' && currentIpfsStatus === 'confirmed';
 
         return (
-            <div className="max-w-3xl mx-auto space-y-8 p-8 border rounded-xl shadow-lg bg-gray-50 relative">
-                {/* Download JSON Icon - Top Right Corner */}
-                <button
-                    onClick={downloadJSON}
-                    className="absolute top-4 right-4 p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all group"
-                    title="Download JSON"
-                >
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    <span className="absolute right-0 top-12 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                        Download JSON
-                    </span>
-                </button>
-
-                <div className="text-center space-y-4">
-                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100">
-                        <CheckCircle className="h-10 w-10 text-green-600" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900">Credential Issued Successfully!</h3>
-                    <p className="text-gray-600">
-                        {allConfirmed
-                            ? 'The credential has been confirmed on the blockchain and uploaded to IPFS.'
-                            : 'The credential is being processed. Blockchain confirmation and IPFS upload are in progress.'}
-                    </p>
-                </div>
-
-                <div className="bg-white p-6 rounded-lg border border-gray-200 space-y-4 text-sm">
-                    <div className="grid grid-cols-3 gap-4">
-                        <span className="font-semibold text-gray-600">Credential ID:</span>
-                        <span className="col-span-2 font-mono text-gray-800 break-all">{successData.credential_id}</span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                        <span className="font-semibold text-gray-600">Learner Email:</span>
-                        <span className="col-span-2 text-gray-800">{successData.learner_email}</span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                        <span className="font-semibold text-gray-600">Certificate Title:</span>
-                        <span className="col-span-2 text-gray-800">{successData.certificate_title}</span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 items-center">
-                        <span className="font-semibold text-gray-600">Status:</span>
-                        <div className="col-span-2">
-                            {successData.status === 'claimed' ? (
-                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    <CheckCircle className="w-3 h-3 mr-1" />
-                                    Claimed
-                                </span>
-                            ) : (
-                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                                    </svg>
-                                    Unclaimed
-                                </span>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Blockchain Status Row */}
-                    <div className="grid grid-cols-3 gap-4 items-center">
-                        <span className="font-semibold text-gray-600">Blockchain:</span>
-                        <div className="col-span-2 flex items-center space-x-2">
-                            {currentBcStatus === 'pending' ? (
-                                <>
-                                    <div className="flex items-center space-x-2">
-                                        <svg className="animate-spin h-4 w-4 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        <span className="text-yellow-700 font-medium">Confirming on blockchain...</span>
-                                    </div>
-                                </>
-                            ) : currentBcStatus === 'confirmed' ? (
-                                <div className="flex items-center space-x-2">
-                                    <CheckCircle className="h-4 w-4 text-green-600" />
-                                    <span className="text-green-700 font-medium">Confirmed on blockchain</span>
-                                </div>
-                            ) : (
-                                <div className="flex items-center space-x-2">
-                                    <XCircle className="h-4 w-4 text-red-600" />
-                                    <span className="text-red-700 font-medium">Failed</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* IPFS Status Row */}
-                    <div className="grid grid-cols-3 gap-4 items-center">
-                        <span className="font-semibold text-gray-600">IPFS Upload:</span>
-                        <div className="col-span-2 flex items-center space-x-2">
-                            {currentIpfsStatus === 'pending' ? (
-                                <div className="flex items-center space-x-2">
-                                    <svg className="animate-spin h-4 w-4 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    <span className="text-yellow-700 font-medium">
-                                        {currentBcStatus === 'pending' ? 'Waiting for blockchain...' : 'Uploading to IPFS...'}
-                                    </span>
-                                </div>
-                            ) : currentIpfsStatus === 'confirmed' ? (
-                                <div className="flex items-center space-x-2">
-                                    <CheckCircle className="h-4 w-4 text-green-600" />
-                                    <span className="text-green-700 font-medium">Uploaded to IPFS</span>
-                                </div>
-                            ) : (
-                                <div className="flex items-center space-x-2">
-                                    <XCircle className="h-4 w-4 text-red-600" />
-                                    <span className="text-red-700 font-medium">IPFS Upload Failed</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Refresh Button */}
-                    {(currentBcStatus === 'pending' || currentIpfsStatus === 'pending') && (
-                        <div className="flex justify-end">
-                            <button
-                                onClick={() => checkBlockchainStatus(successData.credential_id)}
-                                disabled={refreshing}
-                                className="px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition disabled:opacity-50 flex items-center space-x-1"
-                                title="Refresh status"
-                            >
-                                <svg
-                                    className={`w-3 h-3 ${refreshing ? 'animate-spin' : ''}`}
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                                <span>{refreshing ? 'Checking...' : 'Check Status'}</span>
-                            </button>
-                        </div>
-                    )}
-
-                    {txHash ? (
-                        <div className="grid grid-cols-3 gap-4">
-                            <span className="font-semibold text-gray-600">Transaction Hash:</span>
-                            <span className="col-span-2 font-mono text-purple-600 break-all">{txHash}</span>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-3 gap-4">
-                            <span className="font-semibold text-gray-600">Transaction Hash:</span>
-                            <span className="col-span-2 text-xs text-gray-500 italic">
-                                Pending blockchain confirmation
-                            </span>
-                        </div>
-                    )}
-
-                    <div className="grid grid-cols-3 gap-4">
-                        <span className="font-semibold text-gray-600">IPFS CID:</span>
-                        {currentIpfsStatus === 'confirmed' && ipfsCid ? (
-                            <span className="col-span-2 font-mono text-blue-600 break-all">{ipfsCid}</span>
-                        ) : (
-                            <span className="col-span-2 text-xs text-gray-500 italic">
-                                {currentIpfsStatus === 'failed' ? 'Upload failed' : 'Pending upload...'}
-                            </span>
-                        )}
-                    </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    {/* View on IPFS — disabled until ipfs_status confirmed */}
-                    {currentIpfsStatus === 'confirmed' && pdfUrl ? (
-                        <a
-                            href={pdfUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                            View on IPFS
-                        </a>
-                    ) : (
-                        <button
-                            disabled
-                            className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-gray-400 bg-gray-200 cursor-not-allowed opacity-60"
-                            title="Waiting for IPFS upload"
-                        >
-                            <svg className="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            View on IPFS
-                        </button>
-                    )}
-
-                    {/* View on Blockchain — disabled until blockchain_status confirmed */}
-                    {currentBcStatus === 'confirmed' && txHash ? (
-                        <a
-                            href={`https://sepolia.etherscan.io/tx/${txHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                        >
-                            View on Blockchain
-                        </a>
-                    ) : (
-                        <button
-                            disabled
-                            className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-gray-400 bg-gray-200 cursor-not-allowed opacity-60"
-                            title="Waiting for blockchain confirmation"
-                        >
-                            <svg className="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            View on Blockchain
-                        </button>
-                    )}
-
-                    <button
-                        onClick={resetForm}
-                        className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                    >
-                        Issue Another
-                    </button>
-                </div>
-            </div>
+            <CredentialIssuedResult
+                credentialId={successData.credential_id}
+                certificateTitle={successData.certificate_title}
+                learnerEmail={successData.learner_email}
+                claimStatus={successData.status}
+                showClaimStatus={true}
+                blockchainStatus={currentBcStatus}
+                ipfsStatus={currentIpfsStatus}
+                txHash={txHash}
+                ipfsCid={ipfsCid}
+                pdfUrl={pdfUrl}
+                refreshing={refreshing}
+                onRefresh={() => checkBlockchainStatus(successData.credential_id)}
+                onDownloadJSON={downloadJSON}
+                onPrimaryAction={resetForm}
+                primaryActionLabel="Issue Another"
+            />
         );
     }
 
@@ -695,65 +492,7 @@ const NewIssuance = () => {
         );
     };
 
-    if (successData) {
-        return (
-            <div className="max-w-3xl mx-auto space-y-8 p-8 border rounded-xl shadow-lg bg-gray-50">
-                <div className="text-center space-y-4">
-                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100">
-                        <CheckCircle className="h-10 w-10 text-green-600" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900">Credential Issued Successfully!</h3>
-                    <p className="text-gray-600">The credential has been secured on the blockchain and IPFS.</p>
-                </div>
-
-                <div className="bg-white p-6 rounded-lg border border-gray-200 space-y-4 text-sm">
-                    <div className="grid grid-cols-3 gap-4">
-                        <span className="font-semibold text-gray-600">Credential ID:</span>
-                        <span className="col-span-2 font-mono text-gray-800 break-all">{successData.credential_id}</span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                        <span className="font-semibold text-gray-600">Learner Email:</span>
-                        <span className="col-span-2 text-gray-800">{successData.learner_email}</span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                        <span className="font-semibold text-gray-600">Certificate Title:</span>
-                        <span className="col-span-2 text-gray-800">{successData.certificate_title}</span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                        <span className="font-semibold text-gray-600">IPFS CID:</span>
-                        <span className="col-span-2 font-mono text-blue-600 break-all">{successData.ipfs_cid}</span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                        <span className="font-semibold text-gray-600">Transaction Hash:</span>
-                        <span className="col-span-2 font-mono text-purple-600 break-all">{successData.tx_hash}</span>
-                    </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a
-                        href={successData.pdf_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                        View on IPFS
-                    </a>
-                    <button
-                        onClick={downloadJSON}
-                        className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                        Download JSON
-                    </button>
-                    <button
-                        onClick={resetForm}
-                        className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                    >
-                        Issue Another
-                    </button>
-                </div>
-            </div>
-        );
-    }
+    // successData success screen is handled above via CredentialIssuedResult
 
     return (
         <div className="max-w-5xl mx-auto space-y-8 relative">

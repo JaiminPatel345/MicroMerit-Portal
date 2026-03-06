@@ -184,7 +184,7 @@ export class CredentialIssuanceService {
         // Step 9: Queue background job (blockchain → embed metadata → IPFS)
         // Pass original PDF bytes as base64 so the worker can embed metadata and upload
         try {
-            await writeToBlockchainQueued(credential_id, data_hash, '', {
+            await writeToBlockchainQueued(credential_id, data_hash, {
                 original_pdf_base64: original_pdf.toString('base64'),
                 canonical_json: canonicalJson as any,
                 checksum,

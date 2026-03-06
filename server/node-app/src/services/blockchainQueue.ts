@@ -24,7 +24,6 @@ const BLOCKCHAIN_SERVICE_URL = process.env.BLOCKCHAIN_SERVICE_URL || 'http://loc
 export interface BlockchainJobData {
     credential_id: string;
     data_hash: string;
-    ipfs_cid: string;
     original_pdf_base64?: string;
     canonical_json?: Record<string, any>;
     checksum?: string;
@@ -50,7 +49,6 @@ export interface BlockchainWriteResult {
 async function callBlockchainWrite(
     credential_id: string,
     data_hash: string,
-    ipfs_cid: string,
 ): Promise<BlockchainWriteResult> {
     const mockEnabled = process.env.BLOCKCHAIN_MOCK_ENABLED === 'true';
 
@@ -72,7 +70,7 @@ async function callBlockchainWrite(
 
     const response = await axios.post(
         `${BLOCKCHAIN_SERVICE_URL}/blockchain/write`,
-        { credential_id, data_hash, ipfs_cid },
+        { credential_id, data_hash },
         { headers: { 'Content-Type': 'application/json' }, timeout: 60000 },
     );
 
@@ -95,7 +93,6 @@ async function processCredentialAsync(data: BlockchainJobData): Promise<void> {
     const {
         credential_id,
         data_hash,
-        ipfs_cid: initialIpfsCid,
         original_pdf_base64,
         canonical_json,
         checksum,
@@ -116,17 +113,14 @@ async function processCredentialAsync(data: BlockchainJobData): Promise<void> {
     let txHash: string | null = null;
 
     try {
-        // Use a placeholder CID since the enriched PDF hasn't been uploaded yet.
-        // The real CID will be stored in the DB after IPFS upload in Step 2.
-        const placeholderCid = initialIpfsCid || 'pending-upload';
 
-        logger.info('[Background] Step 1 — writing to blockchain', {
+        logger.info('[Background] Step 1 — writing to blockchain (data_hash only)', {
             credential_id,
-            placeholderCid,
+            data_hash,
             mock_mode: process.env.BLOCKCHAIN_MOCK_ENABLED === 'true',
         });
 
-        const result = await callBlockchainWrite(credential_id, data_hash, placeholderCid);
+        const result = await callBlockchainWrite(credential_id, data_hash);
         txHash = result.tx_hash;
 
         await credentialIssuanceRepository.updateCredential(credential_id, {
@@ -252,7 +246,6 @@ async function processCredentialAsync(data: BlockchainJobData): Promise<void> {
 export async function queueBlockchainWrite(
     credential_id: string,
     data_hash: string,
-    ipfs_cid: string = '',
     extraData?: {
         original_pdf_base64?: string;
         canonical_json?: Record<string, any>;
@@ -274,7 +267,6 @@ export async function queueBlockchainWrite(
         processCredentialAsync({
             credential_id,
             data_hash,
-            ipfs_cid,
             ...extraData,
         }).catch(err => {
             logger.error('[Background] Unhandled error in credential processing', {

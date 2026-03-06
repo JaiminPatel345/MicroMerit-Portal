@@ -69,12 +69,10 @@ initializeBlockchain();
 async function mockWriteToBlockchain(
     credential_id: string,
     data_hash: string,
-    ipfs_cid: string
 ): Promise<BlockchainWriteResult> {
     logger.info('BLOCKCHAIN_WRITE (MOCK)', {
         credential_id,
         data_hash,
-        ipfs_cid,
         network: process.env.BLOCKCHAIN_NETWORK || 'sepolia',
         contract: process.env.BLOCKCHAIN_CONTRACT_ADDRESS || 'mock_contract',
     });
@@ -96,7 +94,6 @@ async function mockWriteToBlockchain(
 async function realWriteToBlockchain(
     credential_id: string,
     data_hash: string,
-    ipfs_cid: string
 ): Promise<BlockchainWriteResult> {
     if (!contract || !signer) {
         throw new Error('Blockchain not initialized');
@@ -106,7 +103,6 @@ async function realWriteToBlockchain(
         logger.info('BLOCKCHAIN_WRITE (REAL)', {
             credential_id,
             data_hash,
-            ipfs_cid,
             network: 'sepolia',
         });
 
@@ -117,7 +113,6 @@ async function realWriteToBlockchain(
         const gasEstimate = await contract.issueCredential.estimateGas(
             credential_id,
             dataHashBytes32,
-            ipfs_cid
         );
 
         const gasLimit = process.env.GAS_LIMIT
@@ -133,7 +128,6 @@ async function realWriteToBlockchain(
         const tx = await contract.issueCredential(
             credential_id,
             dataHashBytes32,
-            ipfs_cid,
             { gasLimit }
         );
 
@@ -173,14 +167,13 @@ async function realWriteToBlockchain(
 export async function writeToBlockchain(
     credential_id: string,
     data_hash: string,
-    ipfs_cid: string
 ): Promise<BlockchainWriteResult> {
     const isMockEnabled = process.env.BLOCKCHAIN_MOCK_ENABLED === 'true';
 
     if (isMockEnabled) {
-        return mockWriteToBlockchain(credential_id, data_hash, ipfs_cid);
+        return mockWriteToBlockchain(credential_id, data_hash);
     } else {
-        return realWriteToBlockchain(credential_id, data_hash, ipfs_cid);
+        return realWriteToBlockchain(credential_id, data_hash);
     }
 }
 

@@ -23,7 +23,6 @@ export interface BlockchainWriteResult {
 export async function writeToBlockchainQueued(
     credential_id: string,
     data_hash: string,
-    ipfs_cid: string = '',
     extraData?: {
         original_pdf_base64?: string;
         canonical_json?: Record<string, any>;
@@ -34,11 +33,10 @@ export async function writeToBlockchainQueued(
 ): Promise<string> {
     logger.info('Scheduling blockchain+IPFS background job', {
         credential_id,
-        has_ipfs: ipfs_cid && ipfs_cid.trim() !== '',
         has_pdf: !!extraData?.original_pdf_base64,
     });
 
-    const jobId = await queueBlockchainWrite(credential_id, data_hash, ipfs_cid, extraData);
+    const jobId = await queueBlockchainWrite(credential_id, data_hash, extraData);
 
     logger.info('Background job scheduled — returning immediately', {
         credential_id,

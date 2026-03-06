@@ -7,8 +7,7 @@ import { logger } from '../utils/logger';
 const writeSchema = z.object({
     credential_id: z.string().uuid(),
     data_hash: z.string().min(1),
-    // Allow placeholder value for external credentials without IPFS
-    ipfs_cid: z.string().min(1),
+    // ipfs_cid intentionally omitted — CID is stored in DB after IPFS upload, not on-chain
 });
 
 const verifySchema = z.object({
@@ -21,12 +20,12 @@ const verifySchema = z.object({
 export async function write(req: Request, res: Response, next: NextFunction) {
     try {
         // Validate request body
-        const { credential_id, data_hash, ipfs_cid } = writeSchema.parse(req.body);
+        const { credential_id, data_hash } = writeSchema.parse(req.body);
 
         logger.info('Blockchain write request received', { credential_id });
 
-        // Write to blockchain
-        const result = await writeToBlockchain(credential_id, data_hash, ipfs_cid);
+        // Write credential_id + data_hash to blockchain (no CID)
+        const result = await writeToBlockchain(credential_id, data_hash);
 
         logger.info('Blockchain write successful', {
             credential_id,
