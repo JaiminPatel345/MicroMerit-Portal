@@ -12,7 +12,7 @@ export interface CreateIssuerDTO {
   contact_person_name?: string;
   contact_person_designation?: string;
   address?: string;
-  kyc_document_url?: string;
+
   logo_url?: string;
 }
 
@@ -25,7 +25,7 @@ export interface UpdateIssuerDTO {
   contact_person_name?: string;
   contact_person_designation?: string;
   address?: string;
-  kyc_document_url?: string;
+
   logo_url?: string;
 }
 

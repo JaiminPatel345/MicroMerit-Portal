@@ -6,6 +6,7 @@ import {
   validateMobile,
   validateDomain,
   validateURL,
+  validatePassword,
 } from "../../utils/formValidation";
 import { useDispatch } from "react-redux";
 import { APP_NAME } from '../../config/appConfig';
@@ -28,7 +29,6 @@ function IssuerSignUp() {
     contact_person_name: "",
     contact_person_designation: "",
     address: "",
-    kyc_document_url: "",
     logo_url: "",
     password: "",
     confirm_password: "",
@@ -112,14 +112,6 @@ function IssuerSignUp() {
   const validateStep3 = () => {
     let err = {};
 
-    // KYC URL
-    if (!form.kyc_document_url.trim()) {
-      err.kyc_document_url = "KYC document URL is required";
-    } else {
-      const kycErr = validateURL(form.kyc_document_url.trim());
-      if (kycErr) err.kyc_document_url = kycErr;
-    }
-
     // Logo URL (optional)
     if (form.logo_url.trim()) {
       const logoErr = validateURL(form.logo_url.trim());
@@ -127,11 +119,8 @@ function IssuerSignUp() {
     }
 
     // Password
-    if (!form.password || form.password.trim().length < 8) {
-      err.password = "Password must be at least 8 characters";
-    } else if (!/[A-Za-z]/.test(form.password) || !/[0-9]/.test(form.password)) {
-      err.password = "Password must contain letters and numbers";
-    }
+    const passwordErr = validatePassword(form.password);
+    if (passwordErr) err.password = passwordErr;
 
     // Confirm Password
     if (form.confirm_password !== form.password) {
@@ -393,10 +382,9 @@ function IssuerSignUp() {
         {/* -------------------- STEP 3: Security & Compliance -------------------- */}
         {step === 3 && (
           <div className="space-y-6">
-            {renderField("kyc_document_url", "KYC Document URL", "Upload document and paste link (must be a valid URL)")}
             {renderField("logo_url", "Logo URL (Optional)", "Link to organization logo")}
 
-            {renderField("password", "Password", "Minimum 8 characters (with letters and numbers)", "password")}
+            {renderField("password", "Password", "Min 8 chars with uppercase, lowercase & number", "password")}
             {renderField("confirm_password", "Confirm Password", "Re-enter password", "password")}
 
             {/* CONSENT */}

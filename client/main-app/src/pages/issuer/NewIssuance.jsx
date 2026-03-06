@@ -276,12 +276,16 @@ const NewIssuance = () => {
                         </div>
                     )}
 
-                    {ipfsCid && (
-                        <div className="grid grid-cols-3 gap-4">
-                            <span className="font-semibold text-gray-600">IPFS CID:</span>
+                    <div className="grid grid-cols-3 gap-4">
+                        <span className="font-semibold text-gray-600">IPFS CID:</span>
+                        {currentIpfsStatus === 'confirmed' && ipfsCid ? (
                             <span className="col-span-2 font-mono text-blue-600 break-all">{ipfsCid}</span>
-                        </div>
-                    )}
+                        ) : (
+                            <span className="col-span-2 text-xs text-gray-500 italic">
+                                {currentIpfsStatus === 'failed' ? 'Upload failed' : 'Pending upload...'}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -374,7 +378,7 @@ const NewIssuance = () => {
     const handleSingleIssuance = async (e) => {
         e.preventDefault();
         if (!formData.file) {
-            setMessage('Please upload a certificate file (PDF/Image).');
+            setMessage('Please upload a certificate file (PDF only).');
             return;
         }
 
@@ -915,7 +919,7 @@ const NewIssuance = () => {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="block text-sm font-semibold text-gray-700">Certificate File (PDF/Image)</label>
+                            <label className="block text-sm font-semibold text-gray-700">Certificate File (PDF only)</label>
                             <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:bg-gray-50 transition cursor-pointer relative">
                                 <input
                                     type="file"
@@ -923,7 +927,7 @@ const NewIssuance = () => {
                                     name="file"
                                     onChange={handleChange}
                                     required
-                                    accept=".pdf,image/*"
+                                    accept=".pdf"
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                 />
                                 <div className="space-y-1 text-center pointer-events-none">
@@ -937,7 +941,7 @@ const NewIssuance = () => {
                                         </span>
                                         <p className="pl-1">or drag and drop</p>
                                     </div>
-                                    <p className="text-xs text-gray-500">PDF, PNG, JPG up to 10MB</p>
+                                    <p className="text-xs text-gray-500">PDF only, up to 10MB</p>
                                     {formData.file && <p className="text-sm font-semibold text-blue-chill-600 mt-2">Selected: {formData.file.name}</p>}
                                 </div>
                             </div>
@@ -1104,7 +1108,7 @@ const NewIssuance = () => {
                                                 ) : (
                                                     <label className="cursor-pointer text-blue-chill-600 hover:underline flex items-center">
                                                         <Plus className="w-3 h-3 mr-1" /> Upload PDF
-                                                        <input type="file" className="hidden" accept=".pdf,image/*" onChange={(e) => handleEntryFileChange(entry.id, e.target.files[0])} />
+                                                        <input type="file" className="hidden" accept=".pdf" onChange={(e) => handleEntryFileChange(entry.id, e.target.files[0])} />
                                                     </label>
                                                 )}
                                             </div>

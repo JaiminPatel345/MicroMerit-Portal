@@ -27,6 +27,7 @@ export interface IssueCredentialParams {
 }
 
 export interface IssueCredentialResult {
+    id: string;            // Prisma primary key — use this for GET /learner/credentials/:id
     credential_id: string;
     learner_id: number | null;
     learner_email: string;
@@ -241,6 +242,7 @@ export class CredentialIssuanceService {
         ).catch(err => logger.error('Failed to send credential email', { error: err }));
 
         return {
+            id: credential.id,     // Prisma PK — for /learner/credentials/:id lookup
             credential_id,
             learner_id,
             learner_email,

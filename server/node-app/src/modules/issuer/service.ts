@@ -19,7 +19,7 @@ export interface IssuerResponse {
   contact_person_name?: string | null;
   contact_person_designation?: string | null;
   address?: string | null;
-  kyc_document_url?: string | null;
+
   logo_url?: string | null;
   status: string;
   approved_at?: Date | null;
@@ -68,7 +68,7 @@ export class IssuerService {
       contact_person_name: data.contact_person_name,
       contact_person_designation: data.contact_person_designation,
       address: data.address,
-      kyc_document_url: data.kyc_document_url,
+
       logo_url: data.logo_url,
     };
 
@@ -141,7 +141,7 @@ export class IssuerService {
       contact_person_name: registrationData.contact_person_name,
       contact_person_designation: registrationData.contact_person_designation,
       address: registrationData.address,
-      kyc_document_url: registrationData.kyc_document_url,
+
       logo_url: registrationData.logo_url,
     });
 
@@ -188,7 +188,7 @@ export class IssuerService {
       contact_person_name: data.contact_person_name,
       contact_person_designation: data.contact_person_designation,
       address: data.address,
-      kyc_document_url: data.kyc_document_url,
+
       logo_url: data.logo_url,
     });
 

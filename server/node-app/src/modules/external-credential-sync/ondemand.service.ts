@@ -244,7 +244,7 @@ export class OnDemandCertService {
       ipfs_cid:          result.ipfs_cid,
       pdf_url:           result.pdf_url,
       status:            result.status,
-      db_id:             result.credential_id,
+      db_id:             result.id,   // Prisma PK — matches GET /learner/credentials/:id
     };
   }
 }
