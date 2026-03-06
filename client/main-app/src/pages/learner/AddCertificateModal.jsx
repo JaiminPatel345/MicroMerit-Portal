@@ -1,47 +1,26 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     X,
     Plus,
     AlertCircle,
-    CheckCircle2,
     Loader2,
-    ExternalLink,
-    Shield,
-    Database,
-    Clock,
     ChevronDown,
     Info,
-    Download,
-    FileCheck,
+    Shield,
 } from 'lucide-react';
 import { learnerApi } from '../../services/authServices';
 
-// ── Status Badge ─────────────────────────────────────────────────────────────
-const StatusBadge = ({ status, label }) => {
-    const config = {
-        pending:   { bg: 'bg-amber-50',   text: 'text-amber-700',  border: 'border-amber-200',  icon: <Clock size={12} className="text-amber-500" /> },
-        confirmed: { bg: 'bg-green-50',   text: 'text-green-700',  border: 'border-green-200',  icon: <CheckCircle2 size={12} className="text-green-500" /> },
-        failed:    { bg: 'bg-red-50',     text: 'text-red-700',    border: 'border-red-200',    icon: <AlertCircle size={12} className="text-red-500" /> },
-    };
-    const c = config[status] || config.pending;
-    return (
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${c.bg} ${c.text} ${c.border}`}>
-            {c.icon}{label}: <span className="capitalize">{status}</span>
-        </span>
-    );
-};
-
 // ── Main Modal ────────────────────────────────────────────────────────────────
 const AddCertificateModal = ({ onClose, onSuccess }) => {
-    const [step, setStep] = useState('form'); // 'form' | 'loading' | 'success' | 'error'
+    const navigate = useNavigate();
+    const [step, setStep] = useState('form'); // 'form' | 'loading' | 'error'
     const [issuers, setIssuers] = useState([]);
     const [issuersLoading, setIssuersLoading] = useState(true);
     const [selectedIssuer, setSelectedIssuer] = useState('');
     const [credentialId, setCredentialId] = useState('');
     const [error, setError] = useState('');
-    const [result, setResult] = useState(null);
-    const [statusChecking, setStatusChecking] = useState(false);
-    const [statusResult, setStatusResult] = useState(null);
+
 
     // Fetch available issuers for dropdown
     useEffect(() => {
@@ -79,28 +58,16 @@ const AddCertificateModal = ({ onClose, onSuccess }) => {
                 issuer_id: Number(selectedIssuer),
                 credential_id: credentialId.trim(),
             });
-            setResult(res.data?.data || res.data);
-            setStep('success');
+            const data = res.data?.data || res.data;
             if (onSuccess) onSuccess();
+            onClose();
+            navigate(`/credential-added/${data.db_id}`);
         } catch (err) {
-            const msg = err?.response?.data?.error || err?.response?.data?.message || err.message || 'Something went wrong.';
+            const msg = err?.response?.data?.message || err?.response?.data?.error || err.message || 'Something went wrong.';
             setError(msg);
             setStep('error');
         }
     };
-
-    const handleCheckStatus = useCallback(async () => {
-        if (!result?.db_id) return;
-        setStatusChecking(true);
-        try {
-            const res = await learnerApi.getCredentialStatus(result.db_id);
-            setStatusResult(res.data?.data || res.data);
-        } catch {
-            setStatusResult(null);
-        } finally {
-            setStatusChecking(false);
-        }
-    }, [result]);
 
     const issuerName = issuers.find(i => String(i.id) === String(selectedIssuer))?.name || '';
 
@@ -236,119 +203,7 @@ const AddCertificateModal = ({ onClose, onSuccess }) => {
                         </div>
                     )}
 
-                    {/* ── Step: Success ── */}
-                    {step === 'success' && result && (
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-xl p-4">
-                                <CheckCircle2 size={22} className="text-green-500 shrink-0" />
-                                <div>
-                                    <p className="font-semibold text-green-800">Certificate Added!</p>
-                                    <p className="text-xs text-green-600 mt-0.5">Now processing on blockchain & IPFS in the background</p>
-                                </div>
-                            </div>
-
-                            {/* Credential snapshot */}
-                            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
-                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Credential Details</p>
-                                <div className="space-y-2 text-sm">
-                                    <div className="flex justify-between gap-2">
-                                        <span className="text-gray-500">Title</span>
-                                        <span className="font-semibold text-gray-800 text-right max-w-[65%]">{result.title}</span>
-                                    </div>
-                                    <div className="flex justify-between gap-2">
-                                        <span className="text-gray-500">Issuer</span>
-                                        <span className="font-semibold text-gray-800">{result.issuer_name}</span>
-                                    </div>
-                                    <div className="flex justify-between gap-2">
-                                        <span className="text-gray-500">Issued</span>
-                                        <span className="font-medium text-gray-700">{result.issued_at ? new Date(result.issued_at).toLocaleDateString() : '—'}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Blockchain & IPFS Status */}
-                            <div>
-                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2.5">Verification Status</p>
-                                <div className="flex flex-wrap gap-2">
-                                    <div className="flex items-center gap-1.5">
-                                        <Database size={13} className="text-gray-400" />
-                                        <StatusBadge
-                                            status={statusResult?.metadata?.blockchain_status || statusResult?.blockchain_status || result.blockchain_status || 'pending'}
-                                            label="Blockchain"
-                                        />
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <Shield size={13} className="text-gray-400" />
-                                        <StatusBadge
-                                            status={statusResult?.metadata?.ipfs_status || statusResult?.ipfs_status || result.ipfs_status || 'pending'}
-                                            label="IPFS"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Check Status button */}
-                                <button
-                                    onClick={handleCheckStatus}
-                                    disabled={statusChecking}
-                                    className="mt-3 flex items-center gap-2 text-xs text-blue-600 hover:text-blue-700 font-semibold transition-all disabled:opacity-50"
-                                >
-                                    {statusChecking
-                                        ? <><Loader2 size={13} className="animate-spin" /> Checking…</>
-                                        : <><ExternalLink size={13} /> Check Status</>
-                                    }
-                                </button>
-                            </div>
-
-                            {/* PDF Download */}
-                            {(() => {
-                                const pdfUrl = statusResult?.pdf_url || result.pdf_url;
-                                const ipfsStatus = statusResult?.metadata?.ipfs_status || statusResult?.ipfs_status || result.ipfs_status || 'pending';
-                                const isSigned = ipfsStatus === 'confirmed';
-                                return (
-                                    <div className="pt-1">
-                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2.5">Certificate PDF</p>
-                                        {pdfUrl ? (
-                                            <a
-                                                href={pdfUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className={`inline-flex items-center gap-2 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all ${
-                                                    isSigned
-                                                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
-                                                }`}
-                                            >
-                                                {isSigned
-                                                    ? <><FileCheck size={15} /> Download Signed PDF</>
-                                                    : <><Download size={15} /> Download PDF</>}
-                                            </a>
-                                        ) : (
-                                            <div className="flex items-center gap-2 py-2.5 px-4 rounded-xl bg-gray-100 border border-gray-200">
-                                                <Clock size={14} className="text-amber-500 shrink-0" />
-                                                <span className="text-xs text-gray-500">
-                                                    PDF is being prepared — click <strong className="text-gray-700">Check Status</strong> to refresh
-                                                </span>
-                                            </div>
-                                        )}
-                                        {pdfUrl && !isSigned && (
-                                            <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
-                                                <Clock size={11} /> Blockchain signing in progress — re-check for verified version
-                                            </p>
-                                        )}
-                                    </div>
-                                );
-                            })()}
-
-                            <div className="flex gap-3 pt-1">
-                                <button
-                                    onClick={onClose}
-                                    className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all"
-                                >
-                                    Done
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                    {/* success step removed — redirects to /credential-added/:id */}
 
                     {/* ── Step: Error ── */}
                     {step === 'error' && (

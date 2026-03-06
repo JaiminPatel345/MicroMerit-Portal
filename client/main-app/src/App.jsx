@@ -17,6 +17,7 @@ import IssuerDashboard from './pages/issuer/Dashboard';
 import LearnerDashboard from './pages/learner/Dashboard';
 import Wallet from './pages/learner/Wallet';
 import CredentialDetails from './pages/learner/CredentialDetails';
+import CredentialAdded from './pages/learner/CredentialAdded';
 import Roadmap from './pages/learner/Roadmap';
 import SkillProfile from './pages/learner/SkillProfile';
 import Notifications from './pages/learner/Notifications';
@@ -106,6 +107,12 @@ function Layout() {
               <Route path="/credential/:id" element={
                 <AuthRoutes role="learner">
                   <CredentialDetails />
+                </AuthRoutes>
+              } />
+
+              <Route path="/credential-added/:id" element={
+                <AuthRoutes role="learner">
+                  <CredentialAdded />
                 </AuthRoutes>
               } />
 

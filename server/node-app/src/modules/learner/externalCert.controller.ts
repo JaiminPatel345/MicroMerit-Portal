@@ -30,12 +30,12 @@ export class ExternalCertController {
       const { issuer_id, credential_id } = req.body;
 
       if (!issuer_id || !credential_id) {
-        sendError(res, 'issuer_id and credential_id are required', 'Bad request', 400);
+        sendError(res, 'MISSING_FIELDS', 'issuer_id and credential_id are required', 400);
         return;
       }
 
       if (!req.user?.email) {
-        sendError(res, 'User not authenticated', 'Authentication required', 401);
+        sendError(res, 'UNAUTHENTICATED', 'User not authenticated', 401);
         return;
       }
 
@@ -53,16 +53,14 @@ export class ExternalCertController {
 
       sendSuccess(res, result, 'Certificate added successfully. Blockchain and IPFS processing in progress.', 201);
     } catch (err: any) {
-      logger.error('[ExternalCert] Add certificate failed', { error: err.message });
-
-      // Distinguish between ownership errors and server errors
-      if (err.message?.includes('Email mismatch') || err.message?.includes('not found')) {
-        sendError(res, err.message, 'Certificate not linked to your account', 403);
-      } else if (err.message?.includes('No on-demand connector')) {
-        sendError(res, err.message, 'Issuer not supported for on-demand sync', 400);
-      } else {
-        next(err);
-      }
+      // All typed errors (NotFoundError, ForbiddenError, ValidationError) are handled
+      // by the global error middleware — just pass them through.
+      logger.error('[ExternalCert] Add certificate failed', {
+        error: err.message,
+        code: err.code,
+        status: err.statusCode,
+      });
+      next(err);
     }
   }
 }

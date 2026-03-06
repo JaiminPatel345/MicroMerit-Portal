@@ -239,22 +239,7 @@ const PublicCredential = () => {
                             </button>
                         </div>
 
-                        {/* Trust Score */}
-                        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                            <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                                <Shield className="text-green-600" size={16} /> Trust Score
-                            </h3>
-                            <div className="flex items-end gap-2 mb-2">
-                                <span className="text-3xl font-bold text-gray-900">98</span>
-                                <span className="text-sm text-gray-500 mb-1">/ 100</span>
-                            </div>
-                            <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                                <div className="bg-green-500 h-full rounded-full" style={{ width: '98%' }}></div>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-2">
-                                Issuer <strong>{credential.issuer?.name}</strong> is highly trusted.
-                            </p>
-                        </div>
+
 
 
                     </div>
@@ -452,6 +437,7 @@ const PublicCredential = () => {
                         </div>
 
                         {/* AI Insights */}
+                        {false && (
                         <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-xl shadow-lg text-white relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-6 opacity-10">
                                 <Cpu size={120} />
@@ -528,6 +514,7 @@ const PublicCredential = () => {
                                 </Link>
                             </div>
                         </div>
+                        )}
 
                     </div>
                 </div>

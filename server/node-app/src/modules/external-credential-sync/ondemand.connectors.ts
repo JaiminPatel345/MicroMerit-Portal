@@ -16,6 +16,7 @@
 import crypto from 'crypto';
 import axios from 'axios';
 import { logger } from '../../utils/logger';
+import { NotFoundError, ForbiddenError, ValidationError } from '../../utils/errors';
 
 export interface OnDemandCredential {
   learner_email: string;
@@ -265,9 +266,62 @@ export async function fetchFromExternalIssuer(connector: OnDemandConnector, cred
   const url = connector.buildUrl(credentialId);
   logger.info(`[OnDemand][${connector.id}] Fetching credential`, { url, credentialId });
 
-  const response = await axios.get(url, { timeout: 15000 });
-
-  // Credly and native OBI APIs return the object directly (no success wrapper)
-  // Dummy issuers return { success: true, data: {...} }
-  return response.data;
+  try {
+    const response = await axios.get(url, { timeout: 15000 });
+    // Credly and native OBI APIs return the object directly (no success wrapper)
+    // Dummy issuers return { success: true, data: {...} }
+    return response.data;
+  } catch (err: any) {
+    if (axios.isAxiosError(err) && err.response) {
+      const status = err.response.status;
+      if (status === 404) {
+        throw new NotFoundError(
+          `Credential "${credentialId}" was not found on ${connector.name}. Please check the credential ID and try again.`,
+          404,
+          'CREDENTIAL_NOT_FOUND'
+        );
+      }
+      if (status === 403 || status === 401) {
+        throw new ForbiddenError(
+          `Access denied by ${connector.name}. The credential may be private or the ID may be incorrect.`,
+          403,
+          'CREDENTIAL_ACCESS_DENIED'
+        );
+      }
+      if (status === 400) {
+        throw new ValidationError(
+          `Invalid credential ID format for ${connector.name}. Please verify the ID and try again.`,
+          400,
+          'INVALID_CREDENTIAL_ID'
+        );
+      }
+      if (status === 429) {
+        throw new ValidationError(
+          `${connector.name} is rate-limiting requests. Please wait a moment and try again.`,
+          429,
+          'RATE_LIMITED'
+        );
+      }
+      if (status >= 500) {
+        throw new ValidationError(
+          `${connector.name} is temporarily unavailable (server error). Please try again later.`,
+          502,
+          'EXTERNAL_ISSUER_UNAVAILABLE'
+        );
+      }
+    }
+    // Network/timeout errors
+    if (axios.isAxiosError(err) && err.code === 'ECONNABORTED') {
+      throw new ValidationError(
+        `Request to ${connector.name} timed out. Please try again later.`,
+        504,
+        'EXTERNAL_ISSUER_TIMEOUT'
+      );
+    }
+    throw new ValidationError(
+      `Failed to reach ${connector.name}. Please check your connection and try again.`,
+      502,
+      'EXTERNAL_ISSUER_UNREACHABLE'
+    );
+  }
 }

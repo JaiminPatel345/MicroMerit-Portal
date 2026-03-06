@@ -21,6 +21,7 @@ import {
   OnDemandCredential,
 } from './ondemand.connectors';
 import { logger } from '../../utils/logger';
+import { NotFoundError, ForbiddenError, ValidationError } from '../../utils/errors';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 /**
@@ -141,7 +142,7 @@ export class OnDemandCertService {
     // ── Step 1: Find connector ────────────────────────────────────────────
     const connector = getOnDemandConnectorByIssuerId(issuer_id);
     if (!connector) {
-      throw new Error(`No on-demand connector found for issuer ID ${issuer_id}`);
+      throw new NotFoundError(`No on-demand connector found for issuer ID ${issuer_id}`, 404, 'ISSUER_NOT_SUPPORTED');
     }
 
     logger.info(`[OnDemand] Add certificate requested`, {
@@ -151,12 +152,20 @@ export class OnDemandCertService {
     });
 
     // ── Step 2: Fetch from external issuer ───────────────────────────────
+    // Typed errors (NotFoundError, ForbiddenError, ValidationError) are thrown
+    // directly by fetchFromExternalIssuer and will bubble up to the controller.
     let rawResponse: any;
     try {
       rawResponse = await fetchFromExternalIssuer(connector, credential_id);
     } catch (err: any) {
+      // Re-throw typed errors as-is; only wrap truly unexpected ones
+      if (err.statusCode) throw err;
       logger.error(`[OnDemand][${connector.id}] External fetch failed`, { error: err.message });
-      throw new Error(`Failed to fetch credential from ${connector.name}: ${err.message}`);
+      throw new ValidationError(
+        `Failed to reach ${connector.name}. Please try again later.`,
+        502,
+        'EXTERNAL_ISSUER_UNREACHABLE'
+      );
     }
 
     // ── Step 3: Normalize fields ─────────────────────────────────────────
@@ -173,8 +182,10 @@ export class OnDemandCertService {
         credential_email: normalized.learner_email,
         logged_in_email,
       });
-      throw new Error(
-        `Email mismatch: this credential belongs to ${normalized.learner_email}, not your account.`
+      throw new ForbiddenError(
+        `This credential does not belong to your account. It is linked to a different email address.`,
+        403,
+        'CREDENTIAL_OWNERSHIP_MISMATCH'
       );
     }
 
@@ -185,7 +196,7 @@ export class OnDemandCertService {
     if (normalized.pdf_base64) {
       pdfBuffer = Buffer.from(normalized.pdf_base64, 'base64');
       if (pdfBuffer.length === 0) {
-        throw new Error('Received empty PDF from external issuer');
+        throw new ValidationError('Received an empty PDF from the external issuer. Please try again or contact support.', 400, 'EMPTY_PDF');
       }
       logger.info(`[OnDemand][${connector.id}] PDF decoded from base64`, { bytes: pdfBuffer.length });
     } else {
