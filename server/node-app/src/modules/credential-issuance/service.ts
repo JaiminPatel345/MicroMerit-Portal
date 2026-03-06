@@ -2,9 +2,9 @@ import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { credentialIssuanceRepository } from './repository';
 import { skillKnowledgeBaseRepository } from '../skill-knowledge-base/repository';
-import { uploadToFilebase } from '../../utils/filebase';
 import { writeToBlockchainQueued } from '../../services/blockchainClient';
 import { buildCanonicalJson, computeDataHash } from '../../utils/canonicalJson';
+import { computePdfChecksum } from '../../utils/pdfMetadata';
 import { NotFoundError, ValidationError } from '../../utils/errors';
 import { logger } from '../../utils/logger';
 import { sendCredentialIssuedEmail } from '../../utils/notification';
@@ -31,18 +31,30 @@ export interface IssueCredentialResult {
     learner_id: number | null;
     learner_email: string;
     certificate_title: string;
-    ipfs_cid: string;
+    ipfs_cid: string | null;
     tx_hash: string | null; // Null when blockchain confirmation is pending
     data_hash: string;
-    pdf_url: string;
+    checksum: string;
+    pdf_url: string | null;
     status: string;
     issued_at: Date;
-    blockchain_status: 'pending' | 'confirmed' | 'failed'; // Track blockchain upload status
+    blockchain_status: 'pending' | 'confirmed' | 'failed';
+    ipfs_status: 'pending' | 'confirmed' | 'failed';
 }
 
 export class CredentialIssuanceService {
     /**
      * Issue a new credential
+     * 
+     * New flow:
+     * 1. Validate issuer, resolve learner
+     * 2. Compute PDF checksum (SHA-256 of original bytes)
+     * 3. Generate credential_id
+     * 4. Build canonical JSON (checksum, issuer_id, learner_email, credential_id, issued_at)
+     * 5. Compute data_hash = SHA-256(canonical JSON)
+     * 6. Store in DB with pending statuses
+     * 7. Queue background job (blockchain → embed metadata → IPFS → update DB)
+     * 8. Return immediately with pending statuses
      */
     async issueCredential(params: IssueCredentialParams): Promise<IssueCredentialResult> {
         const {
@@ -86,36 +98,18 @@ export class CredentialIssuanceService {
             status,
         });
 
-        // Step 3: Generate credential_id
+        // Step 3: Compute PDF checksum (SHA-256 of original bytes)
+        const checksum = computePdfChecksum(original_pdf);
+        logger.info('Computed PDF checksum', { checksum });
+
+        // Step 4: Generate credential_id
         const credential_id = uuidv4();
 
-        // Step 4: Upload PDF to Filebase (IPFS) first
-        // Generate unique filename: credential/{user_id || email}/{certificate_title}-{4 random letters}
-        const identifier = learner_id ? learner_id.toString() : learner_email.replace(/[^a-zA-Z0-9]/g, '_');
-        const sanitizedTitle = certificate_title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
-        const randomSuffix = crypto.randomBytes(2).toString('hex'); // 4 random hex characters
-        const extension = original_pdf_filename.split('.').pop() || 'pdf';
-
-        const uniqueFileName = `credential/${identifier}/${sanitizedTitle}-${randomSuffix}.${extension}`;
-
-        let ipfs_cid: string;
-        let pdf_url: string;
-
-        const result = await uploadToFilebase(
-            original_pdf,
-            uniqueFileName,
-            mimetype || 'application/pdf'
-        );
-        ipfs_cid = result.cid;
-        pdf_url = result.gateway_url;
-        logger.info('Uploaded to IPFS', { credential_id, ipfs_cid, pdf_url });
-
-        // Step 5: Build canonical JSON with IPFS data but before blockchain (tx_hash and data_hash still null)
-        // Use network and contract_address from environment variables
+        // Step 5: Build canonical JSON with checksum (simplified for new flow)
         const network = process.env.BLOCKCHAIN_NETWORK || 'sepolia';
         const contract_address = process.env.BLOCKCHAIN_CONTRACT_ADDRESS || '';
 
-        let canonicalJson = buildCanonicalJson({
+        const canonicalJson = buildCanonicalJson({
             credential_id,
             learner_id,
             learner_email,
@@ -124,43 +118,34 @@ export class CredentialIssuanceService {
             issued_at,
             network,
             contract_address,
-            ipfs_cid,
-            pdf_url,
-            tx_hash: null,
-            data_hash: null,
+            ipfs_cid: null,  // Not known yet — IPFS upload happens after blockchain
+            pdf_url: null,   // Not known yet
+            tx_hash: null,   // Not known yet
+            data_hash: null, // Will be computed next
         });
 
-        // Step 6: Compute SHA256 hash (data_hash) - this will be computed with tx_hash as null
+        // Step 6: Compute data_hash
         const data_hash = computeDataHash(canonicalJson);
         logger.info('Computed data hash', { credential_id, data_hash });
 
-        // Step 7: Build canonical JSON without tx_hash (will be updated after blockchain confirmation)
-        canonicalJson = buildCanonicalJson({
-            credential_id,
-            learner_id,
-            learner_email,
-            issuer_id,
-            certificate_title,
-            issued_at,
-            network,
-            contract_address,
-            ipfs_cid,
-            pdf_url,
-            tx_hash: null, // Will be set after blockchain confirmation
-            data_hash,
-        });
+        // Step 7: Generate unique filename for IPFS upload (used later by worker)
+        const identifier = learner_id ? learner_id.toString() : learner_email.replace(/[^a-zA-Z0-9]/g, '_');
+        const sanitizedTitle = certificate_title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+        const randomSuffix = crypto.randomBytes(2).toString('hex');
+        const extension = original_pdf_filename.split('.').pop() || 'pdf';
+        const uniqueFileName = `credential/${identifier}/${sanitizedTitle}-${randomSuffix}.${extension}`;
 
-        // Step 8: Store in database with tx_hash as null (pending blockchain confirmation)
-        // If pre-verified data is provided, use it. Otherwise, initialize empty and trigger async OCR.
+        // Step 8: Store in database with pending statuses
         let initialMetadata: any = {
             ...canonicalJson,
+            checksum,
             issuer_name: issuer.name,
             ai_extracted: {},
-            blockchain_status: 'pending' // Track blockchain confirmation status
+            blockchain_status: 'pending',
+            ipfs_status: 'pending',
         };
 
         if (ai_extracted_data) {
-            // If verification status is provided, merge it into nsqf_alignment
             if (verification_status && ai_extracted_data.nsqf_alignment) {
                 ai_extracted_data.nsqf_alignment = {
                     ...ai_extracted_data.nsqf_alignment,
@@ -179,29 +164,35 @@ export class CredentialIssuanceService {
             issuer_id,
             certificate_title,
             issued_at,
-            ipfs_cid,
-            pdf_url,
-            tx_hash: null, // Will be set after blockchain confirmation
+            ipfs_cid: null,   // Pending — will be set after blockchain + IPFS
+            pdf_url: null,     // Pending — will be set after blockchain + IPFS
+            tx_hash: null,     // Pending — will be set after blockchain confirmation
             data_hash,
             metadata: initialMetadata,
             status,
         });
 
-        logger.info('Credential issued successfully (blockchain pending)', {
+        logger.info('Credential stored in DB (blockchain & IPFS pending)', {
             credential_id,
             learner_id,
             learner_email,
             status,
-            blockchain_status: 'pending',
-            pre_verified: !!ai_extracted_data
+            checksum,
         });
 
-        // Step 9: Queue blockchain write (processed by BullMQ worker)
+        // Step 9: Queue background job (blockchain → embed metadata → IPFS)
+        // Pass original PDF bytes as base64 so the worker can embed metadata and upload
         try {
-            await writeToBlockchainQueued(credential_id, data_hash, ipfs_cid);
-            logger.info('Blockchain write queued successfully', { credential_id });
+            await writeToBlockchainQueued(credential_id, data_hash, '', {
+                original_pdf_base64: original_pdf.toString('base64'),
+                canonical_json: canonicalJson as any,
+                checksum,
+                pdf_filename: uniqueFileName,
+                pdf_content_type: mimetype || 'application/pdf',
+            });
+            logger.info('Blockchain + IPFS job queued successfully', { credential_id });
         } catch (error: any) {
-            logger.error('Failed to queue blockchain write', {
+            logger.error('Failed to queue blockchain + IPFS job', {
                 credential_id,
                 error: error.message
             });
@@ -212,7 +203,6 @@ export class CredentialIssuanceService {
         if (skip_ai) {
             logger.info('AI processing skipped by issuer preference', { credential_id });
         } else if (!ai_extracted_data) {
-            // Case 1: No pre-verified data. Run full OCR + Enrichment + Profile Update
             this.processOCRAsync(
                 credential_id,
                 original_pdf,
@@ -228,7 +218,6 @@ export class CredentialIssuanceService {
                 });
             });
         } else {
-            // Case 2: Pre-verified data exists. Run Enrichment (if needed) + Profile Update
             this.postIssuanceAIAsync(
                 credential_id,
                 certificate_title,
@@ -243,8 +232,6 @@ export class CredentialIssuanceService {
         }
 
         // Step 11: Send email notification
-        // We don't await this to avoid blocking the response, or we can await if we want to ensure it's sent
-        // Given the previous async patterns, let's fire and forget but log errors (handled inside the function)
         sendCredentialIssuedEmail(
             learner_email,
             (learner && learner.name) ? learner.name : 'Learner',
@@ -258,13 +245,15 @@ export class CredentialIssuanceService {
             learner_id,
             learner_email,
             certificate_title,
-            ipfs_cid,
-            tx_hash: null, // Not available yet - blockchain confirmation pending
+            ipfs_cid: null,        // Not available yet — IPFS upload after blockchain
+            tx_hash: null,         // Not available yet — blockchain pending
             data_hash,
-            pdf_url,
+            checksum,
+            pdf_url: null,         // Not available yet
             status,
             issued_at,
-            blockchain_status: 'pending', // Indicate blockchain upload is in progress
+            blockchain_status: 'pending',
+            ipfs_status: 'pending',
         };
     }
 
@@ -306,36 +295,7 @@ export class CredentialIssuanceService {
     }
 
     /**
-     * Process blockchain write asynchronously and update credential when complete
-     * @deprecated This method is no longer used - blockchain writes are handled by BullMQ queue
-     * The queue worker in blockchainQueue.ts handles writing to blockchain and updating credentials
-     */
-    private async processBlockchainAsync(
-        credential_id: string,
-        data_hash: string,
-        ipfs_cid: string,
-        network: string,
-        contract_address: string
-    ): Promise<void> {
-        // This method is deprecated - BullMQ queue handles blockchain writes now
-        logger.warn('processBlockchainAsync called but is deprecated - use queue instead', {
-            credential_id
-        });
-        
-        try {
-            await writeToBlockchainQueued(credential_id, data_hash, ipfs_cid);
-        } catch (error: any) {
-            logger.error('Failed to queue blockchain write in deprecated method', {
-                credential_id,
-                error: error.message
-            });
-            throw error;
-        }
-    }
-
-    /**
      * Process OCR asynchronously and update credential metadata when complete
-     * This runs in background and doesn't block the response to user
      */
     private async processOCRAsync(
         credential_id: string,
@@ -352,11 +312,9 @@ export class CredentialIssuanceService {
             const { aiService } = await import('../ai/ai.service');
             const { learnerService } = await import('../learner/service');
 
-            // Fetch relevant NSQF context
             const nsqfContext = await skillKnowledgeBaseRepository.search(certificate_title);
             logger.info('Fetched NSQF context', { count: nsqfContext.length, query: certificate_title });
 
-            // 1. Process OCR
             logger.info('Calling AI Service processOCR', { credential_id });
             const ocrResult = await aiService.processOCR(
                 original_pdf,
@@ -368,11 +326,9 @@ export class CredentialIssuanceService {
             );
             logger.info('AI Service processOCR completed', { credential_id });
 
-            // 2. Enrich Metadata (Job Recommendations & NOS)
             let enrichedMetadata = {};
             try {
                 logger.info('Calling AI Service enrichCredentialMetadata', { credential_id });
-                // Use NSQF context or OCR result for enrichment
                 const nosDataForEnrichment = nsqfContext.length > 0 ? nsqfContext[0] : {};
                 enrichedMetadata = await aiService.enrichCredentialMetadata(certificate_title, nosDataForEnrichment);
                 logger.info('AI Service enrichCredentialMetadata completed', { credential_id, hasData: !!enrichedMetadata });
@@ -390,8 +346,6 @@ export class CredentialIssuanceService {
                 processed_at: new Date().toISOString(),
             };
 
-            // Update the credential with AI-extracted data
-            // We merge ai_extracted object AND the enriched metadata (job_recommendations, nos_data) at root level
             await credentialIssuanceRepository.updateCredentialMetadata(
                 credential_id,
                 {
@@ -400,7 +354,6 @@ export class CredentialIssuanceService {
                 }
             );
 
-            // For logging purposes
             const ai_extracted_data = { ...ai_extracted, ...enrichedMetadata };
 
             logger.info('Async OCR processing complete and DB updated', {
@@ -410,7 +363,6 @@ export class CredentialIssuanceService {
                 nsqf_level: ai_extracted_data.nsqf.level
             });
 
-            // 3. Update Learner AI Profile (Roadmap & Skills)
             if (learner_id) {
                 logger.info('Calling learnerService.updateLearnerAIProfile', { learner_id });
                 await learnerService.updateLearnerAIProfile(learner_id);
@@ -425,13 +377,11 @@ export class CredentialIssuanceService {
                 error: error.message,
                 stack: error.stack
             });
-            // Don't throw - this is fire-and-forget
         }
     }
 
     /**
      * Handle post-issuance AI tasks for pre-verified credentials
-     * Enriches metadata and updates learner profile
      */
     private async postIssuanceAIAsync(
         credential_id: string,
@@ -444,11 +394,9 @@ export class CredentialIssuanceService {
             const { aiService } = await import('../ai/ai.service');
             const { learnerService } = await import('../learner/service');
 
-            // 1. Enrich if needed (if job recommendations or NOS data are missing)
             if (!current_metadata.job_recommendations || !current_metadata.nos_data) {
                 logger.info('Enriching pre-verified credential', { credential_id });
 
-                // Fetch NSQF context for enrichment
                 const nsqfContext = await skillKnowledgeBaseRepository.search(certificate_title);
                 const nosDataForEnrichment = nsqfContext.length > 0 ? nsqfContext[0] : {};
 
@@ -465,7 +413,6 @@ export class CredentialIssuanceService {
                 logger.info('Skipping enrichment: metadata already present', { credential_id });
             }
 
-            // 2. Update Learner Profile
             if (learner_id) {
                 logger.info('Calling learnerService.updateLearnerAIProfile (post-issuance)', { learner_id });
                 await learnerService.updateLearnerAIProfile(learner_id);
@@ -494,9 +441,8 @@ export class CredentialIssuanceService {
     async getIssuerRecipients(issuerId: number) {
         const recipients = await credentialIssuanceRepository.findRecipientsByIssuerId(issuerId);
 
-        // Transform to friendly format
         return recipients.map(r => ({
-            id: r.learner_email, // Use email as unique ID for grouping
+            id: r.learner_email,
             name: r.learner?.name || 'Unclaimed',
             email: r.learner_email,
             issued: r._count.id,
@@ -515,7 +461,6 @@ export class CredentialIssuanceService {
      * Verify NSQF alignment for a credential
      */
     async verifyNSQFAlignment(credentialId: string, issuerId: number, verificationData: any) {
-        // Verify credential belongs to issuer
         const credential = await credentialIssuanceRepository.findCredentialById(credentialId);
 
         if (!credential) {
@@ -526,20 +471,16 @@ export class CredentialIssuanceService {
             throw new ValidationError('Unauthorized to verify this credential', 403, 'UNAUTHORIZED');
         }
 
-        // Extract verification data
         const { status, job_role, qp_code, nsqf_level, skills, reasoning } = verificationData;
         const currentMetadata = credential.metadata as any;
 
-        // Build updated metadata based on status
         let updatedMetadata: any;
 
         if (status === 'approved') {
-            // For approved status, merge the edited data
             updatedMetadata = {
                 ...currentMetadata,
                 ai_extracted: {
                     ...currentMetadata.ai_extracted,
-                    // Update skills if provided
                     ...(skills && { skills }),
                     nsqf_alignment: {
                         ...currentMetadata.ai_extracted?.nsqf_alignment,
@@ -554,7 +495,6 @@ export class CredentialIssuanceService {
                 }
             };
         } else {
-            // For rejected status, mark as rejected but keep original AI data
             updatedMetadata = {
                 ...currentMetadata,
                 ai_extracted: {

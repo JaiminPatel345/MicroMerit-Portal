@@ -9,10 +9,12 @@ import {
     User,
     ArrowRight,
     Shield,
-    Zap
+    Zap,
+    Plus
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { learnerApi } from '../../services/authServices';
+import AddCertificateModal from './AddCertificateModal';
 
 const Dashboard = () => {
     const learner = useSelector(state => state.authLearner.learner);
@@ -25,27 +27,29 @@ const Dashboard = () => {
     const [recentCertificates, setRecentCertificates] = useState([]);
     const [topSkills, setTopSkills] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showAddModal, setShowAddModal] = useState(false);
+
+    const fetchData = async () => {
+        try {
+            const dashboardRes = await learnerApi.getDashboard();
+            const data = dashboardRes.data?.data || {};
+
+            setRecentCertificates(data.recentCredentials || []);
+            setTopSkills(data.topSkills || []);
+            setStats({
+                totalCredentials: data.totalCredentials || 0,
+                nsqfAlignedCount: data.nsqfAlignedCount || 0,
+                totalSkillsVerified: data.totalSkillsVerified || 0,
+                topSkill: data.topSkills?.[0]?.skill || 'None'
+            });
+        } catch (error) {
+            console.error("Failed to fetch dashboard data", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const dashboardRes = await learnerApi.getDashboard();
-                const data = dashboardRes.data?.data || {};
-
-                setRecentCertificates(data.recentCredentials || []);
-                setTopSkills(data.topSkills || []);
-                setStats({
-                    totalCredentials: data.totalCredentials || 0,
-                    nsqfAlignedCount: data.nsqfAlignedCount || 0,
-                    totalSkillsVerified: data.totalSkillsVerified || 0,
-                    topSkill: data.topSkills?.[0]?.skill || 'None'
-                });
-            } catch (error) {
-                console.error("Failed to fetch dashboard data", error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchData();
     }, []);
 
@@ -62,23 +66,43 @@ const Dashboard = () => {
             <div className="max-w-7xl mx-auto space-y-8">
 
                 {/* Header Section */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">
+                        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
                             Welcome back, {learner?.name || 'Learner'}! 👋
                         </h1>
-                        <p className="text-gray-500 mt-1">Here's what's happening with your credentials today.</p>
+                        <p className="text-gray-500 mt-2 text-lg">Here's what's happening with your credentials today.</p>
                     </div>
 
-                    {learner?.status === 'active' && (
-                        <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
-                            <div className="bg-green-100 p-1.5 rounded-full">
-                                <Shield size={18} className="text-green-600" />
+                    <div className="flex items-center gap-4 mt-1">
+                        {learner?.status === 'active' && (
+                            <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-xl shadow-sm border border-gray-100 h-[42px]">
+                                <div className="bg-green-100 p-1.5 rounded-full">
+                                    <Shield size={16} className="text-green-600" />
+                                </div>
+                                <span className="text-sm font-medium text-gray-700">Verified User</span>
                             </div>
-                            <span className="text-sm font-medium text-gray-700">Verified User</span>
-                        </div>
-                    )}
+                        )}
+                        <button
+                            onClick={() => setShowAddModal(true)}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition-all shadow-sm shrink-0 h-[42px]"
+                        >
+                            <Plus size={17} />
+                            Add Certificate
+                        </button>
+                    </div>
                 </div>
+
+                {/* Add Certificate Modal */}
+                {showAddModal && (
+                    <AddCertificateModal
+                        onClose={() => setShowAddModal(false)}
+                        onSuccess={() => {
+                            setShowAddModal(false);
+                            fetchData();
+                        }}
+                    />
+                )}
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

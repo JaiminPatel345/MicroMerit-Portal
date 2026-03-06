@@ -185,9 +185,11 @@ export class CredentialIssuanceController {
                 claim_status: result.status === 'claimed' ? 'claimed' : 'unclaimed', // Explicit claim status
                 tx_hash: result.tx_hash,
                 data_hash: result.data_hash,
+                checksum: result.checksum,
                 ipfs_cid: result.ipfs_cid,
+                pdf_url: result.pdf_url,
                 blockchain_status: result.blockchain_status,
-                pdf_url: result.pdf_url
+                ipfs_status: result.ipfs_status,
             }, 'Credential issued successfully', 201);
         } catch (error: any) {
             next(error);
@@ -378,6 +380,7 @@ export class CredentialIssuanceController {
 
             const metadata = credential.metadata as any;
             const blockchain_status = metadata?.blockchain_status || 'unknown';
+            const ipfs_status = metadata?.ipfs_status || 'unknown';
 
             // Also check queue status for pending jobs
             let queueStatus = null;
@@ -392,11 +395,15 @@ export class CredentialIssuanceController {
             sendSuccess(res, {
                 credential_id: credential.credential_id,
                 tx_hash: credential.tx_hash,
+                ipfs_cid: credential.ipfs_cid,
+                pdf_url: credential.pdf_url,
                 blockchain_status,
+                ipfs_status,
                 network: metadata?.blockchain?.network,
                 contract_address: metadata?.blockchain?.contract_address,
+                checksum: metadata?.checksum,
                 queue_status: queueStatus,
-            }, 'Blockchain status retrieved successfully');
+            }, 'Status retrieved successfully');
         } catch (error: any) {
             next(error);
         }

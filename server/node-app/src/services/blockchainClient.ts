@@ -12,22 +12,35 @@ export interface BlockchainWriteResult {
 }
 
 /**
- * Write credential data to blockchain via queue (recommended for production)
- * This queues the blockchain write job and returns immediately
+ * Schedule blockchain + IPFS processing as an in-process background job.
+ * Returns immediately — no Redis/BullMQ dependency.
+ *
+ * Background order:
+ *   1. Upload raw PDF to IPFS → update DB (pdf_url available to user immediately)
+ *   2. Write to blockchain → update DB (blockchain_status: confirmed)
+ *   3. Embed tx_hash into PDF → re-upload enriched PDF → update DB (ipfs_status: confirmed)
  */
 export async function writeToBlockchainQueued(
     credential_id: string,
     data_hash: string,
-    ipfs_cid: string = ''
+    ipfs_cid: string = '',
+    extraData?: {
+        original_pdf_base64?: string;
+        canonical_json?: Record<string, any>;
+        checksum?: string;
+        pdf_filename?: string;
+        pdf_content_type?: string;
+    }
 ): Promise<string> {
-    logger.info('Queueing blockchain write', {
+    logger.info('Scheduling blockchain+IPFS background job', {
         credential_id,
         has_ipfs: ipfs_cid && ipfs_cid.trim() !== '',
+        has_pdf: !!extraData?.original_pdf_base64,
     });
 
-    const jobId = await queueBlockchainWrite(credential_id, data_hash, ipfs_cid);
+    const jobId = await queueBlockchainWrite(credential_id, data_hash, ipfs_cid, extraData);
 
-    logger.info('Blockchain write queued successfully', {
+    logger.info('Background job scheduled — returning immediately', {
         credential_id,
         jobId,
     });
@@ -54,9 +67,9 @@ export async function writeToBlockchain(
         ipfs_cid,
     });
 
-    // Return mock blockchain response
+    // Return mock blockchain response with unique tx_hash
     return {
-        tx_hash: 'TEST_123',
+        tx_hash: `MOCK_TX_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
         network: process.env.BLOCKCHAIN_NETWORK || 'sepolia',
         contract_address: process.env.BLOCKCHAIN_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000',
         timestamp: new Date(),
@@ -165,5 +178,43 @@ export async function verifyBlockchainTransaction(tx_hash: string): Promise<bool
 
         // Return false instead of throwing to allow graceful degradation
         return false;
+    }
+}
+
+/**
+ * Get stored data for a transaction hash from the blockchain service
+ * Used for verification — returns the data_hash that was stored on-chain
+ */
+export async function getTransactionData(tx_hash: string): Promise<{ data_hash: string } | null> {
+    try {
+        logger.info('Fetching transaction data from blockchain service', {
+            tx_hash,
+            service_url: BLOCKCHAIN_SERVICE_URL,
+        });
+
+        const response = await axios.get(
+            `${BLOCKCHAIN_SERVICE_URL}/blockchain/transaction/${tx_hash}`,
+            {
+                timeout: 30000,
+            }
+        );
+
+        if (!response.data.success) {
+            logger.warn('Transaction data fetch returned failure', {
+                tx_hash,
+                error: response.data.error,
+            });
+            return null;
+        }
+
+        return {
+            data_hash: response.data.data.data_hash,
+        };
+    } catch (error: any) {
+        logger.error('Failed to fetch transaction data from blockchain', {
+            tx_hash,
+            error: error.message,
+        });
+        return null;
     }
 }

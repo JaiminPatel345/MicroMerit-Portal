@@ -6,12 +6,14 @@ import {
     ChevronDown,
     Filter,
     Calendar as CalendarIcon,
-    X
+    X,
+    Plus
 } from 'lucide-react';
 import { learnerApi } from '../../services/authServices';
 import { Link } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
+import AddCertificateModal from './AddCertificateModal';
 
 const Wallet = () => {
     const [certificates, setCertificates] = useState([]);
@@ -26,6 +28,8 @@ const Wallet = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [limit] = useState(10);
+
+    const [showAddModal, setShowAddModal] = useState(false);
 
     // Custom Date Range State
     const [startDate, setStartDate] = useState(null);
@@ -85,12 +89,32 @@ const Wallet = () => {
         <div className="min-h-screen bg-gray-50 p-6 lg:p-10 font-sans">
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">My Wallet</h1>
-                    <p className="text-gray-500 mt-2 text-lg">
-                        Manage and showcase your verified credentials and skills.
-                    </p>
+                <div className="mb-8 flex items-start justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">My Wallet</h1>
+                        <p className="text-gray-500 mt-2 text-lg">
+                            Manage and showcase your verified credentials and skills.
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition-all shadow-sm shrink-0 mt-1"
+                    >
+                        <Plus size={17} />
+                        Add Certificate
+                    </button>
                 </div>
+
+                {/* Add Certificate Modal */}
+                {showAddModal && (
+                    <AddCertificateModal
+                        onClose={() => setShowAddModal(false)}
+                        onSuccess={() => {
+                            setShowAddModal(false);
+                            fetchCertificates();
+                        }}
+                    />
+                )}
 
                 {/* Filters & Controls */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-8">

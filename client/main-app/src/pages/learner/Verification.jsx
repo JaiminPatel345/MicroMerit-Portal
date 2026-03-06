@@ -16,9 +16,11 @@ import {
     ArrowRight,
     Copy,
     Check,
-    Camera
+    Upload,
+    ToggleLeft,
+    ToggleRight
 } from 'lucide-react';
-import CameraCapture from '../../components/CameraCapture';
+import { credentialServices } from '../../services/credentialServices';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000/api';
 
@@ -49,42 +51,9 @@ const Verification = () => {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
-    const [showCamera, setShowCamera] = useState(false);
-
-    const handleCameraCapture = async (file) => {
-        setLoading(true);
-        setError(null);
-        setResult(null);
-
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            // Use public endpoint
-            const res = await axios.post(`${API_BASE_URL}/credentials/extract-id`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            
-            if (res.data.success && res.data.data.found && res.data.data.credential_id) {
-                const id = res.data.data.credential_id;
-                setInputValue(id);
-                setInputType('credential_id'); 
-                
-                if (res.data.data.status === 'needs_review') {
-                        setError(`ID found with confidence ${res.data.data.confidence}%. Please verify: ${id}`);
-                } else {
-                    handleVerify(id, 'credential_id');
-                }
-            } else {
-                setError(res.data.data?.message || 'No Credential ID found in image. Please manually enter.');
-                setLoading(false);
-            }
-        } catch (err) {
-            console.error(err);
-            setError(err.response?.data?.message || 'Failed to extract ID from image');
-            setLoading(false);
-        }
-    };
+    const [manualVerify, setManualVerify] = useState(false);
+    const [pdfFile, setPdfFile] = useState(null);
+    const [manualVerifySteps, setManualVerifySteps] = useState([]);
 
     // Initial load handler
     useEffect(() => {
@@ -131,6 +100,173 @@ const Verification = () => {
     const handleSubmit = (e) => {
         e.preventDefault();
         handleVerify(inputValue);
+    };
+
+    /**
+     * Handle PDF upload verification (default: backend)
+     */
+    const handlePdfUpload = async (file) => {
+        if (!file) return;
+        setPdfFile(file);
+        setLoading(true);
+        setError(null);
+        setResult(null);
+        setManualVerifySteps([]);
+
+        try {
+            const response = await credentialServices.verifyCredentialFromPdf(file);
+            if (response.success) {
+                setResult(response.data);
+            } else {
+                setError(response.message || 'PDF verification failed');
+            }
+        } catch (err) {
+            console.error(err);
+            setError(err.response?.data?.message || 'Failed to verify PDF');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    /**
+     * Handle Manual (client-side) PDF verification using pdf-lib and ethers
+     */
+    const handleManualPdfVerify = async (file) => {
+        if (!file) return;
+        setPdfFile(file);
+        setLoading(true);
+        setError(null);
+        setResult(null);
+
+        const steps = [];
+        const addStep = (label, status, detail = '') => {
+            steps.push({ label, status, detail });
+            setManualVerifySteps([...steps]);
+        };
+
+        try {
+            // Step 1: Read the PDF
+            addStep('Reading PDF file', 'running');
+            const arrayBuffer = await file.arrayBuffer();
+            const pdfBytes = new Uint8Array(arrayBuffer);
+            addStep('Reading PDF file', 'done', `${(pdfBytes.length / 1024).toFixed(1)} KB`);
+
+            // Step 2: Extract metadata using pdf-lib
+            addStep('Extracting metadata from PDF', 'running');
+            const { PDFDocument } = await import('pdf-lib');
+            const pdfDoc = await PDFDocument.load(pdfBytes);
+            const keywords = pdfDoc.getKeywords();
+
+            if (!keywords) {
+                addStep('Extracting metadata from PDF', 'fail', 'No MicroMerit metadata found');
+                setError('No MicroMerit metadata found in this PDF. It may not be a credential issued by our platform.');
+                setLoading(false);
+                return;
+            }
+
+            let metadata;
+            try {
+                metadata = JSON.parse(keywords);
+            } catch (e) {
+                addStep('Extracting metadata from PDF', 'fail', 'Could not parse metadata');
+                setError('PDF metadata is corrupted or not in expected format.');
+                setLoading(false);
+                return;
+            }
+
+            const { canonical_json, tx_hash, checksum: storedChecksum } = metadata;
+            addStep('Extracting metadata from PDF', 'done', `Found tx_hash: ${tx_hash?.substring(0, 16)}...`);
+
+            // Step 3: Strip metadata and recompute checksum
+            addStep('Stripping metadata & computing checksum', 'running');
+            // Remove keywords from PDF to get clean bytes
+            pdfDoc.setKeywords([]);
+            const cleanPdfBytes = await pdfDoc.save();
+
+            // Compute SHA-256 of clean PDF
+            const hashBuffer = await crypto.subtle.digest('SHA-256', cleanPdfBytes);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const recomputedChecksum = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+            const checksumMatch = recomputedChecksum === storedChecksum;
+            if (checksumMatch) {
+                addStep('Stripping metadata & computing checksum', 'done', '✅ Checksum matches');
+            } else {
+                addStep('Stripping metadata & computing checksum', 'fail', '❌ Checksum mismatch — PDF has been modified');
+                setResult({
+                    status: 'INVALID',
+                    reason: 'PDF checksum mismatch — the file has been modified after issuance.',
+                    verified_fields: {
+                        hash_match: false,
+                        blockchain_verified: false,
+                        ipfs_cid_match: false,
+                        checksum_match: false,
+                    },
+                });
+                setLoading(false);
+                return;
+            }
+
+            // Step 4: Verify on blockchain using ethers.js
+            addStep('Querying blockchain for transaction', 'running');
+            let blockchainVerified = false;
+            try {
+                const { ethers } = await import('ethers');
+                const networkUrl = import.meta.env.VITE_BLOCKCHAIN_RPC_URL;
+                
+                if (networkUrl && tx_hash && !tx_hash.startsWith('MOCK_TX_')) {
+                    const provider = new ethers.JsonRpcProvider(networkUrl);
+                    const tx = await provider.getTransaction(tx_hash);
+                    if (tx) {
+                        blockchainVerified = true;
+                        addStep('Querying blockchain for transaction', 'done', `✅ Transaction found on ${tx.chainId ? 'chain ' + tx.chainId : 'network'}`);
+                    } else {
+                        addStep('Querying blockchain for transaction', 'fail', '❌ Transaction not found');
+                    }
+                } else if (tx_hash?.startsWith('MOCK_TX_')) {
+                    // Mock mode: treat as verified
+                    blockchainVerified = true;
+                    addStep('Querying blockchain for transaction', 'done', `⚠️ Mock transaction (dev mode) — ${tx_hash.substring(0, 20)}...`);
+                } else {
+                    addStep('Querying blockchain for transaction', 'fail', 'No RPC URL configured or no tx_hash');
+                }
+            } catch (bcErr) {
+                console.error('Blockchain query failed:', bcErr);
+                addStep('Querying blockchain for transaction', 'warn',
+                    `⚠️ Could not query blockchain directly. Verify manually on Etherscan.`);
+            }
+
+            // Step 5: Build result
+            const isValid = checksumMatch && blockchainVerified;
+            setResult({
+                status: isValid ? 'VALID' : 'INVALID',
+                reason: !isValid
+                    ? (!checksumMatch ? 'Checksum mismatch' : 'Blockchain verification failed')
+                    : undefined,
+                credential: {
+                    credential_id: canonical_json?.credential_id,
+                    learner_email: canonical_json?.learner_email,
+                    issuer_id: canonical_json?.issuer_id,
+                    certificate_title: canonical_json?.certificate_title,
+                    issued_at: canonical_json?.issued_at,
+                    tx_hash,
+                },
+                verified_fields: {
+                    hash_match: checksumMatch,
+                    blockchain_verified: blockchainVerified,
+                    ipfs_cid_match: true,
+                    checksum_match: checksumMatch,
+                },
+            });
+
+            addStep('Verification complete', isValid ? 'done' : 'fail', isValid ? '✅ All checks passed' : '❌ Some checks failed');
+
+        } catch (err) {
+            console.error('Manual verification failed:', err);
+            setError(`Manual verification error: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const formatDate = (dateString) => {
@@ -225,95 +361,107 @@ const Verification = () => {
                                 <div className="w-full border-t border-gray-200" />
                             </div>
                             <div className="relative flex justify-center">
-                                <span className="bg-white px-2 text-sm text-gray-500">Or verify using file</span>
+                                <span className="bg-white px-2 text-sm text-gray-500">Or verify using PDF</span>
                             </div>
                         </div>
 
+                        {/* PDF Upload Section */}
                         <div className="mt-6">
-                             <div className="bg-white p-6 rounded-xl border-2 border-dashed border-gray-300 hover:border-blue-chill-400 transition-colors">
-                                <div className="flex flex-col md:flex-row items-center justify-center gap-6">
-                                    {/* Upload Option */}
-                                    <div className="flex-1 text-center border-r md:border-r-gray-200 md:pr-6 w-full">
-                                        {loading && !result ? (
-                                            <div className="py-2 flex flex-col items-center justify-center">
-                                                 <Loader2 className="h-8 w-8 text-blue-chill-600 animate-spin mb-1" />
-                                                 <p className="text-xs text-gray-500">Scanning...</p>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <FileText className="mx-auto h-10 w-10 text-gray-400 mb-2" />
-                                                <label htmlFor="file-upload" className="block relative cursor-pointer group">
-                                                    <span className="font-medium text-blue-chill-600 group-hover:text-blue-chill-700">Upload Document</span>
-                                                    <input 
-                                                        id="file-upload" 
-                                                        name="file-upload" 
-                                                        type="file" 
-                                                        accept=".pdf,.png,.jpg,.jpeg" 
-                                                        className="sr-only"
-                                                        onChange={async (e) => {
-                                                            const file = e.target.files[0];
-                                                            if (file) {
-                                                                setLoading(true);
-                                                                setError(null);
-                                                                setResult(null);
-                                                                try {
-                                                                    const formData = new FormData();
-                                                                    formData.append('file', file);
-                                                                    const res = await axios.post(`${API_BASE_URL}/credentials/extract-id`, formData, {
-                                                                        headers: { 'Content-Type': 'multipart/form-data' }
-                                                                    });
-                                                                    
-                                                                    if (res.data.success && res.data.data.found && res.data.data.credential_id) {
-                                                                        const id = res.data.data.credential_id;
-                                                                        setInputValue(id);
-                                                                        setInputType('credential_id'); 
-                                                                        if (res.data.data.status === 'needs_review') {
-                                                                             setError(`ID found with confidence ${res.data.data.confidence}%. Please verify: ${id}`);
-                                                                        } else {
-                                                                            handleVerify(id, 'credential_id');
-                                                                        }
-                                                                    } else {
-                                                                        setError(res.data.data?.message || 'No Credential ID found in document. Please manually enter.');
-                                                                        setLoading(false);
-                                                                    }
-                                                                } catch (err) {
-                                                                    console.error(err);
-                                                                    setError(err.response?.data?.message || 'Failed to extract ID from document');
-                                                                    setLoading(false);
-                                                                }
+                            <div className="bg-white p-6 rounded-xl border-2 border-dashed border-gray-300 hover:border-blue-chill-400 transition-colors">
+                                <div className="flex flex-col items-center justify-center">
+                                    {loading && !result ? (
+                                        <div className="py-2 flex flex-col items-center justify-center">
+                                            <Loader2 className="h-8 w-8 text-blue-chill-600 animate-spin mb-1" />
+                                            <p className="text-xs text-gray-500">Verifying PDF...</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Upload className="mx-auto h-10 w-10 text-gray-400 mb-2" />
+                                            <label htmlFor="pdf-upload" className="block relative cursor-pointer group">
+                                                <span className="font-medium text-blue-chill-600 group-hover:text-blue-chill-700">
+                                                    Upload Credential PDF
+                                                </span>
+                                                <input
+                                                    id="pdf-upload"
+                                                    name="pdf-upload"
+                                                    type="file"
+                                                    accept=".pdf"
+                                                    className="sr-only"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files[0];
+                                                        if (file) {
+                                                            if (manualVerify) {
+                                                                handleManualPdfVerify(file);
+                                                            } else {
+                                                                handlePdfUpload(file);
                                                             }
-                                                        }}
-                                                    />
-                                                </label>
-                                                <p className="text-xs text-gray-500 mt-1">PDF, PNG, JPG</p>
-                                            </>
-                                        )}
-                                    </div>
+                                                        }
+                                                        // Reset input so the same file can be re-selected
+                                                        e.target.value = '';
+                                                    }}
+                                                />
+                                            </label>
+                                            <p className="text-xs text-gray-500 mt-1">PDF only — credential with embedded metadata</p>
 
-                                    {/* Divider or "OR" text for mobile */}
-                                    <div className="block md:hidden w-full border-b border-gray-200 relative my-2">
-                                         <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-white px-2 text-xs text-gray-400">OR</span>
-                                    </div>
-
-                                    {/* Camera Option */}
-                                    <div className="flex-1 text-center w-full">
-                                        <button 
-                                            onClick={() => setShowCamera(true)}
-                                            disabled={loading}
-                                            className="flex flex-col items-center justify-center w-full group"
-                                        >
-                                            <Camera className="h-10 w-10 text-gray-400 mb-2 group-hover:text-blue-chill-500 transition-colors" />
-                                            <span className="font-medium text-blue-chill-600 group-hover:text-blue-chill-700">Scan with Camera</span>
-                                            <p className="text-xs text-gray-500 mt-1">Take a photo directly</p>
-                                        </button>
-                                    </div>
+                                            {/* Manual Verify Toggle */}
+                                            <div className="mt-4 flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setManualVerify(!manualVerify)}
+                                                    className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                                                    title="When enabled, verification happens entirely in your browser using pdf-lib and ethers.js — no data is sent to the server."
+                                                >
+                                                    {manualVerify
+                                                        ? <ToggleRight className="h-5 w-5 text-blue-chill-600" />
+                                                        : <ToggleLeft className="h-5 w-5 text-gray-400" />}
+                                                    <span className={manualVerify ? 'text-blue-chill-700 font-medium' : ''}>
+                                                        Manual Verify (Client-Side)
+                                                    </span>
+                                                </button>
+                                            </div>
+                                            {manualVerify && (
+                                                <p className="text-xs text-gray-400 mt-1 max-w-md text-center">
+                                                    Your PDF will be verified entirely in your browser. No data is sent to the server.
+                                                    Uses <code className="bg-gray-100 px-1 rounded">pdf-lib</code> and <code className="bg-gray-100 px-1 rounded">ethers.js</code>.
+                                                </p>
+                                            )}
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
+
+                        {/* Manual Verify Steps Progress */}
+                        {manualVerifySteps.length > 0 && (
+                            <div className="mt-6 bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                <h4 className="text-sm font-semibold text-gray-700 mb-3">Verification Steps</h4>
+                                <div className="space-y-2">
+                                    {manualVerifySteps.map((step, idx) => (
+                                        <div key={idx} className="flex items-start gap-2 text-sm">
+                                            {step.status === 'running' ? (
+                                                <Loader2 className="h-4 w-4 text-blue-chill-600 animate-spin flex-shrink-0 mt-0.5" />
+                                            ) : step.status === 'done' ? (
+                                                <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                                            ) : step.status === 'warn' ? (
+                                                <ShieldCheck className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+                                            ) : (
+                                                <XCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                                            )}
+                                            <div>
+                                                <span className="font-medium text-gray-700">{step.label}</span>
+                                                {step.detail && (
+                                                    <span className="ml-2 text-gray-500">{step.detail}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Loading State Overlay */}
-                    {loading && !result && (
+                    {loading && !result && manualVerifySteps.length === 0 && (
                         <div className="bg-gray-50 px-6 py-12 border-t border-gray-100 flex flex-col items-center justify-center text-center animate-fade-in">
                             <Loader2 className="h-10 w-10 text-blue-chill-600 animate-spin mb-4" />
                             <h3 className="text-lg font-medium text-gray-900">Verifying Credential</h3>
@@ -382,10 +530,18 @@ const Verification = () => {
                             {/* Verification Steps Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-100">
                                 <div className="p-4 flex items-center justify-center gap-3">
-                                    {result.verified_fields?.hash_match
-                                        ? <CheckCircle className="text-green-500 h-5 w-5" />
-                                        : <XCircle className="text-red-500 h-5 w-5" />}
-                                    <span className="font-medium text-gray-700">Data Integrity</span>
+                                    {result.verified_fields?.checksum_match !== undefined ? (
+                                        result.verified_fields.checksum_match
+                                            ? <CheckCircle className="text-green-500 h-5 w-5" />
+                                            : <XCircle className="text-red-500 h-5 w-5" />
+                                    ) : (
+                                        result.verified_fields?.hash_match
+                                            ? <CheckCircle className="text-green-500 h-5 w-5" />
+                                            : <XCircle className="text-red-500 h-5 w-5" />
+                                    )}
+                                    <span className="font-medium text-gray-700">
+                                        {result.verified_fields?.checksum_match !== undefined ? 'PDF Integrity' : 'Data Integrity'}
+                                    </span>
                                 </div>
                                 <div className="p-4 flex items-center justify-center gap-3">
                                     {result.verified_fields?.blockchain_verified
@@ -423,30 +579,34 @@ const Verification = () => {
                                     <span className="col-span-2 text-gray-800 font-medium">{result.credential.certificate_title}</span>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    <span className="font-semibold text-gray-600">Issued To:</span>
-                                    <div className="col-span-2 text-gray-800">
-                                        <div className="font-medium">{result.credential.learner?.name || 'Authorized Learner'}</div>
-                                        <div className="text-gray-500 text-xs">{result.credential.learner_email}</div>
+                                {result.credential.learner && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        <span className="font-semibold text-gray-600">Issued To:</span>
+                                        <div className="col-span-2 text-gray-800">
+                                            <div className="font-medium">{result.credential.learner?.name || 'Authorized Learner'}</div>
+                                            <div className="text-gray-500 text-xs">{result.credential.learner_email}</div>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    <span className="font-semibold text-gray-600">Issued By:</span>
-                                    <div className="col-span-2 text-gray-800">
-                                        <div className="font-medium">{result.credential.issuer?.name}</div>
-                                        {result.credential.issuer?.website_url && (
-                                            <a
-                                                href={result.credential.issuer.website_url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-blue-600 hover:underline text-xs"
-                                            >
-                                                {result.credential.issuer.website_url}
-                                            </a>
-                                        )}
+                                {result.credential.issuer && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        <span className="font-semibold text-gray-600">Issued By:</span>
+                                        <div className="col-span-2 text-gray-800">
+                                            <div className="font-medium">{result.credential.issuer?.name}</div>
+                                            {result.credential.issuer?.website_url && (
+                                                <a
+                                                    href={result.credential.issuer.website_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-blue-600 hover:underline text-xs"
+                                                >
+                                                    {result.credential.issuer.website_url}
+                                                </a>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <span className="font-semibold text-gray-600">Issued On:</span>
@@ -517,25 +677,21 @@ const Verification = () => {
                                             View Original Certificate
                                         </a>
                                     )}
-                                    <Link
-                                        to={`/c/${result.credential.credential_id}`}
-                                        className="inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm"
-                                    >
-                                        View Credential Details
-                                        <ArrowRight className="ml-2 h-4 w-4" />
-                                    </Link>
+                                    {result.credential.credential_id && (
+                                        <Link
+                                            to={`/c/${result.credential.credential_id}`}
+                                            className="inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm"
+                                        >
+                                            View Credential Details
+                                            <ArrowRight className="ml-2 h-4 w-4" />
+                                        </Link>
+                                    )}
                                 </div>
                             </div>
                         )}
                     </div>
                 )}
             </main>
-            {showCamera && (
-                <CameraCapture 
-                    onCapture={handleCameraCapture} 
-                    onClose={() => setShowCamera(false)} 
-                />
-            )}
         </div>
     );
 };

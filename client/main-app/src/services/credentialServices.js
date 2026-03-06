@@ -68,4 +68,14 @@ export const credentialServices = {
         const response = await api.get('/credentials/top-issuers', { params: { limit } });
         return response.data;
     },
+
+    // Verify a credential from an uploaded PDF
+    verifyCredentialFromPdf: async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post('/credentials/verify-pdf', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data;
+    },
 };

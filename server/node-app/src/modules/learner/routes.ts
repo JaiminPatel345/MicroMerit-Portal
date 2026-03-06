@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { learnerController } from './controller';
+import { externalCertController } from './externalCert.controller';
 import { authenticateToken } from '../../middleware/auth';
 import { requireLearner } from '../../middleware/role';
 import { asyncHandler } from '../../middleware/error';
@@ -111,6 +112,21 @@ resourceRouter.get(
   authenticateToken,
   requireLearner,
   asyncHandler(learnerController.getSkillProfile.bind(learnerController))
+);
+// External issuers list (for Add Certificate modal dropdown)
+resourceRouter.get(
+  '/external-issuers',
+  authenticateToken,
+  requireLearner,
+  asyncHandler(externalCertController.getExternalIssuers.bind(externalCertController))
+);
+
+// Add certificate from external issuer (on-demand pull)
+resourceRouter.post(
+  '/add-certificate',
+  authenticateToken,
+  requireLearner,
+  asyncHandler(externalCertController.addCertificate.bind(externalCertController))
 );
 
 

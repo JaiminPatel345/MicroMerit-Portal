@@ -2,7 +2,7 @@ import app from './app';
 import { logger } from './utils/logger';
 import { connectPrisma, disconnectPrisma } from './utils/prisma';
 import { externalCredentialSyncScheduler, externalCredentialSyncService } from './modules/external-credential-sync';
-import { blockchainWorker, blockchainQueue, shutdownBlockchainQueue } from './services/blockchainQueue';
+import { shutdownBlockchainQueue, clearBlockchainQueue } from './services/blockchainQueue';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
@@ -14,6 +14,9 @@ const startServer = async () => {
     // Connect to database first
     try {
       await connectPrisma();
+      
+      // Clear the blockchain queue on restart in the background
+      clearBlockchainQueue();
     } catch (error) {
       logger.error('Failed to connect to the database', { error });
       console.error('Failed to connect to the database, make sure postgreSQL is running and accessible', { error });
@@ -26,27 +29,27 @@ const startServer = async () => {
       logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`Health check: http://localhost:${PORT}/health`);
 
-      // Start external credential sync scheduler if enabled
-      if (process.env.ENABLE_EXTERNAL_SYNC === 'true') {
-        externalCredentialSyncScheduler.start();
-        logger.info('External credential sync scheduler started');
-        
-        // Perform initial sync on startup to fetch 1 credential from each provider
-        logger.info('Performing initial sync on startup...');
-        setTimeout(async () => {
-          try {
-            const results = await externalCredentialSyncService.syncAll();
-            logger.info('Initial sync completed', { 
-              results: results.map(r => ({ 
-                provider: r.provider_id, 
-                created: r.credentials_created 
-              }))
-            });
-          } catch (error: any) {
-            logger.error('Initial sync failed', { error: error.message });
-          }
-        }, 5000); // Wait 5 seconds after server starts
-      }
+      // External credential sync scheduler — DISABLED
+      // The scheduler is commented out as external sync is no longer used.
+      // if (process.env.ENABLE_EXTERNAL_SYNC === 'true') {
+      //   externalCredentialSyncScheduler.start();
+      //   logger.info('External credential sync scheduler started');
+      //   
+      //   logger.info('Performing initial sync on startup...');
+      //   setTimeout(async () => {
+      //     try {
+      //       const results = await externalCredentialSyncService.syncAll();
+      //       logger.info('Initial sync completed', { 
+      //         results: results.map(r => ({ 
+      //           provider: r.provider_id, 
+      //           created: r.credentials_created 
+      //         }))
+      //       });
+      //     } catch (error: any) {
+      //       logger.error('Initial sync failed', { error: error.message });
+      //     }
+      //   }, 5000);
+      // }
     });
   } catch (error) {
     logger.error('Failed to start server', { error });
@@ -64,12 +67,12 @@ const gracefulShutdown = async (signal: string) => {
   // Stop the scheduler first
   externalCredentialSyncScheduler.stop();
 
-  // Shutdown blockchain queue and worker
+  // Shutdown blockchain background processor (no-op with queue-free implementation)
   try {
     await shutdownBlockchainQueue();
-    logger.info('Blockchain queue shutdown complete');
+    logger.info('Blockchain processor shutdown complete');
   } catch (error) {
-    logger.error('Error shutting down blockchain queue', { error });
+    logger.error('Error shutting down blockchain processor', { error });
   }
 
   server.close(async () => {

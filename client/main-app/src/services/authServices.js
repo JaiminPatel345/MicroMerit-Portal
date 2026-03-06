@@ -64,11 +64,14 @@ export const learnerApi = {
   getCertificates: (params) => api.get('/learner/credentials', { params }),
   getDashboard: () => api.get('/learner/dashboard'),
   getCredential: (id) => api.get(`/learner/credentials/${id}`),
-  getPublicProfile: (id) => api.get(`/learner/public/${id}`),
+  getPublicProfile: (id, params) => api.get(`/learner/public/${id}`, { params }),
   getRoadmap: () => api.get('/learner/roadmap'),
   getSkillProfile: () => api.get('/learner/skill-profile'),
-  getPublicProfile: (id, params) => api.get(`/learner/public/${id}`, { params }),
   getPublicCredential: (id) => api.get(`/credentials/public/${id}`),
+  getCredentialStatus: (id) => api.get(`/learner/credentials/${id}`),
+  // External sync (on-demand add certificate)
+  getExternalIssuers: () => api.get('/learner/external-issuers'),
+  addCertificate: (data) => api.post('/learner/add-certificate', data),
 };
 
 export const employerApi = {

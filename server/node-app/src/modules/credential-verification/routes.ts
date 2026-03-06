@@ -24,4 +24,14 @@ router.post(
     asyncHandler(credentialVerificationController.extractCredentialId.bind(credentialVerificationController))
 );
 
+/**
+ * POST /credentials/verify-pdf
+ * Verify a credential from an uploaded PDF (public endpoint)
+ */
+router.post(
+    '/verify-pdf',
+    documentUpload.single('file'),
+    asyncHandler(credentialVerificationController.verifyCredentialFromPdf.bind(credentialVerificationController))
+);
+
 export default router;

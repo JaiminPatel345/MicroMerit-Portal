@@ -52,6 +52,30 @@ export class CredentialVerificationController {
             sendError(res, error.message, 'Extraction Failed', 500);
         }
     }
+
+    /**
+     * Verify a credential from an uploaded PDF file
+     * POST /credentials/verify-pdf
+     */
+    async verifyCredentialFromPdf(req: Request, res: Response): Promise<void> {
+        try {
+            if (!req.file) {
+                sendError(res, 'No PDF file uploaded', 'Validation Error', 400);
+                return;
+            }
+
+            const result = await credentialVerificationService.verifyCredentialFromPdf(req.file.buffer);
+
+            if (result.status === 'VALID') {
+                sendSuccess(res, result, 'Credential verified successfully from PDF', 200);
+            } else {
+                sendSuccess(res, result, 'Credential verification from PDF failed', 200);
+            }
+        } catch (error: any) {
+            logger.error('PDF credential verification request failed', { error: error.message });
+            sendError(res, error.message, 'Failed to verify credential from PDF', 500);
+        }
+    }
 }
 
 export const credentialVerificationController = new CredentialVerificationController();

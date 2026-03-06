@@ -332,6 +332,20 @@ export class CredentialIssuanceRepository {
             credentials_issued: issuer._count.credentials
         }));
     }
+    /**
+     * Update specific credential fields directly (no metadata merging)
+     * Used by the blockchain queue worker to update ipfs_cid, pdf_url etc.
+     */
+    async updateCredentialFields(credential_id: string, data: {
+        ipfs_cid?: string;
+        pdf_url?: string;
+        tx_hash?: string;
+    }) {
+        return await prisma.credential.update({
+            where: { credential_id },
+            data,
+        });
+    }
 }
 
 export const credentialIssuanceRepository = new CredentialIssuanceRepository();

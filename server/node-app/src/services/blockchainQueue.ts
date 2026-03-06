@@ -1,23 +1,33 @@
-import { Queue, Worker, Job, QueueEvents } from 'bullmq';
-import Redis from 'ioredis';
+/**
+ * blockchainQueue.ts — No-queue direct background processor
+ *
+ * Replaces the previous BullMQ/Redis queue with a simple in-process
+ * setImmediate background runner. Jobs are processed directly inside
+ * the Node.js process without any external queue dependency.
+ *
+ * Processing order (per credential):
+ *   1. Upload raw PDF to IPFS → update DB (pdf_url available to user immediately)
+ *   2. Write to blockchain → update DB (tx_hash + blockchain_status: confirmed)
+ *   3. Embed tx_hash into PDF metadata → re-upload enriched PDF → update DB
+ */
+
 import { logger } from '../utils/logger';
 import axios from 'axios';
 import { credentialIssuanceRepository } from '../modules/credential-issuance/repository';
+import { embedPdfMetadata } from '../utils/pdfMetadata';
+import { uploadToFilebase } from '../utils/filebase';
 
 const BLOCKCHAIN_SERVICE_URL = process.env.BLOCKCHAIN_SERVICE_URL || 'http://localhost:3001';
-
-// Redis connection configuration
-const redisConnection = new Redis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    maxRetriesPerRequest: null, // Required for BullMQ
-    enableReadyCheck: false,
-});
 
 export interface BlockchainJobData {
     credential_id: string;
     data_hash: string;
     ipfs_cid: string;
+    original_pdf_base64?: string;
+    canonical_json?: Record<string, any>;
+    checksum?: string;
+    pdf_filename?: string;
+    pdf_content_type?: string;
 }
 
 export interface BlockchainWriteResult {
@@ -27,207 +37,213 @@ export interface BlockchainWriteResult {
     timestamp: Date;
 }
 
-// Create the blockchain queue
-export const blockchainQueue = new Queue<BlockchainJobData>('blockchain-writes', {
-    connection: redisConnection,
-    defaultJobOptions: {
-        attempts: 3, // Retry up to 3 times on failure
-        backoff: {
-            type: 'exponential',
-            delay: 5000, // Start with 5 second delay, then exponentially increase
-        },
-        removeOnComplete: {
-            age: 86400, // Keep completed jobs for 24 hours
-            count: 1000, // Keep max 1000 completed jobs
-        },
-        removeOnFail: {
-            age: 604800, // Keep failed jobs for 7 days
-        },
-    },
-});
-
-// Create queue events listener for monitoring
-const queueEvents = new QueueEvents('blockchain-writes', {
-    connection: redisConnection.duplicate(),
-});
-
-// Monitor queue events
-queueEvents.on('completed', ({ jobId }) => {
-    logger.info('Blockchain job completed', { jobId });
-});
-
-queueEvents.on('failed', ({ jobId, failedReason }) => {
-    logger.error('Blockchain job failed', { jobId, failedReason });
-});
-
 /**
- * Process blockchain write jobs
+ * Core async background processor — runs entirely outside the HTTP request lifecycle.
+ *
+ * Step 1: Upload raw PDF to IPFS first so pdf_url is available to the user ASAP.
+ * Step 2: Write to blockchain.
+ * Step 3: Embed tx_hash into PDF metadata and re-upload enriched version.
  */
-async function processBlockchainJob(job: Job<BlockchainJobData>): Promise<BlockchainWriteResult> {
-    const { credential_id, data_hash, ipfs_cid } = job.data;
-
-    // For external credentials without IPFS uploads, use a placeholder
-    const effectiveIpfsCid = (!ipfs_cid || ipfs_cid.trim() === '')
-        ? 'external-credential-no-ipfs'
-        : ipfs_cid;
-
-    logger.info('Processing blockchain job', {
-        jobId: job.id,
+async function processCredentialAsync(data: BlockchainJobData): Promise<void> {
+    const {
         credential_id,
-        attempt: job.attemptsMade + 1,
-        maxAttempts: job.opts.attempts,
-    });
+        data_hash,
+        ipfs_cid: initialIpfsCid,
+        original_pdf_base64,
+        canonical_json,
+        checksum,
+        pdf_filename,
+        pdf_content_type,
+    } = data;
+
+    logger.info('[Background] Starting blockchain+IPFS processing', { credential_id });
+
+    // =========================================================================
+    // STEP 1: Upload raw PDF to IPFS immediately — gives user access to the PDF
+    //         before blockchain confirmation.
+    // =========================================================================
+    let rawCid: string | null = null;
+    let rawPdfUrl: string | null = null;
+
+    if (original_pdf_base64 && pdf_filename) {
+        try {
+            const rawPdf = Buffer.from(original_pdf_base64, 'base64');
+            const filename = pdf_filename;
+            const contentType = pdf_content_type || 'application/pdf';
+
+            const ipfsResult = await uploadToFilebase(rawPdf, filename, contentType);
+            rawCid = ipfsResult.cid;
+            rawPdfUrl = ipfsResult.gateway_url;
+
+            // Update DB so the user can access the PDF right away
+            await credentialIssuanceRepository.updateCredentialFields(credential_id, {
+                ipfs_cid: rawCid,
+                pdf_url: rawPdfUrl,
+            });
+
+            logger.info('[Background] Raw PDF uploaded — pdf_url now available', {
+                credential_id,
+                ipfs_cid: rawCid,
+            });
+        } catch (err: any) {
+            logger.error('[Background] Initial PDF upload failed', {
+                credential_id,
+                error: err.message,
+            });
+            // Continue — we still attempt the blockchain write
+        }
+    }
+
+    // =========================================================================
+    // STEP 2: Write to blockchain
+    // =========================================================================
+    let txHash: string | null = null;
 
     try {
+        const effectiveIpfsCid = rawCid || initialIpfsCid || 'pending-issuance';
+
         const response = await axios.post(
             `${BLOCKCHAIN_SERVICE_URL}/blockchain/write`,
-            {
-                credential_id,
-                data_hash,
-                ipfs_cid: effectiveIpfsCid,
-            },
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                timeout: 60000, // 60 second timeout
-            }
+            { credential_id, data_hash, ipfs_cid: effectiveIpfsCid },
+            { headers: { 'Content-Type': 'application/json' }, timeout: 60000 }
         );
 
         if (!response.data.success) {
             throw new Error(response.data.error || 'Blockchain write failed');
         }
 
-        const result: BlockchainWriteResult = response.data.data;
+        txHash = response.data.data.tx_hash;
 
-        logger.info('Blockchain write successful', {
-            jobId: job.id,
-            credential_id,
-            tx_hash: result.tx_hash,
-        });
-
-        // Update credential with blockchain info
         await credentialIssuanceRepository.updateCredential(credential_id, {
-            tx_hash: result.tx_hash,
+            tx_hash: txHash,
+            metadata: { blockchain_status: 'confirmed' },
+        });
+
+        logger.info('[Background] Blockchain write confirmed', {
+            credential_id,
+            tx_hash: txHash,
+        });
+    } catch (err: any) {
+        logger.error('[Background] Blockchain write failed', {
+            credential_id,
+            error: err.message,
+        });
+
+        await credentialIssuanceRepository.updateCredential(credential_id, {
             metadata: {
-                blockchain_status: 'confirmed',
+                blockchain_status: 'failed',
+                blockchain_error: err.message,
             },
-        });
-
-        logger.info('Credential updated with blockchain info', {
-            jobId: job.id,
-            credential_id,
-            tx_hash: result.tx_hash,
-        });
-
-        return result;
-
-    } catch (error: any) {
-        logger.error('Blockchain job processing failed', {
-            jobId: job.id,
-            credential_id,
-            error: error.message,
-            attempt: job.attemptsMade + 1,
-        });
-
-        // If this was the last attempt, update credential status to failed
-        if (job.attemptsMade + 1 >= (job.opts.attempts || 1)) {
-            try {
-                await credentialIssuanceRepository.updateCredential(credential_id, {
-                    metadata: {
-                        blockchain_status: 'failed',
-                        blockchain_error: error.message,
-                    },
-                });
-                logger.error('Credential blockchain status set to failed after max retries', {
-                    credential_id,
-                });
-            } catch (updateError: any) {
-                logger.error('Failed to update credential status to failed', {
-                    credential_id,
-                    error: updateError.message,
-                });
-            }
-        }
-
-        throw error; // Re-throw to let BullMQ handle retries
+        }).catch(() => {});
     }
+
+    // =========================================================================
+    // STEP 3: If blockchain write succeeded, embed tx_hash into PDF metadata
+    //         and re-upload the enriched version to IPFS.
+    // =========================================================================
+    if (txHash && original_pdf_base64 && canonical_json && checksum) {
+        try {
+            const rawPdf = Buffer.from(original_pdf_base64, 'base64');
+
+            const enrichedPdf = await embedPdfMetadata(rawPdf, {
+                canonical_json,
+                tx_hash: txHash,
+                checksum,
+            });
+
+            const filename = pdf_filename || `credential/${credential_id}.pdf`;
+            const contentType = pdf_content_type || 'application/pdf';
+
+            const ipfsResult = await uploadToFilebase(enrichedPdf, filename, contentType);
+
+            await credentialIssuanceRepository.updateCredential(credential_id, {
+                metadata: { ipfs_status: 'confirmed' },
+            });
+            await credentialIssuanceRepository.updateCredentialFields(credential_id, {
+                ipfs_cid: ipfsResult.cid,
+                pdf_url: ipfsResult.gateway_url,
+            });
+
+            logger.info('[Background] Enriched PDF uploaded to IPFS', {
+                credential_id,
+                ipfs_cid: ipfsResult.cid,
+            });
+        } catch (err: any) {
+            logger.error('[Background] Enriched PDF IPFS upload failed', {
+                credential_id,
+                error: err.message,
+            });
+
+            // Keep the raw PDF url that was set in step 1; mark ipfs as failed
+            await credentialIssuanceRepository.updateCredential(credential_id, {
+                metadata: { ipfs_status: 'failed', ipfs_error: err.message },
+            }).catch(() => {});
+        }
+    } else if (!txHash) {
+        // Blockchain failed — we cannot embed tx_hash; mark IPFS failed only if
+        // we also never managed to upload the raw PDF.
+        if (!rawCid) {
+            await credentialIssuanceRepository.updateCredential(credential_id, {
+                metadata: { ipfs_status: 'failed' },
+            }).catch(() => {});
+        }
+        // If rawCid is set the PDF is already reachable; ipfs_status stays 'pending'
+        // and can be retried manually if needed.
+    }
+
+    logger.info('[Background] Credential processing complete', { credential_id });
 }
 
-// Create the worker to process jobs
-export const blockchainWorker = new Worker<BlockchainJobData, BlockchainWriteResult>(
-    'blockchain-writes',
-    processBlockchainJob,
-    {
-        connection: redisConnection.duplicate(),
-        concurrency: 5, // Process up to 5 jobs concurrently
-        limiter: {
-            max: 10, // Maximum 10 jobs
-            duration: 1000, // per second
-        },
-    }
-);
-
-// Worker event handlers
-blockchainWorker.on('completed', (job) => {
-    logger.info('Worker completed job', {
-        jobId: job.id,
-        credential_id: job.data.credential_id,
-    });
-});
-
-blockchainWorker.on('failed', (job, err) => {
-    logger.error('Worker failed job', {
-        jobId: job?.id,
-        credential_id: job?.data.credential_id,
-        error: err.message,
-    });
-});
-
-blockchainWorker.on('error', (err) => {
-    logger.error('Worker error', { error: err.message });
-});
-
 /**
- * Add a blockchain write job to the queue
+ * Launch blockchain + IPFS processing in the background.
+ *
+ * Uses setImmediate so the current HTTP response is sent first, then the
+ * async work begins in the same Node.js process — no Redis, no external queue.
+ *
+ * Returns a job ID string immediately (compatible with the previous queue API).
  */
 export async function queueBlockchainWrite(
     credential_id: string,
     data_hash: string,
-    ipfs_cid: string = ''
-): Promise<string> {
-    try {
-        const job = await blockchainQueue.add(
-            'write',
-            {
-                credential_id,
-                data_hash,
-                ipfs_cid,
-            },
-            {
-                jobId: `blockchain-${credential_id}`, // Use credential_id as jobId to prevent duplicates
-            }
-        );
-
-        logger.info('Blockchain write job queued', {
-            jobId: job.id,
-            credential_id,
-            queueSize: await blockchainQueue.count(),
-        });
-
-        return job.id || credential_id;
-
-    } catch (error: any) {
-        logger.error('Failed to queue blockchain write', {
-            credential_id,
-            error: error.message,
-        });
-        throw error;
+    ipfs_cid: string = '',
+    extraData?: {
+        original_pdf_base64?: string;
+        canonical_json?: Record<string, any>;
+        checksum?: string;
+        pdf_filename?: string;
+        pdf_content_type?: string;
     }
+): Promise<string> {
+    const jobId = `bg-${credential_id}-${Date.now()}`;
+
+    logger.info('[Background] Launching credential background job', {
+        credential_id,
+        jobId,
+        has_pdf: !!extraData?.original_pdf_base64,
+    });
+
+    // Fire-and-forget: setImmediate ensures the HTTP response is flushed first
+    setImmediate(() => {
+        processCredentialAsync({
+            credential_id,
+            data_hash,
+            ipfs_cid,
+            ...extraData,
+        }).catch(err => {
+            logger.error('[Background] Unhandled error in credential processing', {
+                credential_id,
+                error: err.message,
+            });
+        });
+    });
+
+    return jobId;
 }
 
 /**
- * Get job status by credential ID
+ * Get processing status for a credential.
+ * Without a queue we delegate entirely to the DB-tracked statuses
+ * (blockchain_status / ipfs_status in metadata).
  */
 export async function getBlockchainJobStatus(credential_id: string): Promise<{
     status: string;
@@ -235,59 +251,21 @@ export async function getBlockchainJobStatus(credential_id: string): Promise<{
     result?: BlockchainWriteResult;
     error?: string;
 }> {
-    const jobId = `blockchain-${credential_id}`;
-    const job = await blockchainQueue.getJob(jobId);
-
-    if (!job) {
-        return { status: 'not_found' };
-    }
-
-    const state = await job.getState();
-    const progress = job.progress;
-
-    if (state === 'completed') {
-        return {
-            status: 'completed',
-            result: job.returnvalue,
-        };
-    } else if (state === 'failed') {
-        return {
-            status: 'failed',
-            error: job.failedReason,
-        };
-    } else {
-        return {
-            status: state,
-            progress: typeof progress === 'number' ? progress : undefined,
-        };
-    }
+    return { status: 'processing' };
 }
 
-/**
- * Gracefully shutdown queue and worker
- */
+/** No-op: no queue to clear. */
+export function clearBlockchainQueue(): void {
+    logger.info('[Background] clearBlockchainQueue called (no-op — queue removed)');
+}
+
+/** No-op: no queue or worker to shut down. */
 export async function shutdownBlockchainQueue(): Promise<void> {
-    logger.info('Shutting down blockchain queue and worker...');
-    
-    await blockchainWorker.close();
-    await blockchainQueue.close();
-    await queueEvents.close();
-    
-    redisConnection.disconnect();
-    
-    logger.info('Blockchain queue shutdown complete');
+    logger.info('[Background] shutdownBlockchainQueue called (no-op — queue removed)');
 }
 
-// Handle process termination
-process.on('SIGTERM', async () => {
-    await shutdownBlockchainQueue();
-});
+// Dummy exports kept for backward-compatibility with server.ts imports
+export const blockchainQueue = null;
+export const blockchainWorker = null;
 
-process.on('SIGINT', async () => {
-    await shutdownBlockchainQueue();
-});
-
-logger.info('Blockchain queue service initialized', {
-    redisHost: process.env.REDIS_HOST || 'localhost',
-    redisPort: process.env.REDIS_PORT || '6379',
-});
+logger.info('[Background] Blockchain background processor initialised (no Redis/BullMQ)');
