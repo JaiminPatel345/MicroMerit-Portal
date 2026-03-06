@@ -75,7 +75,7 @@ const ProfileBuilder = () => {
 
     const checkPasswordCriteria = (password) => {
         setPasswordCriteria({
-            minLength: password.length >= 6,
+            minLength: password.length >= 8,
             hasUpper: /[A-Z]/.test(password),
             hasLower: /[a-z]/.test(password),
             hasNumber: /[0-9]/.test(password),
@@ -116,8 +116,8 @@ const ProfileBuilder = () => {
             if (!formData.password.trim()) {
                 newErrors.password = 'Password is required';
             } else {
-                if (formData.password.length < 6) {
-                    newErrors.password = 'Password must be at least 6 characters';
+                if (formData.password.length < 8) {
+                    newErrors.password = 'Password must be at least 8 characters';
                 }
                 if (!/[A-Z]/.test(formData.password)) newErrors.password = 'Password must contain an uppercase letter';
                 if (!/[a-z]/.test(formData.password)) newErrors.password = 'Password must contain a lowercase letter';
@@ -468,7 +468,7 @@ const ProfileBuilder = () => {
                                             {[
                                                 {
                                                     met: passwordCriteria.minLength,
-                                                    text: 'At least 6 characters',
+                                                    text: 'At least 8 characters',
                                                 },
                                                 {
                                                     met: passwordCriteria.hasUpper,

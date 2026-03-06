@@ -7,12 +7,21 @@ import { credentialIssuanceRepository } from '../modules/credential-issuance/rep
 const BLOCKCHAIN_SERVICE_URL = process.env.BLOCKCHAIN_SERVICE_URL || 'http://localhost:3001';
 
 // Redis connection configuration
-const redisConnection = new Redis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    maxRetriesPerRequest: null, // Required for BullMQ
-    enableReadyCheck: false,
-});
+// Support both a full URL (e.g. Upstash rediss://) or separate host/port for local Redis
+const redisUrl = process.env.REDIS_URL || process.env.REDIS_HOST;
+
+const redisConnection = redisUrl && (redisUrl.startsWith('redis://') || redisUrl.startsWith('rediss://'))
+    ? new Redis(redisUrl, {
+        maxRetriesPerRequest: null, // Required for BullMQ
+        enableReadyCheck: false,
+        tls: redisUrl.startsWith('rediss://') ? {} : undefined,
+    })
+    : new Redis({
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+        maxRetriesPerRequest: null, // Required for BullMQ
+        enableReadyCheck: false,
+    });
 
 export interface BlockchainJobData {
     credential_id: string;

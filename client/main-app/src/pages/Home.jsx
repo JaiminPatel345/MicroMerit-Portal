@@ -184,10 +184,9 @@ const Home = () => {
 
     // Placeholder logos for infinite scroll
     const partnerLogos = [
-        'https://ncvet.gov.in/wp-content/uploads/2023/09/ncvet-logo-full.jpg', // NCVET
-        'https://www.skillindiadigital.gov.in/assets/new-ux-img/skill-india-big-logo.svg', // Skill India Digital
-        'https://img1.digitallocker.gov.in/digilocker-landing-page/assets/img/DigilockerLogo.svg', // DigiLocker
-        'https://nsdcindia.org/sites/default/files/logo.jpg', //NOS
+        'https://www.skillfinder.com.au/media/wysiwyg/udemylogo.png', // udemy
+        'https://cdn-iddod.nitrocdn.com/pfdvReMUBzCUteBdCpoKYlDKsvtOTIJl/assets/images/optimized/rev-deb9309/creatorwala.in/wp-content/uploads/2023/08/COURSERA-8.png',
+        'https://i.pinimg.com/1200x/ea/47/61/ea4761a0acdd855885130e6b129d90a4.jpg'
     ];
 
     return (

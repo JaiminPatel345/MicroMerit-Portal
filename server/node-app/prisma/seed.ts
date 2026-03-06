@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -27,7 +28,7 @@ async function main() {
 
   // Create external issuers for credential sync
   console.log('Creating external issuers for credential sync...');
-  
+
   const externalIssuers = [
     { id: 4, name: 'NSDC', email: 'nsdc@example.com', type: 'external' },
     { id: 5, name: 'NSQF', email: 'nsqf@example.com', type: 'external' },
@@ -53,7 +54,7 @@ async function main() {
     console.log(`✅ External issuer created: ${issuerData.name} (ID: ${issuerData.id})`);
   }
   console.log('');
-  
+
   console.log('🎉 Database seeding completed!');
 }
 

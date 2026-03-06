@@ -35,7 +35,7 @@ const ResetPassword = () => {
   useEffect(() => {
     const password = formData.newPassword;
     setPasswordStrength({
-      hasMinLength: password.length >= 6,
+      hasMinLength: password.length >= 8,
       hasUpperCase: /[A-Z]/.test(password),
       hasLowerCase: /[a-z]/.test(password),
       hasNumber: /[0-9]/.test(password),
@@ -174,7 +174,7 @@ const ResetPassword = () => {
             {/* Password Requirements */}
             <div className="bg-gray-50 rounded-lg p-4 space-y-2">
               <p className="text-sm font-semibold text-gray-700 mb-2">Password must contain:</p>
-              <PasswordRequirement met={passwordStrength.hasMinLength} text="At least 6 characters" />
+              <PasswordRequirement met={passwordStrength.hasMinLength} text="At least 8 characters" />
               <PasswordRequirement met={passwordStrength.hasUpperCase} text="One uppercase letter" />
               <PasswordRequirement met={passwordStrength.hasLowerCase} text="One lowercase letter" />
               <PasswordRequirement met={passwordStrength.hasNumber} text="One number" />

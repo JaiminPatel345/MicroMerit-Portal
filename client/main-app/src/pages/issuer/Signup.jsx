@@ -6,6 +6,7 @@ import {
   validateMobile,
   validateDomain,
   validateURL,
+  validatePassword,
 } from "../../utils/formValidation";
 import { useDispatch } from "react-redux";
 import { APP_NAME } from '../../config/appConfig';
@@ -127,10 +128,9 @@ function IssuerSignUp() {
     }
 
     // Password
-    if (!form.password || form.password.trim().length < 8) {
-      err.password = "Password must be at least 8 characters";
-    } else if (!/[A-Za-z]/.test(form.password) || !/[0-9]/.test(form.password)) {
-      err.password = "Password must contain letters and numbers";
+    const passwordError = validatePassword(form.password);
+    if (passwordError) {
+      err.password = passwordError;
     }
 
     // Confirm Password

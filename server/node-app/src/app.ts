@@ -41,11 +41,17 @@ app.use((req, res, next) => {
 
 // CORS configuration
 app.use((req, res, next) => {
-  const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173', 'http://localhost:5174', 'http://192.168.71.7:5173' ];
   const origin = req.headers.origin;
+  const corsOriginEnv = process.env.CORS_ORIGIN;
+  const allowedOrigins = corsOriginEnv
+    ? corsOriginEnv.split(',').map(o => o.trim())
+    : ['http://localhost:5173', 'http://localhost:5174', 'http://192.168.71.7:5173'];
 
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+    // logger.debug(`CORS allowed for origin: ${origin}`);
+  } else if (origin) {
+    logger.warn(`CORS rejected for origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
   }
 
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');

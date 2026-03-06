@@ -4,13 +4,13 @@ import { z } from 'zod';
  * Learner registration schema
  */
 export const learnerRegistrationSchema = z.object({
-  email: z.string().email('Invalid email address').optional(),
-  phone: z.string().regex(/^(\+?\d{1,3})?[6-9]\d{9}$/, 'Invalid phone number. Must be exactly 10 digits starting with 6-9').optional(),
+  email: z.string().trim().email('Invalid email address').toLowerCase().optional(),
+  phone: z.string().trim().regex(/^(\+?\d{1,3})?[6-9]\d{9}$/, 'Invalid phone number. Must be exactly 10 digits starting with 6-9').optional(),
   password: z.string().min(8, 'Password must be at least 8 characters').max(100),
   profileFolder: z.string().optional(),
   profileUrl: z.string().optional(), // Accept base64 or URL
   external_digilocker_id: z.string().optional(),
-  other_emails: z.array(z.string().email('Invalid email')).optional(),
+  other_emails: z.array(z.string().trim().email('Invalid email').toLowerCase()).optional(),
   dob: z.date().optional(),
   gender: z.enum(['Male', 'Female', 'Others', 'Not to disclose']).optional(),
 }).refine(
@@ -24,8 +24,8 @@ export type LearnerRegistrationInput = z.infer<typeof learnerRegistrationSchema>
  * Learner login schema
  */
 export const learnerLoginSchema = z.object({
-  email: z.string().email('Invalid email address').optional(),
-  phone: z.string().regex(/^(\+?\d{1,3})?[6-9]\d{9}$/, 'Invalid phone number. Must be exactly 10 digits starting with 6-9').optional(),
+  email: z.string().trim().email('Invalid email address').toLowerCase().optional(),
+  phone: z.string().trim().regex(/^(\+?\d{1,3})?[6-9]\d{9}$/, 'Invalid phone number. Must be exactly 10 digits starting with 6-9').optional(),
   password: z.string().min(1, 'Password is required'),
 }).refine(
   (data) => data.email || data.phone,

@@ -3,8 +3,8 @@ import { z } from 'zod';
 // Start Registration Schema (Page 1)
 export const startRegistrationSchema = z.object({
   body: z.object({
-    email: z.string().email().optional(),
-    phone: z.string().regex(/^\+?[1-9]\d{1,14}$/).optional(),
+    email: z.string().trim().email().toLowerCase().optional(),
+    phone: z.string().trim().regex(/^\+?[1-9]\d{1,14}$/).optional(),
   }).refine(
     (data) => data.email || data.phone,
     {
@@ -25,9 +25,9 @@ export const verifyOTPSchema = z.object({
 // Note: profilePhoto comes from req.file (multipart/form-data), not req.body
 export const completeRegistrationSchema = z.object({
   body: z.object({
-    name: z.string().min(1).max(255),
+    name: z.string().trim().min(3, 'Name must be at least 3 characters').max(255),
     password: z.string()
-      .min(6, 'Password must be at least 6 characters')
+      .min(8, 'Password must be at least 8 characters')
       .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
       .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
       .regex(/[0-9]/, 'Password must contain at least one number')
@@ -41,8 +41,8 @@ export const completeRegistrationSchema = z.object({
 // Forgot Password Schema - Step 1: Request password reset
 export const forgotPasswordSchema = z.object({
   body: z.object({
-    email: z.string().email('Invalid email address').optional(),
-    phone: z.string().regex(/^\+?[1-9]\d{1,14}$/).optional(),
+    email: z.string().trim().email('Invalid email address').toLowerCase().optional(),
+    phone: z.string().trim().regex(/^\+?[1-9]\d{1,14}$/).optional(),
   }).refine(
     (data) => data.email || data.phone,
     {

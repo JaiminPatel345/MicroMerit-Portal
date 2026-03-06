@@ -146,10 +146,24 @@ export class IssuerRepository {
     });
   }
 
-  async findRegistrationSessionById(sessionId: string) {
+  async findSessionById(sessionId: string) {
     return prisma.verification_session.findUnique({
       where: { id: sessionId },
     });
+  }
+
+  async markSessionAsVerified(sessionId: string) {
+    return prisma.verification_session.update({
+      where: { id: sessionId },
+      data: {
+        is_verified: true,
+        verified_at: new Date(),
+      },
+    });
+  }
+
+  async findRegistrationSessionById(sessionId: string) {
+    return this.findSessionById(sessionId);
   }
 
   async markRegistrationSessionAsVerified(sessionId: string) {
@@ -325,6 +339,40 @@ export class IssuerRepository {
     return prisma.issuer.update({
       where: { id: issuerId },
       data: { phone },
+    });
+  }
+
+  /**
+   * Password reset session methods
+   */
+  async createPasswordResetSession(data: {
+    email: string;
+    otpHash: string;
+    expiresAt: Date;
+  }) {
+    return prisma.verification_session.create({
+      data: {
+        session_type: 'issuer_password_reset',
+        email: data.email,
+        contact_type: 'email',
+        otp_hash: data.otpHash,
+        expires_at: data.expiresAt,
+      },
+    });
+  }
+
+  async findPasswordResetSessionById(sessionId: string) {
+    return this.findSessionById(sessionId);
+  }
+
+  async markPasswordResetSessionAsVerified(sessionId: string) {
+    return this.markSessionAsVerified(sessionId);
+  }
+
+  async updatePassword(email: string, passwordHash: string): Promise<issuer> {
+    return prisma.issuer.update({
+      where: { email },
+      data: { password_hash: passwordHash },
     });
   }
 }

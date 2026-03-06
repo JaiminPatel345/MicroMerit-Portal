@@ -16,18 +16,19 @@
     "load-test:bash": "./load-test.sh",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "prisma db seed",
     "prisma:studio": "prisma studio",
+    "seed:nsqf": "tsx prisma/seed_nsqf.ts",
+    "seed:testusers": "tsx prisma/seed_test_users.ts",
+    "seed:createadmin": "tsx prisma/create_admin.ts",
+    "seed:admin": "tsx prisma/check_admin.ts",
     "type-check": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "prisma": {
-    "seed-nsqf": "tsx prisma/seed_nsqf.ts",
-    "seed": "tsx prisma/seed.ts",
-    "testusers": "tsx prisma/seed_test_users.ts",
-    "createadmin": "tsx prisma/create_admin.ts",
-    "admin": "tsx prisma/check_admin.ts"
+    "seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

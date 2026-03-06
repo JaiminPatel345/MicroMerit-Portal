@@ -2,10 +2,11 @@ import { issuerRepository } from './repository';
 import { hashPassword, comparePassword } from '../../utils/bcrypt';
 import { generateTokens, TokenResponse, verifyRefreshToken } from '../../utils/jwt';
 import { issuer } from '@prisma/client';
-import { IssuerRegistrationInput, IssuerLoginInput, UpdateIssuerProfileInput, StartIssuerRegistrationInput, VerifyIssuerOTPInput } from './schema';
+import { IssuerRegistrationInput, IssuerLoginInput, UpdateIssuerProfileInput, StartIssuerRegistrationInput, VerifyIssuerOTPInput, IssuerForgotPasswordInput, IssuerResetPasswordInput, ResendOTPInput } from './schema';
 import { logger } from '../../utils/logger';
 import { generateOTP, hashOTP, verifyOTP, getOTPExpiry } from '../../utils/otp';
 import { sendOTP } from '../../utils/notification';
+import { prisma } from '../../utils/prisma';
 import { uploadImageBufferToS3 } from '../../utils/imageUpload';
 
 export interface IssuerResponse {
@@ -464,6 +465,155 @@ export class IssuerService {
       address: issuer.address,
       certificate_types: certificateTypes
     } as any;
+  }
+
+  /**
+   * Forgot password - Send OTP (Step 1)
+   */
+  async forgotPassword(data: IssuerForgotPasswordInput): Promise<{ sessionId: string; message: string; expiresAt: Date }> {
+    // Find issuer
+    const issuer = await issuerRepository.findByEmail(data.email);
+    if (!issuer) {
+      // For security, don't reveal if email doesn't exist? 
+      // Actually in this case, error is fine as we are internal
+      throw new Error('Issuer with this email not found');
+    }
+
+    if (issuer.is_blocked) {
+      throw new Error('Account is blocked. Please contact support.');
+    }
+
+    // Generate OTP
+    const otp = generateOTP(6);
+    const otpHash = await hashOTP(otp);
+    const expiresAt = getOTPExpiry();
+
+    // Create session
+    const session = await issuerRepository.createPasswordResetSession({
+      email: data.email,
+      otpHash,
+      expiresAt,
+    });
+
+    // Send OTP
+    await sendOTP('email', data.email, otp);
+
+    logger.info('Issuer forgot password OTP sent', { email: data.email, sessionId: session.id });
+
+    return {
+      sessionId: session.id,
+      message: 'Password reset OTP sent to email',
+      expiresAt: session.expires_at,
+    };
+  }
+
+  /**
+   * Verify Reset OTP (Step 2)
+   */
+  async verifyResetOTP(sessionId: string, otp: string): Promise<{ message: string }> {
+    const session = await issuerRepository.findPasswordResetSessionById(sessionId);
+    if (!session || session.session_type !== 'issuer_password_reset') {
+      throw new Error('Invalid session ID');
+    }
+
+    if (session.is_verified) {
+      throw new Error('Session already verified');
+    }
+
+    if (new Date() > session.expires_at) {
+      throw new Error('OTP expired');
+    }
+
+    const isValid = await verifyOTP(otp, session.otp_hash);
+    if (!isValid) {
+      throw new Error('Invalid OTP');
+    }
+
+    // Mark as verified
+    await issuerRepository.markPasswordResetSessionAsVerified(sessionId);
+
+    return { message: 'OTP verified successfully' };
+  }
+
+  /**
+   * Reset Password (Step 3)
+   */
+  async resetPassword(input: IssuerResetPasswordInput): Promise<{ message: string }> {
+    const { sessionId, otp, newPassword } = input;
+
+    // Verify OTP again (or check if verified)
+    const session = await issuerRepository.findPasswordResetSessionById(sessionId);
+    if (!session || session.session_type !== 'issuer_password_reset') {
+      throw new Error('Invalid session ID');
+    }
+
+    // The session MUST be verified (Step 2 must have happened)
+    // Or we allow doing it in one go if both OTP and newPassword are provided
+    if (!session.is_verified) {
+      const isValid = await verifyOTP(otp, session.otp_hash);
+      if (!isValid) throw new Error('Invalid OTP');
+      if (new Date() > session.expires_at) throw new Error('OTP expired');
+    }
+
+    // Hash new password
+    const password_hash = await hashPassword(newPassword);
+
+    // Update password
+    if (!session.email) throw new Error('Email missing in session');
+    await issuerRepository.updatePassword(session.email, password_hash);
+
+    logger.info('Issuer password reset successful', { email: session.email });
+
+    return { message: 'Password reset successfully' };
+  }
+
+  /**
+   * Resend OTP for any verification session
+   */
+  async resendOTP(input: ResendOTPInput): Promise<{ message: string; expiresAt: Date }> {
+    const { sessionId } = input;
+
+    // Find session
+    const session = await issuerRepository.findSessionById(sessionId);
+    if (!session) {
+      throw new Error('Invalid session');
+    }
+
+    // Check if session is too old (don't allow resend after expiry)
+    if (new Date() > session.expires_at) {
+      throw new Error('Session expired. Please start the process again');
+    }
+
+    // Determine verification method
+    const contactType = session.contact_type || 'email';
+    const recipient = session.email || session.phone;
+
+    if (!recipient) {
+      throw new Error('No recipient found in session');
+    }
+
+    // Generate new OTP
+    const otp = generateOTP(6);
+    const otpHash = await hashOTP(otp);
+    const expiresAt = getOTPExpiry();
+
+    // Update session
+    await prisma.verification_session.update({
+      where: { id: sessionId },
+      data: {
+        otp_hash: otpHash,
+        expires_at: expiresAt,
+        is_verified: false,
+      },
+    });
+
+    // Send new OTP
+    await sendOTP(contactType as any, recipient, otp);
+
+    return {
+      message: `New OTP sent to ${contactType}`,
+      expiresAt,
+    };
   }
 }
 

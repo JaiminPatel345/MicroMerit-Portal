@@ -36,6 +36,27 @@ authRouter.post(
   asyncHandler(issuerController.refresh.bind(issuerController))
 );
 
+authRouter.post(
+  '/forgot-password',
+  authRateLimiter,
+  asyncHandler(issuerController.forgotPassword.bind(issuerController))
+);
+
+authRouter.post(
+  '/verify-reset-otp',
+  asyncHandler(issuerController.verifyResetOTP.bind(issuerController))
+);
+
+authRouter.post(
+  '/reset-password',
+  asyncHandler(issuerController.resetPassword.bind(issuerController))
+);
+
+authRouter.post(
+  '/resend-otp',
+  asyncHandler(issuerController.resendOTP.bind(issuerController))
+);
+
 // Resource management routes - mounted at /issuer
 const resourceRouter = Router();
 
@@ -118,7 +139,7 @@ resourceRouter.post(
   '/bulk-upload',
   authenticateToken,
   requireIssuer,
-  zipUpload.single('file'), 
+  zipUpload.single('file'),
   asyncHandler(bulkUploadController.upload)
 );
 

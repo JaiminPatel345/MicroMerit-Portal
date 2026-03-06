@@ -7,6 +7,9 @@ import {
   updateIssuerProfileSchema,
   startIssuerRegistrationSchema,
   verifyIssuerOTPSchema,
+  issuerForgotPasswordSchema,
+  issuerResetPasswordSchema,
+  resendOTPSchema,
 } from './schema';
 import { sendSuccess, sendError } from '../../utils/response';
 import { logger } from '../../utils/logger';
@@ -208,6 +211,74 @@ export class IssuerController {
     } catch (error: any) {
       logger.error('Get public profile failed', { error: error.message });
       sendError(res, error.message, 'Failed to retrieve profile', 404);
+    }
+  }
+
+  /**
+   * Forgot password - Step 1
+   * POST /auth/issuer/forgot-password
+   */
+  async forgotPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const validatedData = issuerForgotPasswordSchema.parse(req.body);
+      const result = await issuerService.forgotPassword(validatedData);
+
+      sendSuccess(res, result, 'Password reset OTP sent successfully');
+    } catch (error: any) {
+      logger.error('Issuer forgot password failed', { error: error.message });
+      sendError(res, error.message, 'Failed to request password reset', 400);
+    }
+  }
+
+  /**
+   * Verify Reset OTP - Step 2
+   * POST /auth/issuer/verify-reset-otp
+   */
+  async verifyResetOTP(req: Request, res: Response): Promise<void> {
+    try {
+      const { sessionId, otp } = req.body;
+      if (!sessionId || !otp) {
+        sendError(res, 'Session ID and OTP are required', 'Validation failed', 400);
+        return;
+      }
+
+      const result = await issuerService.verifyResetOTP(sessionId, otp);
+      sendSuccess(res, result, 'OTP verified successfully');
+    } catch (error: any) {
+      logger.error('Issuer verify reset OTP failed', { error: error.message });
+      sendError(res, error.message, 'Verification failed', 400);
+    }
+  }
+
+  /**
+   * Reset Password - Step 3
+   * POST /auth/issuer/reset-password
+   */
+  async resetPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const validatedData = issuerResetPasswordSchema.parse(req.body);
+      const result = await issuerService.resetPassword(validatedData);
+
+      sendSuccess(res, result, 'Password reset successfully');
+    } catch (error: any) {
+      logger.error('Issuer reset password failed', { error: error.message });
+      sendError(res, error.message, 'Password reset failed', 400);
+    }
+  }
+
+  /**
+   * Resend OTP
+   * POST /auth/issuer/resend-otp
+   */
+  async resendOTP(req: Request, res: Response): Promise<void> {
+    try {
+      const validatedData = resendOTPSchema.parse(req.body);
+      const result = await issuerService.resendOTP(validatedData);
+
+      sendSuccess(res, result, 'OTP resent successfully');
+    } catch (error: any) {
+      logger.error('Issuer resend OTP failed', { error: error.message });
+      sendError(res, error.message, 'Failed to resend OTP', 400);
     }
   }
 }
