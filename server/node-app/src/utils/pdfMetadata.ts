@@ -14,6 +14,23 @@ export interface CredentialPdfMetadata {
 }
 
 /**
+ * Recursively remove null values from an object.
+ */
+function stripNulls(obj: Record<string, any>): Record<string, any> {
+    const result: Record<string, any> = {};
+    for (const [key, value] of Object.entries(obj)) {
+        if (value === null || value === undefined) continue;
+        if (typeof value === 'object' && !Array.isArray(value)) {
+            const nested = stripNulls(value);
+            if (Object.keys(nested).length > 0) result[key] = nested;
+        } else {
+            result[key] = value;
+        }
+    }
+    return result;
+}
+
+/**
  * Compute SHA-256 checksum of a PDF buffer
  */
 export function computePdfChecksum(pdfBuffer: Buffer): string {
@@ -31,8 +48,12 @@ export async function embedPdfMetadata(
     try {
         const pdfDoc = await PDFDocument.load(pdfBuffer);
         
+        // Strip null values from canonical_json before embedding
+        const cleanCanonical = stripNulls(metadata.canonical_json);
+        const cleanMetadata = { ...metadata, canonical_json: cleanCanonical };
+
         // Store metadata as JSON string in the Keywords field
-        const metadataString = JSON.stringify(metadata);
+        const metadataString = JSON.stringify(cleanMetadata);
         pdfDoc.setKeywords([metadataString]);
         
         const modifiedPdfBytes = await pdfDoc.save();

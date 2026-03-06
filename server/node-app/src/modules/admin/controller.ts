@@ -305,6 +305,33 @@ export class AdminController {
       sendError(res, error.message, 'Failed to retrieve credentials', 400);
     }
   }
+
+  /**
+   * Delete a credential (admin only)
+   * DELETE /admin/credentials/:id
+   */
+  async deleteCredential(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        sendError(res, 'User not authenticated', 'Authentication required', 401);
+        return;
+      }
+
+      const credentialId = req.params.id;
+      if (!credentialId) {
+        sendError(res, 'Invalid credential ID', 'Bad request', 400);
+        return;
+      }
+
+      await adminService.deleteCredential(credentialId);
+
+      sendSuccess(res, null, 'Credential deleted successfully');
+    } catch (error: any) {
+      logger.error('Delete credential failed', { error: error.message });
+      const statusCode = error.message === 'Credential not found' ? 404 : 400;
+      sendError(res, error.message, 'Failed to delete credential', statusCode);
+    }
+  }
 }
 
 export const adminController = new AdminController();

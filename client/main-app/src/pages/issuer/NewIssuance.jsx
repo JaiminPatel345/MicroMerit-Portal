@@ -43,7 +43,7 @@ const NewIssuance = () => {
     const [isIssuingAfterAnalysis, setIsIssuingAfterAnalysis] = useState(false);
 
     // AI Data Extraction Toggle (default: enabled)
-    const [aiEnabled, setAiEnabled] = useState(true);
+    const [aiEnabled, setAiEnabled] = useState(false);
 
     // Check blockchain + IPFS status when successData is set
     useEffect(() => {
@@ -949,48 +949,50 @@ const NewIssuance = () => {
                     </div>
 
                     {/* AI Data Extraction Toggle */}
-                    <div className={`flex items-center justify-between rounded-lg p-4 border transition-colors duration-200 ${
-                        aiEnabled
-                            ? 'bg-blue-chill-50 border-blue-chill-200'
-                            : 'bg-gray-50 border-gray-200'
-                    }`}>
-                        <div className="flex items-center space-x-3">
-                            <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-200 ${
-                                aiEnabled ? 'bg-blue-chill-100 text-blue-chill-700' : 'bg-gray-200 text-gray-400'
-                            }`}>
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 00.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M19 14.5l-2.47 4.518a2.252 2.252 0 01-1.987 1.232H9.457a2.252 2.252 0 01-1.987-1.232L5 14.5m14 0H5" />
-                                </svg>
-                            </div>
-                            <div>
-                                <p className={`text-sm font-semibold transition-colors duration-200 ${
-                                    aiEnabled ? 'text-gray-800' : 'text-gray-500'
-                                }`}>AI Data Extraction</p>
-                                <p className="text-xs text-gray-500">
-                                    {aiEnabled
-                                        ? 'AI will analyze your certificate for skills, NSQF level & metadata before issuance.'
-                                        : 'Certificate will be issued directly without AI analysis.'
-                                    }
-                                </p>
-                            </div>
-                        </div>
-                        <button
-                            type="button"
-                            role="switch"
-                            aria-checked={aiEnabled}
-                            onClick={() => setAiEnabled(!aiEnabled)}
-                            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:ring-offset-2 ${
-                                aiEnabled ? 'bg-blue-chill-600' : 'bg-gray-300'
-                            }`}
-                        >
-                            <span className="sr-only">Toggle AI Data Extraction</span>
-                            <span
-                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                    aiEnabled ? 'translate-x-5' : 'translate-x-0'
-                                }`}
-                            />
-                        </button>
-                    </div>
+                    {/*TODO: if time then add ai*/}
+
+                    {/*<div className={`flex items-center justify-between rounded-lg p-4 border transition-colors duration-200 ${*/}
+                    {/*    aiEnabled*/}
+                    {/*        ? 'bg-blue-chill-50 border-blue-chill-200'*/}
+                    {/*        : 'bg-gray-50 border-gray-200'*/}
+                    {/*}`}>*/}
+                    {/*    <div className="flex items-center space-x-3">*/}
+                    {/*        <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-200 ${*/}
+                    {/*            aiEnabled ? 'bg-blue-chill-100 text-blue-chill-700' : 'bg-gray-200 text-gray-400'*/}
+                    {/*        }`}>*/}
+                    {/*            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">*/}
+                    {/*                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 00.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M19 14.5l-2.47 4.518a2.252 2.252 0 01-1.987 1.232H9.457a2.252 2.252 0 01-1.987-1.232L5 14.5m14 0H5" />*/}
+                    {/*            </svg>*/}
+                    {/*        </div>*/}
+                    {/*        <div>*/}
+                    {/*            <p className={`text-sm font-semibold transition-colors duration-200 ${*/}
+                    {/*                aiEnabled ? 'text-gray-800' : 'text-gray-500'*/}
+                    {/*            }`}>AI Data Extraction</p>*/}
+                    {/*            <p className="text-xs text-gray-500">*/}
+                    {/*                {aiEnabled*/}
+                    {/*                    ? 'AI will analyze your certificate for skills, NSQF level & metadata before issuance.'*/}
+                    {/*                    : 'Certificate will be issued directly without AI analysis.'*/}
+                    {/*                }*/}
+                    {/*            </p>*/}
+                    {/*        </div>*/}
+                    {/*    </div>*/}
+                    {/*    <button*/}
+                    {/*        type="button"*/}
+                    {/*        role="switch"*/}
+                    {/*        aria-checked={aiEnabled}*/}
+                    {/*        onClick={() => setAiEnabled(!aiEnabled)}*/}
+                    {/*        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-chill-500 focus:ring-offset-2 ${*/}
+                    {/*            aiEnabled ? 'bg-blue-chill-600' : 'bg-gray-300'*/}
+                    {/*        }`}*/}
+                    {/*    >*/}
+                    {/*        <span className="sr-only">Toggle AI Data Extraction</span>*/}
+                    {/*        <span*/}
+                    {/*            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${*/}
+                    {/*                aiEnabled ? 'translate-x-5' : 'translate-x-0'*/}
+                    {/*            }`}*/}
+                    {/*        />*/}
+                    {/*    </button>*/}
+                    {/*</div>*/}
 
                     <button type="submit" disabled={loading} className="w-full bg-blue-chill-600 text-white p-3 rounded-lg font-bold shadow-lg hover:bg-blue-chill-700 transition duration-200 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed">
                         {loading ? (

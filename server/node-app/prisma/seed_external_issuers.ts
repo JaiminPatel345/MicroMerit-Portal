@@ -1,3 +1,9 @@
+// EXTERNAL SYNC REMOVED
+// This seed file created connector/external issuers (NSDC, Udemy, etc.)
+// for the now-removed external sync feature. Kept for reference only.
+// Do NOT run this seed — all issuers are now platform-registered only.
+
+/*
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -69,3 +75,4 @@ main()
     .finally(async () => {
         await prisma.$disconnect();
     });
+*/

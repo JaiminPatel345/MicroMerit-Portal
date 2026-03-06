@@ -6,9 +6,11 @@
  * the Node.js process without any external queue dependency.
  *
  * Processing order (per credential):
- *   1. Upload raw PDF to IPFS → update DB (pdf_url available to user immediately)
- *   2. Write to blockchain → update DB (tx_hash + blockchain_status: confirmed)
- *   3. Embed tx_hash into PDF metadata → re-upload enriched PDF → update DB
+ *   1. Write to blockchain → get tx_hash
+ *   2. Embed tx_hash into PDF metadata → upload enriched PDF to IPFS
+ *
+ * This ensures any PDF accessible on IPFS always contains tx_hash in
+ * its metadata. No CID is stored inside the PDF metadata.
  */
 
 import { logger } from '../utils/logger';
@@ -84,9 +86,10 @@ async function callBlockchainWrite(
 /**
  * Core async background processor — runs entirely outside the HTTP request lifecycle.
  *
- * Step 1: Upload raw PDF to IPFS first so pdf_url is available to the user ASAP.
- * Step 2: Write to blockchain.
- * Step 3: Embed tx_hash into PDF metadata and re-upload enriched version.
+ * Step 1: Write to blockchain → get tx_hash.
+ * Step 2: Embed tx_hash into PDF metadata → upload enriched PDF to IPFS.
+ *
+ * This order ensures every PDF on IPFS always contains a valid tx_hash.
  */
 async function processCredentialAsync(data: BlockchainJobData): Promise<void> {
     const {
@@ -108,63 +111,22 @@ async function processCredentialAsync(data: BlockchainJobData): Promise<void> {
     });
 
     // =========================================================================
-    // STEP 1: Upload raw PDF to IPFS immediately — gives user access to the PDF
-    //         before blockchain confirmation.
-    // =========================================================================
-    let rawCid: string | null = null;
-    let rawPdfUrl: string | null = null;
-
-    if (original_pdf_base64 && pdf_filename) {
-        try {
-            logger.info('[Background] Step 1 — uploading raw PDF to IPFS', { credential_id, pdf_filename });
-
-            const rawPdf = Buffer.from(original_pdf_base64, 'base64');
-            const contentType = pdf_content_type || 'application/pdf';
-
-            const ipfsResult = await uploadToFilebase(rawPdf, pdf_filename, contentType);
-            rawCid = ipfsResult.cid;
-            rawPdfUrl = ipfsResult.gateway_url;
-
-            // Update DB so the user can access the PDF right away
-            await credentialIssuanceRepository.updateCredentialFields(credential_id, {
-                ipfs_cid: rawCid,
-                pdf_url: rawPdfUrl,
-            });
-
-            logger.info('[Background] Step 1 ✓ — raw PDF uploaded, pdf_url now available', {
-                credential_id,
-                ipfs_cid: rawCid,
-            });
-        } catch (err: any) {
-            logger.error('[Background] Step 1 ✗ — PDF upload failed (continuing to blockchain)', {
-                credential_id,
-                error: err.message,
-                stack: err.stack,
-            });
-        }
-    } else {
-        logger.warn('[Background] Step 1 — skipped (no pdf_base64 or filename)', {
-            credential_id,
-            has_pdf_base64: !!original_pdf_base64,
-            has_pdf_filename: !!pdf_filename,
-        });
-    }
-
-    // =========================================================================
-    // STEP 2: Write to blockchain
+    // STEP 1: Write to blockchain first — get tx_hash before any IPFS upload
     // =========================================================================
     let txHash: string | null = null;
 
     try {
-        const effectiveIpfsCid = rawCid || initialIpfsCid || 'pending-issuance';
+        // Use a placeholder CID since the enriched PDF hasn't been uploaded yet.
+        // The real CID will be stored in the DB after IPFS upload in Step 2.
+        const placeholderCid = initialIpfsCid || 'pending-upload';
 
-        logger.info('[Background] Step 2 — writing to blockchain', {
+        logger.info('[Background] Step 1 — writing to blockchain', {
             credential_id,
-            effectiveIpfsCid,
+            placeholderCid,
             mock_mode: process.env.BLOCKCHAIN_MOCK_ENABLED === 'true',
         });
 
-        const result = await callBlockchainWrite(credential_id, data_hash, effectiveIpfsCid);
+        const result = await callBlockchainWrite(credential_id, data_hash, placeholderCid);
         txHash = result.tx_hash;
 
         await credentialIssuanceRepository.updateCredential(credential_id, {
@@ -172,12 +134,12 @@ async function processCredentialAsync(data: BlockchainJobData): Promise<void> {
             metadata: { blockchain_status: 'confirmed' },
         });
 
-        logger.info('[Background] Step 2 ✓ — blockchain write confirmed', {
+        logger.info('[Background] Step 1 ✓ — blockchain write confirmed', {
             credential_id,
             tx_hash: txHash,
         });
     } catch (err: any) {
-        logger.error('[Background] Step 2 ✗ — blockchain write failed', {
+        logger.error('[Background] Step 1 ✗ — blockchain write failed', {
             credential_id,
             error: err.message,
             stack: err.stack,
@@ -188,23 +150,28 @@ async function processCredentialAsync(data: BlockchainJobData): Promise<void> {
                 metadata: {
                     blockchain_status: 'failed',
                     blockchain_error: err.message,
+                    ipfs_status: 'failed',
                 },
             });
         } catch (dbErr: any) {
-            logger.error('[Background] Step 2 — DB status update also failed', {
+            logger.error('[Background] Step 1 — DB status update also failed', {
                 credential_id,
                 error: dbErr.message,
             });
         }
+
+        // Cannot proceed without tx_hash — abort
+        logger.info('[Background] ■ Credential processing aborted (no tx_hash)', { credential_id });
+        return;
     }
 
     // =========================================================================
-    // STEP 3: If blockchain write succeeded, embed tx_hash into PDF metadata
-    //         and re-upload the enriched version to IPFS.
+    // STEP 2: Embed tx_hash into PDF metadata and upload enriched PDF to IPFS.
+    //         This is the ONLY IPFS upload — so any PDF on IPFS always has tx_hash.
     // =========================================================================
-    if (txHash && original_pdf_base64 && canonical_json && checksum) {
+    if (original_pdf_base64 && canonical_json && checksum) {
         try {
-            logger.info('[Background] Step 3 — embedding tx_hash into PDF and re-uploading', {
+            logger.info('[Background] Step 2 — embedding tx_hash into PDF and uploading to IPFS', {
                 credential_id,
                 tx_hash: txHash,
             });
@@ -212,7 +179,7 @@ async function processCredentialAsync(data: BlockchainJobData): Promise<void> {
             const rawPdf = Buffer.from(original_pdf_base64, 'base64');
             const enrichedPdf = await embedPdfMetadata(rawPdf, {
                 canonical_json,
-                tx_hash: txHash,
+                tx_hash: txHash!,
                 checksum,
             });
 
@@ -228,51 +195,47 @@ async function processCredentialAsync(data: BlockchainJobData): Promise<void> {
                 pdf_url: ipfsResult.gateway_url,
             });
 
-            logger.info('[Background] Step 3 ✓ — enriched PDF uploaded to IPFS', {
+            logger.info('[Background] Step 2 ✓ — enriched PDF uploaded to IPFS', {
                 credential_id,
                 ipfs_cid: ipfsResult.cid,
             });
         } catch (err: any) {
-            logger.error('[Background] Step 3 ✗ — enriched PDF upload failed (raw PDF still available)', {
+            logger.error('[Background] Step 2 ✗ — PDF embed/upload failed', {
                 credential_id,
                 error: err.message,
+                stack: err.stack,
             });
 
-            // Keep the raw PDF URL from step 1; mark ipfs as failed
             try {
                 await credentialIssuanceRepository.updateCredential(credential_id, {
                     metadata: { ipfs_status: 'failed', ipfs_error: err.message },
                 });
             } catch (dbErr: any) {
-                logger.error('[Background] Step 3 — DB ipfs_status update failed', {
-                    credential_id,
-                    error: dbErr.message,
-                });
-            }
-        }
-    } else if (!txHash) {
-        // Blockchain failed — can't embed tx_hash
-        // If raw PDF was uploaded in step 1, mark ipfs as 'pending' (not failed)
-        // so a retry can be triggered later. If no PDF at all, mark failed.
-        if (!rawCid) {
-            try {
-                await credentialIssuanceRepository.updateCredential(credential_id, {
-                    metadata: { ipfs_status: 'failed' },
-                });
-            } catch (dbErr: any) {
-                logger.error('[Background] IPFS failed status update failed', {
+                logger.error('[Background] Step 2 — DB ipfs_status update failed', {
                     credential_id,
                     error: dbErr.message,
                 });
             }
         }
     } else {
-        logger.warn('[Background] Step 3 — skipped (missing pdf_base64/canonical_json/checksum)', {
+        logger.warn('[Background] Step 2 — skipped (missing pdf_base64/canonical_json/checksum)', {
             credential_id,
             has_pdf: !!original_pdf_base64,
             has_canonical: !!canonical_json,
             has_checksum: !!checksum,
         });
+
+        // No PDF to upload — mark ipfs as failed
+        try {
+            await credentialIssuanceRepository.updateCredential(credential_id, {
+                metadata: { ipfs_status: 'failed' },
+            });
+        } catch (dbErr: any) {
+            logger.error('[Background] IPFS failed status update failed', {
+                credential_id,
+                error: dbErr.message,
+            });
+        }
     }
 
     logger.info('[Background] ■ Credential processing complete', { credential_id });

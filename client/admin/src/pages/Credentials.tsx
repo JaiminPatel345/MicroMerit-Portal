@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useAppSelector } from '../store/hooks';
 import axiosInstance from '../api/axiosInstance';
+import toast from 'react-hot-toast';
+// External sync removed — credentials page shows all platform credentials
+// import { useAppSelector } from '../store/hooks';
 
 interface Credential {
     id: string;
@@ -24,7 +26,8 @@ interface Credential {
 }
 
 const Credentials = () => {
-    const { viewMode } = useAppSelector((state) => state.externalSync);
+    // viewMode removed — no external sync concept, always show all platform credentials
+    // const { viewMode } = useAppSelector((state) => state.externalSync);
     const [credentials, setCredentials] = useState<Credential[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [stats, setStats] = useState({
@@ -37,13 +40,16 @@ const Credentials = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [deleteTarget, setDeleteTarget] = useState<Credential | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     const fetchCredentials = async () => {
         setLoading(true);
         setError(null);
         try {
             const params = new URLSearchParams();
-            params.append('source', viewMode);
+            // No source filter — fetch all platform credentials
+            // params.append('source', viewMode); // removed: was sending 'connector' and returning 0 results
             params.append('limit', '50');
 
             const response = await axiosInstance.get(`/admin/credentials?${params.toString()}`);
@@ -106,7 +112,23 @@ const Credentials = () => {
 
     useEffect(() => {
         fetchCredentials();
-    }, [viewMode]);
+    }, []); // No viewMode dependency — always fetch all
+
+    const handleDeleteConfirm = async () => {
+        if (!deleteTarget) return;
+        setDeleteLoading(true);
+        try {
+            await axiosInstance.delete(`/admin/credentials/${deleteTarget.id}`);
+            setCredentials((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+            setTotalCount((prev) => prev - 1);
+            toast.success(`Credential "${deleteTarget.certificate_title}" deleted`);
+            setDeleteTarget(null);
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to delete credential');
+        } finally {
+            setDeleteLoading(false);
+        }
+    };
 
     const filteredCredentials = credentials.filter((cred) => {
         const title = cred.certificate_title?.toLowerCase() || '';
@@ -141,18 +163,13 @@ const Credentials = () => {
     };
 
     return (
+        <>
         <div className="space-y-6">
             {/* Page Header */}
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">
-                        {viewMode === 'connector' ? 'External Credentials' : 'Platform Credentials'}
-                    </h1>
-                    <p className="mt-1 text-gray-500">
-                        {viewMode === 'connector'
-                            ? 'Credentials synced from external providers'
-                            : 'Credentials issued by platform issuers'}
-                    </p>
+                    <h1 className="text-2xl font-bold text-gray-900">Platform Credentials</h1>
+                    <p className="mt-1 text-gray-500">All credentials issued by platform issuers</p>
                 </div>
                 <button
                     onClick={fetchCredentials}
@@ -280,11 +297,7 @@ const Credentials = () => {
                             </svg>
                         </div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-1">No credentials found</h3>
-                        <p className="text-gray-500">
-                            {viewMode === 'connector'
-                                ? 'Trigger a sync from the Issuers page to fetch credentials'
-                                : 'No credentials have been issued by platform issuers yet'}
-                        </p>
+                        <p className="text-gray-500">No credentials have been issued by platform issuers yet</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
@@ -297,6 +310,7 @@ const Credentials = () => {
                                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Issued</th>
                                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Blockchain</th>
+                                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-100">
@@ -350,18 +364,98 @@ const Credentials = () => {
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                     </svg>
                                                     <span className="text-xs font-medium">Pending</span>
-                                                </span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                {/* Delete Action */}
+                                                <td className="px-6 py-4 text-center">
+                                                    <button
+                                                        onClick={() => setDeleteTarget(cred)}
+                                                        className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                        title="Delete credential"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
                             </tbody>
                         </table>
                     </div>
                 )}
             </div>
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {deleteTarget && (
+            <div className="fixed inset-0 z-50 overflow-y-auto">
+                <div className="flex items-center justify-center min-h-screen px-4">
+                    {/* Backdrop */}
+                    <div
+                        className="fixed inset-0 bg-gray-500 bg-opacity-75 backdrop-blur-sm transition-opacity"
+                        onClick={() => !deleteLoading && setDeleteTarget(null)}
+                    />
+
+                    {/* Modal */}
+                    <div className="relative bg-white rounded-xl shadow-2xl p-6 max-w-md w-full border border-gray-100 z-10">
+                        {/* Icon */}
+                        <div className="flex items-center justify-center w-14 h-14 bg-red-100 rounded-full mx-auto mb-4">
+                            <svg className="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </div>
+
+                        <h3 className="text-lg font-bold text-gray-900 text-center mb-2">Delete Credential</h3>
+                        <p className="text-sm text-gray-500 text-center mb-1">
+                            Are you sure you want to permanently delete:
+                        </p>
+                        <p className="text-sm font-semibold text-gray-800 text-center mb-1">
+                            &ldquo;{deleteTarget!.certificate_title}&rdquo;
+                        </p>
+                        <p className="text-xs text-gray-400 text-center mb-6">
+                            Issued to: {deleteTarget!.learner_email}
+                        </p>
+                        <p className="text-xs text-red-500 text-center mb-6 font-medium">
+                            ⚠ This action cannot be undone.
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setDeleteTarget(null)}
+                                disabled={deleteLoading}
+                                className="flex-1 py-2 px-4 border border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-all disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteConfirm}
+                                disabled={deleteLoading}
+                                className="flex-1 py-2 px-4 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {deleteLoading ? (
+                                    <>
+                                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        Delete
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+        </>
     );
 };
 
 export default Credentials;
+

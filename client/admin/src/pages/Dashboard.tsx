@@ -2,16 +2,19 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks.ts';
 import { fetchIssuers } from '../store/issuerSlice.ts';
-import { fetchSyncStatus } from '../store/externalSyncSlice.ts';
+// External sync removed — admin only manages platform issuers
+// import { fetchSyncStatus } from '../store/externalSyncSlice.ts';
 
 const Dashboard = () => {
     const dispatch = useAppDispatch();
     const { issuers, loading } = useAppSelector((state) => state.issuer);
-    const { viewMode } = useAppSelector((state) => state.externalSync);
+    // viewMode removed — no connector/external sync concept
+    // const { viewMode } = useAppSelector((state) => state.externalSync);
 
     useEffect(() => {
-        dispatch(fetchIssuers());
-        dispatch(fetchSyncStatus());
+        // Fetch only platform issuers for dashboard counts
+        dispatch(fetchIssuers({ source: 'platform' }));
+        // dispatch(fetchSyncStatus()); // External sync removed
     }, [dispatch]);
 
     const stats = {
@@ -61,12 +64,7 @@ const Dashboard = () => {
                     <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
                     <p className="mt-1 text-gray-500">Overview of platform management</p>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <span className="font-medium">Mode:</span>
-                    <span className={`px-2 py-1 rounded-md font-medium ${viewMode === 'connector' ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-700'}`}>
-                        {viewMode === 'connector' ? 'Connectors' : 'Platform'}
-                    </span>
-                </div>
+                {/* Mode badge removed — admin only shows platform issuers */}
             </div>
 
 
@@ -125,10 +123,10 @@ const Dashboard = () => {
                     <Link to="/issuers" className="flex flex-col items-center p-4 rounded-xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50 transition-all group">
                         <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                             <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                         </div>
-                        <span className="text-sm font-medium text-gray-700">Manage Connectors</span>
+                        <span className="text-sm font-medium text-gray-700">Manage Issuers</span>
                     </Link>
                 </div>
             </div>

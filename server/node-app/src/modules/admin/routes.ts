@@ -113,5 +113,12 @@ resourceRouter.get(
   asyncHandler(adminController.listCredentials.bind(adminController))
 );
 
+resourceRouter.delete(
+  '/credentials/:id',
+  authenticateToken,
+  requireAdmin,
+  asyncHandler(adminController.deleteCredential.bind(adminController))
+);
+
 export { authRouter as adminAuthRoutes, resourceRouter as adminResourceRoutes };
 export default authRouter; // Default export for backward compatibility

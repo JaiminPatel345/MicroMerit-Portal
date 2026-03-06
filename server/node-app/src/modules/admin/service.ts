@@ -425,6 +425,25 @@ export class AdminService {
       },
     };
   }
+
+  /**
+   * Delete a credential by ID (admin only)
+   */
+  async deleteCredential(credentialId: string): Promise<void> {
+    const existing = await prisma.credential.findUnique({
+      where: { id: credentialId },
+    });
+
+    if (!existing) {
+      throw new Error('Credential not found');
+    }
+
+    await prisma.credential.delete({
+      where: { id: credentialId },
+    });
+
+    logger.info('Credential deleted by admin', { credentialId });
+  }
 }
 
 export const adminService = new AdminService();

@@ -2,14 +2,16 @@ import { useEffect } from 'react';
 import { Outlet, useNavigate, NavLink } from 'react-router';
 import { useAppDispatch, useAppSelector } from '../store/hooks.ts';
 import { logout, getProfile } from '../store/authSlice.ts';
-import { setViewMode, fetchSyncStatus } from '../store/externalSyncSlice.ts';
+// External sync removed — admin only manages platform issuers
+// import { setViewMode, fetchSyncStatus } from '../store/externalSyncSlice.ts';
 import { APP_NAME } from '../config/appConfig';
 
 const Layout = () => {
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
     const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-    const { viewMode, syncStatus } = useAppSelector((state) => state.externalSync);
+    // viewMode / syncStatus removed — no connector toggle needed
+    // const { viewMode, syncStatus } = useAppSelector((state) => state.externalSync);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -19,19 +21,20 @@ const Layout = () => {
         }
     }, [isAuthenticated, user, dispatch, navigate]);
 
-    useEffect(() => {
-        // Fetch sync status on load
-        dispatch(fetchSyncStatus());
-    }, [dispatch]);
+    // External sync status fetch removed
+    // useEffect(() => {
+    //     dispatch(fetchSyncStatus());
+    // }, [dispatch]);
 
     const handleLogout = () => {
         dispatch(logout());
         navigate('/login');
     };
 
-    const handleModeToggle = (mode: 'connector' | 'platform') => {
-        dispatch(setViewMode(mode));
-    };
+    // Mode toggle removed — only platform issuers exist in admin
+    // const handleModeToggle = (mode: 'connector' | 'platform') => {
+    //     dispatch(setViewMode(mode));
+    // };
 
     if (!isAuthenticated) {
         return null;
@@ -84,40 +87,16 @@ const Layout = () => {
                             ))}
                         </nav>
 
-                        {/* Mode Toggle & User Menu */}
-                        <div className="flex items-center space-x-4">
-                            {/* Connector/Platform Toggle */}
-                            <div className="flex bg-gray-100 rounded-lg p-0.5">
-                                <button
-                                    onClick={() => handleModeToggle('connector')}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${viewMode === 'connector'
-                                            ? 'bg-primary-600 text-white shadow-sm'
-                                            : 'text-gray-600 hover:text-gray-900'
-                                        }`}
-                                >
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                    </svg>
-                                    Connectors
-                                    {syncStatus?.scheduler.running && (
-                                        <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={() => handleModeToggle('platform')}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${viewMode === 'platform'
-                                            ? 'bg-primary-600 text-white shadow-sm'
-                                            : 'text-gray-600 hover:text-gray-900'
-                                        }`}
-                                >
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                    </svg>
-                                    Platform
-                                </button>
-                            </div>
+                        {/* Mode Toggle removed — admin only manages platform issuers */}
+                        {/* 
+                        <div className="flex bg-gray-100 rounded-lg p-0.5">
+                            <button onClick={() => handleModeToggle('connector')} ...>Connectors</button>
+                            <button onClick={() => handleModeToggle('platform')} ...>Platform</button>
+                        </div>
+                        */}
 
-                            {/* User Info */}
+                        {/* User Info */}
+                        <div className="flex items-center space-x-4">
                             <div className="hidden sm:flex items-center gap-3 pl-4 border-l border-gray-200">
                                 <div className="text-right">
                                     <p className="text-sm font-medium text-gray-900">{user?.email}</p>
