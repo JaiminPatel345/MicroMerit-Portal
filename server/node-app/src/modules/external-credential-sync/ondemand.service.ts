@@ -329,6 +329,8 @@ export class OnDemandCertService {
       original_pdf_filename:   filename,
       mimetype:                'application/pdf',
       issuer_name_override:    issuerNameOverride,
+      // Skip OCR for Credly: badge image PDFs yield no meaningful text for AI
+      skip_ai:                 connector.id === 'credly',
     });
 
     logger.info(`[OnDemand][${connector.id}] Credential issued`, {

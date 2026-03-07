@@ -161,8 +161,16 @@ const jaiminPrivateConnector: OnDemandConnector = {
 // ─────────────────────────────────────────────────────────────────────────────
 // Credly Connector (REAL PUBLIC API — no auth required)
 //
-// Badge assertion endpoint:
+// OBI v2 Badge Assertion endpoint:
 //   GET https://api.credly.com/v1/obi/v2/badge_assertions/{UUID}
+//
+//   The assertion response contains `badge` as a URL (not inline).
+//   We must follow that URL to fetch the BadgeClass which has:
+//     - name (badge title e.g. "The Basics of Google Cloud Compute Skill Badge")
+//     - description
+//     - image.id (badge image PNG URL)
+//     - tags (skills)
+//     - issuer.name (org name e.g. "Google Cloud")
 //
 // UUID = the badge UUID from a Credly badge URL:
 //   https://www.credly.com/badges/{UUID}
@@ -171,12 +179,15 @@ const jaiminPrivateConnector: OnDemandConnector = {
 //   Compare sha256(loggedInEmail.toLowerCase()) to the hash.
 //
 // NOTE: Credly returns JSON metadata only (no PDF).
-//   The onDemandCertService will generate a PDF from the metadata.
+//   The onDemandCertService generates a PDF from the badge image.
+//
+// DB: Credly issuer ID = 2 (hardcoded fallback, env: CREDLY_ISSUER_ID)
 // ─────────────────────────────────────────────────────────────────────────────
 const credlyConnector: OnDemandConnector = {
   id: 'credly',
   name: 'Credly',
-  issuerId: parseInt(process.env.CREDLY_ISSUER_ID || '0', 10),
+  // Hardcoded fallback=2 — Credly issuer (ID=2) was inserted manually into DB.
+  issuerId: parseInt(process.env.CREDLY_ISSUER_ID || '2', 10),
 
   buildUrl(credentialId) {
     // credentialId = the badge UUID from a Credly badge URL
@@ -184,24 +195,37 @@ const credlyConnector: OnDemandConnector = {
   },
 
   normalize(rawData) {
-    // rawData = the raw OBI v2 badge assertion response
-    const issued = rawData.issuedOn || rawData.issued_on || '';
-    const badgeClass = rawData.badge || rawData.badgeClass || {};
+    // rawData = { assertion, badgeClass } — both fetched by fetchFromExternalIssuer (2-step)
+    const assertion = rawData.assertion;
+    const badgeClass = rawData.badgeClass || {};
+
+    const issued = assertion.issuedOn || assertion.issued_on || '';
     const issuerOrg = badgeClass.issuer || {};
+
+    // Badge image: OBI v2 returns image as { id: "url" } or a plain string
+    const imageId = typeof badgeClass.image === 'object'
+      ? (badgeClass.image?.id || '')
+      : (badgeClass.image || '');
+
+    // Skills/tags array from badge class
+    const skills: string[] = badgeClass.tags || [];
+
+    // Issuer org name (e.g. "Google Cloud"), falls back to "Credly"
+    const issuerOrgName = issuerOrg.name || 'Credly';
 
     return {
       learner_email:  '', // Not available in plain text — verified via hash
-      learner_name:   rawData.recipientProfile?.name || rawData.recipient_profile?.name || '',
+      learner_name:   assertion.recipientProfile?.name || assertion.recipient_profile?.name || '',
       title:          badgeClass.name || 'Credly Badge',
       issued_date:    typeof issued === 'string' ? issued.substring(0, 10) : String(issued),
       description:    badgeClass.description || '',
-      // No pdf_base64 — service will generate PDF from metadata
-      issuer_name:    issuerOrg.name || 'Credly Partner',
-      external_id:    rawData.uid || rawData.id || '',
+      // No pdf_base64 — service generates PDF from badge image
+      issuer_name:    issuerOrgName,
+      external_id:    assertion.uid || (typeof assertion.id === 'string' ? assertion.id : '') || '',
       extra: {
-        badge_image_url: badgeClass.image?.id || badgeClass.image || '',
-        skills: (badgeClass.alignment || []).map((a: any) => a.targetTitle || a.targetName || '').filter(Boolean),
-        credly_badge_url: rawData.id || '',
+        badge_image_url: imageId,
+        skills,
+        credly_badge_url: typeof assertion.id === 'string' ? assertion.id : '',
       },
       raw_data: rawData,
     };
@@ -209,7 +233,8 @@ const credlyConnector: OnDemandConnector = {
 
   verify(rawData, loggedInEmail) {
     // Credly stores hashed email: "sha256$<hex-hash>"
-    const identity: string = rawData?.recipient?.identity || rawData?.recipientProfile?.identity || '';
+    const assertion = rawData.assertion || rawData;
+    const identity: string = assertion?.recipient?.identity || assertion?.recipientProfile?.identity || '';
     if (!identity.startsWith('sha256$')) {
       logger.warn('[Credly] recipient.identity is not a sha256 hash — cannot verify', { identity });
       return false;
@@ -259,69 +284,106 @@ export function getOnDemandConnectorById(id: string): OnDemandConnector | undefi
 
 /**
  * Fetch a credential from an external issuer endpoint and return the raw JSON response.
- * For Credly (and other native REST APIs), the response is the direct object (no .success wrapper).
- * For dummy issuers, the response has { success: true, data: {...} }.
+ *
+ * For Credly:
+ *   Step 1 — Fetch the OBI v2 badge assertion (contains `badge` as a URL, not inline)
+ *   Step 2 — Fetch the badge class from that URL to get name/image/issuer/tags
+ *   Returns: { assertion, badgeClass }
+ *
+ * For dummy issuers:
+ *   Response has { success: true, data: {...} } — returned as-is.
  */
 export async function fetchFromExternalIssuer(connector: OnDemandConnector, credentialId: string): Promise<any> {
   const url = connector.buildUrl(credentialId);
   logger.info(`[OnDemand][${connector.id}] Fetching credential`, { url, credentialId });
 
-  try {
-    const response = await axios.get(url, { timeout: 15000 });
-    // Credly and native OBI APIs return the object directly (no success wrapper)
-    // Dummy issuers return { success: true, data: {...} }
-    return response.data;
-  } catch (err: any) {
-    if (axios.isAxiosError(err) && err.response) {
-      const status = err.response.status;
-      if (status === 404) {
-        throw new NotFoundError(
-          `Credential "${credentialId}" was not found on ${connector.name}. Please check the credential ID and try again.`,
-          404,
-          'CREDENTIAL_NOT_FOUND'
-        );
+  const fetchWithErrors = async (fetchUrl: string, label: string): Promise<any> => {
+    try {
+      const response = await axios.get(fetchUrl, { timeout: 15000 });
+      return response.data;
+    } catch (err: any) {
+      if (axios.isAxiosError(err) && err.response) {
+        const status = err.response.status;
+        if (status === 404) {
+          throw new NotFoundError(
+            `Credential "${credentialId}" was not found on ${connector.name}. Please check the credential ID and try again.`,
+            404,
+            'CREDENTIAL_NOT_FOUND'
+          );
+        }
+        if (status === 403 || status === 401) {
+          throw new ForbiddenError(
+            `Access denied by ${connector.name}. The credential may be private or the ID may be incorrect.`,
+            403,
+            'CREDENTIAL_ACCESS_DENIED'
+          );
+        }
+        if (status === 400) {
+          throw new ValidationError(
+            `Invalid credential ID format for ${connector.name}. Please verify the ID and try again.`,
+            400,
+            'INVALID_CREDENTIAL_ID'
+          );
+        }
+        if (status === 429) {
+          throw new ValidationError(
+            `${connector.name} is rate-limiting requests. Please wait a moment and try again.`,
+            429,
+            'RATE_LIMITED'
+          );
+        }
+        if (status >= 500) {
+          throw new ValidationError(
+            `${connector.name} is temporarily unavailable (server error). Please try again later.`,
+            502,
+            'EXTERNAL_ISSUER_UNAVAILABLE'
+          );
+        }
       }
-      if (status === 403 || status === 401) {
-        throw new ForbiddenError(
-          `Access denied by ${connector.name}. The credential may be private or the ID may be incorrect.`,
-          403,
-          'CREDENTIAL_ACCESS_DENIED'
-        );
-      }
-      if (status === 400) {
+      if (axios.isAxiosError(err) && err.code === 'ECONNABORTED') {
         throw new ValidationError(
-          `Invalid credential ID format for ${connector.name}. Please verify the ID and try again.`,
-          400,
-          'INVALID_CREDENTIAL_ID'
+          `Request to ${connector.name} timed out. Please try again later.`,
+          504,
+          'EXTERNAL_ISSUER_TIMEOUT'
         );
       }
-      if (status === 429) {
-        throw new ValidationError(
-          `${connector.name} is rate-limiting requests. Please wait a moment and try again.`,
-          429,
-          'RATE_LIMITED'
-        );
-      }
-      if (status >= 500) {
-        throw new ValidationError(
-          `${connector.name} is temporarily unavailable (server error). Please try again later.`,
-          502,
-          'EXTERNAL_ISSUER_UNAVAILABLE'
-        );
-      }
-    }
-    // Network/timeout errors
-    if (axios.isAxiosError(err) && err.code === 'ECONNABORTED') {
       throw new ValidationError(
-        `Request to ${connector.name} timed out. Please try again later.`,
-        504,
-        'EXTERNAL_ISSUER_TIMEOUT'
+        `Failed to reach ${connector.name} (${label}). Please check your connection and try again.`,
+        502,
+        'EXTERNAL_ISSUER_UNREACHABLE'
       );
     }
-    throw new ValidationError(
-      `Failed to reach ${connector.name}. Please check your connection and try again.`,
-      502,
-      'EXTERNAL_ISSUER_UNREACHABLE'
-    );
+  };
+
+  // ── Credly: 2-step OBI v2 fetch ──────────────────────────────────────────
+  if (connector.id === 'credly') {
+    // Step 1: fetch assertion (badge field is a URL, not inline)
+    const assertion = await fetchWithErrors(url, 'assertion');
+    logger.info(`[OnDemand][credly] Assertion fetched`, { issuedOn: assertion.issuedOn });
+
+    // Step 2: fetch badge class from the URL inside assertion.badge
+    const badgeClassUrl: string = typeof assertion.badge === 'string'
+      ? assertion.badge
+      : (assertion.badge?.id || '');
+
+    if (!badgeClassUrl) {
+      throw new ValidationError(
+        'Credly badge assertion did not include a badge class URL. Cannot retrieve badge details.',
+        502,
+        'CREDLY_MISSING_BADGE_CLASS_URL'
+      );
+    }
+
+    logger.info(`[OnDemand][credly] Fetching badge class`, { badgeClassUrl });
+    const badgeClass = await fetchWithErrors(badgeClassUrl, 'badge class');
+    logger.info(`[OnDemand][credly] Badge class fetched`, {
+      name: badgeClass.name,
+      issuer: badgeClass.issuer?.name,
+    });
+
+    return { assertion, badgeClass };
   }
+
+  // ── All other (dummy) issuers: single fetch ───────────────────────────────
+  return fetchWithErrors(url, 'credential');
 }
