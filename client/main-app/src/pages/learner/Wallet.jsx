@@ -355,12 +355,12 @@ const CertificateCard = ({ cert }) => {
                         {cert.issuer?.logo_url ? (
                             <img 
                                 src={cert.issuer.logo_url} 
-                                alt={cert.issuer.name}
+                                alt={cert.metadata?.issuer_name || cert.issuer?.name}
                                 className="w-16 h-16 rounded-xl object-contain bg-gray-50 border border-gray-100 p-1"
                             />
                         ) : (
                             <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-chill-50 to-blue-chill-100 flex items-center justify-center text-blue-chill-600 font-bold text-xl border border-blue-chill-100">
-                                {cert.issuer?.name?.charAt(0) || 'C'}
+                                {(cert.metadata?.issuer_name || cert.issuer?.name)?.charAt(0) || 'C'}
                             </div>
                         )}
                     </div>
@@ -374,7 +374,7 @@ const CertificateCard = ({ cert }) => {
                                     {cert.certificate_title}
                                 </h3>
                                 <div className="text-sm text-gray-500 font-medium">
-                                    Issued by {cert.issuer?.name}
+                                    Issued by {cert.metadata?.issuer_name || cert.issuer?.name}
                                 </div>
                              </div>
                              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border ${status.bg} ${status.text} ${status.border}`}>

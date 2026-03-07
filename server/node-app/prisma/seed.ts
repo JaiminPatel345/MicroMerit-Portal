@@ -33,7 +33,7 @@ async function main() {
     { id: 5, name: 'NSQF', email: 'nsqf@example.com', type: 'external' },
     { id: 6, name: 'Udemy', email: 'udemy@example.com', type: 'external' },
     { id: 7, name: 'Jaimin Pvt Ltd', email: 'jaimin@example.com', type: 'external' },
-    { id: 8, name: 'Smart India Hackathon', email: 'sih@example.com', type: 'external' },
+    { id: 8, name: 'Credly', email: 'credly@example.com', type: 'external' },
   ];
 
   for (const issuerData of externalIssuers) {

@@ -163,7 +163,7 @@ const Dashboard = () => {
                                                 </div>
                                                 <div>
                                                     <h3 className="font-semibold text-gray-900">{cert.certificate_title}</h3>
-                                                    <p className="text-sm text-gray-500">Issued by {cert.issuer?.name || 'Unknown Issuer'}</p>
+                                                    <p className="text-sm text-gray-500">Issued by {cert.metadata?.issuer_name || cert.issuer?.name || 'Unknown Issuer'}</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3">

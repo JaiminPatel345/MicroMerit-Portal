@@ -23,10 +23,96 @@ import {
 import { logger } from '../../utils/logger';
 import { NotFoundError, ForbiddenError, ValidationError } from '../../utils/errors';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import axios from 'axios';
+
+/**
+ * Download an image from a URL and return its buffer and detected type.
+ */
+async function downloadImage(url: string): Promise<{ buffer: Buffer; type: 'png' | 'jpg' }> {
+  const response = await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 });
+  const buffer = Buffer.from(response.data);
+  const contentType = (response.headers['content-type'] || '').toLowerCase();
+  const type: 'png' | 'jpg' = contentType.includes('png') ? 'png' : 'jpg';
+  return { buffer, type };
+}
+
+/**
+ * Create a PDF from a badge image (used for Credly and other image-based providers).
+ * Embeds the badge image prominently with credential metadata below it.
+ */
+async function generateImagePdf(cred: OnDemandCredential, imageBuffer: Buffer, imageType: 'png' | 'jpg'): Promise<Buffer> {
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([595, 842]); // A4
+  const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const { width, height } = page.getSize();
+
+  // Embed the image
+  const image = imageType === 'png'
+    ? await pdfDoc.embedPng(imageBuffer)
+    : await pdfDoc.embedJpg(imageBuffer);
+
+  // Scale image to fit nicely (max 400px wide, centered)
+  const imgDims = image.scale(1);
+  const maxWidth = 400;
+  const maxHeight = 400;
+  const scale = Math.min(maxWidth / imgDims.width, maxHeight / imgDims.height, 1);
+  const imgW = imgDims.width * scale;
+  const imgH = imgDims.height * scale;
+
+  // Draw image centered in the upper portion
+  const imgX = (width - imgW) / 2;
+  const imgY = height - imgH - 80;
+  page.drawImage(image, { x: imgX, y: imgY, width: imgW, height: imgH });
+
+  // Credential title below image
+  const titleY = imgY - 40;
+  const titleLines = wrapText(cred.title, 55);
+  titleLines.forEach((line, i) => {
+    const textWidth = font.widthOfTextAtSize(line, 16);
+    page.drawText(line, { x: (width - textWidth) / 2, y: titleY - i * 22, size: 16, font, color: rgb(0.1, 0.1, 0.1) });
+  });
+
+  // Issuer name
+  const issuerY = titleY - titleLines.length * 22 - 15;
+  const issuerText = `Issued by ${cred.issuer_name}`;
+  const issuerTextWidth = fontRegular.widthOfTextAtSize(issuerText, 12);
+  page.drawText(issuerText, { x: (width - issuerTextWidth) / 2, y: issuerY, size: 12, font: fontRegular, color: rgb(0.3, 0.3, 0.3) });
+
+  // Learner name
+  if (cred.learner_name) {
+    const nameY = issuerY - 25;
+    const nameText = `Awarded to: ${cred.learner_name}`;
+    const nameWidth = fontRegular.widthOfTextAtSize(nameText, 12);
+    page.drawText(nameText, { x: (width - nameWidth) / 2, y: nameY, size: 12, font: fontRegular, color: rgb(0.3, 0.3, 0.3) });
+  }
+
+  // Skills (if available)
+  const skills = cred.extra?.skills;
+  if (skills && skills.length > 0) {
+    const skillsY = (cred.learner_name ? issuerY - 50 : issuerY - 25);
+    const skillsText = `Skills: ${skills.slice(0, 6).join(', ')}`;
+    const skillLines = wrapText(skillsText, 80);
+    skillLines.forEach((line, i) => {
+      page.drawText(line, { x: 60, y: skillsY - i * 15, size: 9, font: fontRegular, color: rgb(0.4, 0.4, 0.4) });
+    });
+  }
+
+  // Footer metadata
+  page.drawText(`Credential ID: ${cred.external_id}`, { x: 60, y: 100, size: 9, font: fontRegular, color: rgb(0.5, 0.5, 0.5) });
+  page.drawText(`Issued: ${cred.issued_date}`, { x: 60, y: 85, size: 9, font: fontRegular, color: rgb(0.5, 0.5, 0.5) });
+  if (cred.extra?.credly_badge_url) {
+    page.drawText(`Badge URL: ${cred.extra.credly_badge_url}`, { x: 60, y: 70, size: 8, font: fontRegular, color: rgb(0.45, 0.45, 0.7) });
+  }
+  page.drawText('Verified via MicroMerit Portal', { x: 60, y: 55, size: 9, font: fontRegular, color: rgb(0.5, 0.5, 0.5) });
+
+  const pdfBytes = await pdfDoc.save();
+  return Buffer.from(pdfBytes);
+}
 
 /**
  * Generate a minimal PDF certificate from metadata when external issuer doesn't provide one.
- * Used for Credly and other JSON-only APIs.
+ * Used as last-resort fallback when no image or PDF is available.
  */
 async function generateFallbackPdf(cred: OnDemandCredential): Promise<Buffer> {
   const pdfDoc = await PDFDocument.create();
@@ -190,8 +276,7 @@ export class OnDemandCertService {
     }
 
     // ── Step 5: Get PDF Buffer ────────────────────────────────────────────
-    // If the issuer supplied a base64 PDF, decode it.
-    // Otherwise (e.g. Credly, JSON-only APIs), generate one from metadata.
+    // Priority: 1) issuer-provided base64 PDF  2) badge image → embedded PDF  3) text-only fallback
     let pdfBuffer: Buffer;
     if (normalized.pdf_base64) {
       pdfBuffer = Buffer.from(normalized.pdf_base64, 'base64');
@@ -199,8 +284,21 @@ export class OnDemandCertService {
         throw new ValidationError('Received an empty PDF from the external issuer. Please try again or contact support.', 400, 'EMPTY_PDF');
       }
       logger.info(`[OnDemand][${connector.id}] PDF decoded from base64`, { bytes: pdfBuffer.length });
+    } else if (normalized.extra?.badge_image_url) {
+      // Download badge image and create a proper PDF with the image embedded
+      const imageUrl = normalized.extra.badge_image_url;
+      logger.info(`[OnDemand][${connector.id}] Downloading badge image for PDF`, { imageUrl });
+      try {
+        const { buffer: imageBuffer, type: imageType } = await downloadImage(imageUrl);
+        logger.info(`[OnDemand][${connector.id}] Badge image downloaded`, { bytes: imageBuffer.length, type: imageType });
+        pdfBuffer = await generateImagePdf(normalized, imageBuffer, imageType);
+        logger.info(`[OnDemand][${connector.id}] Image-based PDF generated`, { bytes: pdfBuffer.length });
+      } catch (imgErr: any) {
+        logger.warn(`[OnDemand][${connector.id}] Failed to download badge image, falling back to text PDF`, { error: imgErr.message });
+        pdfBuffer = await generateFallbackPdf(normalized);
+      }
     } else {
-      logger.info(`[OnDemand][${connector.id}] No PDF provided by issuer — generating fallback PDF`);
+      logger.info(`[OnDemand][${connector.id}] No PDF or image provided by issuer — generating fallback PDF`);
       pdfBuffer = await generateFallbackPdf(normalized);
       logger.info(`[OnDemand][${connector.id}] Fallback PDF generated`, { bytes: pdfBuffer.length });
     }
@@ -215,6 +313,13 @@ export class OnDemandCertService {
     // For Credly: learner_email is empty (hash-verified), so we use the logged-in email
     const learnerEmail = normalized.learner_email || logged_in_email;
 
+    // Build display issuer name: for real providers, format as "OrgName | Platform"
+    // e.g. "Google Cloud | Credly" — only when the org name differs from the connector platform name
+    const issuerNameOverride =
+      normalized.issuer_name && normalized.issuer_name !== connector.name
+        ? `${normalized.issuer_name} | ${connector.name}`
+        : connector.name;
+
     const result = await credentialIssuanceService.issueCredential({
       learner_email:           learnerEmail,
       issuer_id,
@@ -223,6 +328,7 @@ export class OnDemandCertService {
       original_pdf:            pdfBuffer,
       original_pdf_filename:   filename,
       mimetype:                'application/pdf',
+      issuer_name_override:    issuerNameOverride,
     });
 
     logger.info(`[OnDemand][${connector.id}] Credential issued`, {
@@ -236,7 +342,7 @@ export class OnDemandCertService {
       credential_id:    result.credential_id,
       title:            normalized.title,
       learner_email:    result.learner_email,
-      issuer_name:      connector.name,
+      issuer_name:      issuerNameOverride,
       issued_at,
       blockchain_status: result.blockchain_status,
       ipfs_status:       result.ipfs_status,

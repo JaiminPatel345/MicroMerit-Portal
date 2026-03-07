@@ -324,7 +324,7 @@ const Home = () => {
                                                 },
                                             );
 
-                                            const issuerName = cert.issuer?.name ||
+                                            const issuerName = cert.metadata?.issuer_name || cert.issuer?.name ||
                                                 'Verified Issuer';
 
                                             return (

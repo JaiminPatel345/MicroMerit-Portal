@@ -102,7 +102,7 @@ const CredentialAdded = () => {
     const ipfsCid    = credential.ipfs_cid;
     const pdfUrl     = credential.pdf_url;
     const credentialId = credential.credential_id || credential.uid;
-    const issuerName = credential.issuer?.name || credential.issuer_name;
+    const issuerName = credential.metadata?.issuer_name || credential.issuer?.name || credential.issuer_name;
     const issuedAt   = credential.issued_at;
 
     return (

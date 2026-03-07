@@ -124,8 +124,8 @@ const LearnerHeader = () => {
             <nav className="hidden lg:flex items-center space-x-6">
               <Link to="/dashboard" className={isActive('/dashboard')}>Dashboard</Link>
               <Link to="/wallet" className={isActive('/wallet')}>Wallet</Link>
-              <Link to="/roadmap" className={isActive('/roadmap')}>Roadmap</Link>
-              <Link to="/skills" className={isActive('/skills')}>Skill Profile</Link>
+              {/* <Link to="/roadmap" className={isActive('/roadmap')}>Roadmap</Link> */}
+              {/* <Link to="/skills" className={isActive('/skills')}>Skill Profile</Link> */}
               <Link to="/verify" className={isActive('/verify')}>Verify</Link>
             </nav>
           </div>
@@ -213,8 +213,8 @@ const LearnerHeader = () => {
 
             <Link to="/dashboard" className="block text-gray-700 py-2">Dashboard</Link>
             <Link to="/wallet" className="block text-gray-700 py-2">Wallet</Link>
-            <Link to="/roadmap" className="block text-gray-700 py-2">Roadmap</Link>
-            <Link to="/skills" className="block text-gray-700 py-2">Skill Profile</Link>
+            {/* <Link to="/roadmap" className="block text-gray-700 py-2">Roadmap</Link> */}
+            {/* <Link to="/skills" className="block text-gray-700 py-2">Skill Profile</Link> */}
             <Link to="/notifications" className="block text-gray-700 py-2">Notifications</Link>
 
             {/* Mobile Language */}

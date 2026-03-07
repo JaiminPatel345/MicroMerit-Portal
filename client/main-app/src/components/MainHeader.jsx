@@ -219,7 +219,7 @@ const Header = () => {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900 line-clamp-1">{cred.certificate_title}</p>
-                          <p className="text-xs text-gray-500">by {cred.issuer?.name}</p>
+                          <p className="text-xs text-gray-500">by {cred.metadata?.issuer_name || cred.issuer?.name}</p>
                         </div>
                       </button>
                     ))}

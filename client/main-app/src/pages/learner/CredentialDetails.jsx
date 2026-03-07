@@ -316,7 +316,7 @@ const CredentialDetails = () => {
                                     <h1 className="text-2xl font-bold text-gray-900 mb-2">{credential.certificate_title}</h1>
                                     <div className="flex items-center gap-2 text-gray-600">
                                         <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-sm font-medium">
-                                            {credential.issuer?.name}
+                                            {credential.metadata?.issuer_name || credential.issuer?.name}
                                         </span>
                                         <span className="text-gray-300">•</span>
                                         <span className="text-sm">Issued {new Date(credential.issued_at).toLocaleDateString()}</span>
@@ -393,9 +393,9 @@ const CredentialDetails = () => {
                                                 href={`https://sepolia.etherscan.io/tx/${credential.tx_hash}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                                                className="flex-1 inline-flex justify-center items-center gap-2 px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors shadow-sm"
                                             >
-                                                <Globe size={16} className="mr-2 text-gray-500" />
+                                                <Globe size={16} />
                                                 View on Blockchain
                                             </a>
                                         )}
@@ -404,9 +404,9 @@ const CredentialDetails = () => {
                                                 href={`https://ipfs.io/ipfs/${credential.ipfs_cid}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                                                className="flex-1 inline-flex justify-center items-center gap-2 px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors shadow-sm"
                                             >
-                                                <Hash size={16} className="mr-2 text-gray-500" />
+                                                <Hash size={16} />
                                                 View on IPFS
                                             </a>
                                         )}

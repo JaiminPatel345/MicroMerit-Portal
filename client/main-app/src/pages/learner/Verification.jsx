@@ -16,9 +16,7 @@ import {
     ArrowRight,
     Copy,
     Check,
-    Upload,
-    ToggleLeft,
-    ToggleRight
+    Upload
 } from 'lucide-react';
 import { credentialServices } from '../../services/credentialServices';
 
@@ -51,9 +49,7 @@ const Verification = () => {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
-    const [manualVerify, setManualVerify] = useState(false);
     const [pdfFile, setPdfFile] = useState(null);
-    const [manualVerifySteps, setManualVerifySteps] = useState([]);
 
     // Initial load handler
     useEffect(() => {
@@ -123,174 +119,6 @@ const Verification = () => {
         } catch (err) {
             console.error(err);
             setError(err.response?.data?.message || 'Failed to verify PDF');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    /**
-     * Handle Manual (client-side) PDF verification using pdf-lib and ethers
-     *
-     * New simplified flow:
-     * 1. Read PDF bytes
-     * 2. Extract credential_id from Keywords (plain string, not JSON)
-     * 3. Compute SHA-256 of entire PDF as-is (no stripping needed)
-     * 4. Call backend to get stored credential (checksum, tx_hash, etc.)
-     * 5. Compare checksum
-     * 6. Verify blockchain via ethers.js
-     */
-    const handleManualPdfVerify = async (file) => {
-        if (!file) return;
-        setPdfFile(file);
-        setLoading(true);
-        setError(null);
-        setResult(null);
-
-        const steps = [];
-        const addStep = (label, status, detail = '') => {
-            steps.push({ label, status, detail });
-            setManualVerifySteps([...steps]);
-        };
-
-        try {
-            // Step 1: Read the PDF
-            addStep('Reading PDF file', 'running');
-            const arrayBuffer = await file.arrayBuffer();
-            const pdfBytes = new Uint8Array(arrayBuffer);
-            addStep('Reading PDF file', 'done', `${(pdfBytes.length / 1024).toFixed(1)} KB`);
-
-            // Step 2: Extract credential_id from Keywords
-            addStep('Extracting credential ID from PDF', 'running');
-            const { PDFDocument } = await import('pdf-lib');
-            const pdfDoc = await PDFDocument.load(pdfBytes, { updateMetadata: false });
-            const keywords = pdfDoc.getKeywords();
-
-            if (!keywords) {
-                addStep('Extracting credential ID from PDF', 'fail', 'No credential ID found');
-                setError('No MicroMerit credential ID found in this PDF. It may not be a credential issued by our platform.');
-                setLoading(false);
-                return;
-            }
-
-            // Keywords is the credential_id as a plain string.
-            // Support backward compat: if it looks like JSON, try to parse it.
-            let credentialId;
-            try {
-                const parsed = JSON.parse(keywords);
-                credentialId = parsed?.canonical_json?.credential_id || parsed?.credential_id || keywords;
-            } catch {
-                // Not JSON — it's the plain credential_id string (new format)
-                credentialId = keywords;
-            }
-
-            addStep('Extracting credential ID from PDF', 'done', `ID: ${credentialId.substring(0, 16)}...`);
-
-            // Step 3: Compute SHA-256 of the ENTIRE PDF as-is (no stripping)
-            addStep('Computing PDF checksum', 'running');
-            const hashBuffer = await crypto.subtle.digest('SHA-256', pdfBytes);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const recomputedChecksum = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            addStep('Computing PDF checksum', 'done', `SHA-256: ${recomputedChecksum.substring(0, 16)}...`);
-
-            // Step 4: Call backend to get stored credential data
-            addStep('Looking up credential in database', 'running');
-            let storedCredential;
-            try {
-                const response = await axios.post(`${API_BASE_URL}/credentials/verify`, {
-                    credential_id: credentialId,
-                });
-                if (response.data.success && response.data.data?.credential) {
-                    storedCredential = response.data.data.credential;
-                    addStep('Looking up credential in database', 'done', `Found: ${storedCredential.certificate_title}`);
-                } else {
-                    addStep('Looking up credential in database', 'fail', response.data.message || 'Not found');
-                    setError(`Credential ${credentialId} not found in the database.`);
-                    setLoading(false);
-                    return;
-                }
-            } catch (err) {
-                addStep('Looking up credential in database', 'fail', err.response?.data?.message || err.message);
-                setError(`Failed to look up credential: ${err.response?.data?.message || err.message}`);
-                setLoading(false);
-                return;
-            }
-
-            // Step 5: Compare checksum
-            addStep('Verifying PDF integrity (checksum)', 'running');
-            const storedChecksum = storedCredential.metadata?.checksum;
-            const checksumMatch = recomputedChecksum === storedChecksum;
-
-            if (checksumMatch) {
-                addStep('Verifying PDF integrity (checksum)', 'done', '✅ Checksum matches');
-            } else {
-                addStep('Verifying PDF integrity (checksum)', 'fail', '❌ Checksum mismatch — PDF has been modified');
-                setResult({
-                    status: 'INVALID',
-                    reason: 'PDF checksum mismatch — the file has been modified after issuance.',
-                    credential: storedCredential,
-                    verified_fields: {
-                        hash_match: false,
-                        blockchain_verified: false,
-                        ipfs_cid_match: false,
-                        checksum_match: false,
-                    },
-                });
-                setLoading(false);
-                return;
-            }
-
-            // Step 6: Verify on blockchain using ethers.js
-            addStep('Querying blockchain for transaction', 'running');
-            const tx_hash = storedCredential.tx_hash;
-            let blockchainVerified = false;
-            try {
-                const { ethers } = await import('ethers');
-                const networkUrl = import.meta.env.VITE_BLOCKCHAIN_RPC_URL;
-
-                if (networkUrl && tx_hash && !tx_hash.startsWith('MOCK_TX_') && !tx_hash.startsWith('0x' + credentialId.replace(/-/g, ''))) {
-                    const provider = new ethers.JsonRpcProvider(networkUrl);
-                    const tx = await provider.getTransaction(tx_hash);
-                    if (tx) {
-                        blockchainVerified = true;
-                        addStep('Querying blockchain for transaction', 'done', `✅ Transaction found on ${tx.chainId ? 'chain ' + tx.chainId : 'network'}`);
-                    } else {
-                        addStep('Querying blockchain for transaction', 'fail', '❌ Transaction not found');
-                    }
-                } else if (tx_hash?.startsWith('MOCK_TX_') || tx_hash?.startsWith('0x' + credentialId.replace(/-/g, ''))) {
-                    blockchainVerified = true;
-                    addStep('Querying blockchain for transaction', 'done', `⚠️ Mock transaction (dev mode) — ${tx_hash?.substring(0, 20)}...`);
-                } else if (!tx_hash) {
-                    addStep('Querying blockchain for transaction', 'warn', '⚠️ Blockchain transaction pending');
-                } else {
-                    addStep('Querying blockchain for transaction', 'fail', 'No RPC URL configured');
-                }
-            } catch (bcErr) {
-                console.error('Blockchain query failed:', bcErr);
-                addStep('Querying blockchain for transaction', 'warn',
-                    `⚠️ Could not query blockchain directly. Verify manually on Etherscan.`);
-            }
-
-            // Step 7: Build result
-            const isValid = checksumMatch && blockchainVerified;
-            setResult({
-                status: isValid ? 'VALID' : 'INVALID',
-                reason: !isValid
-                    ? (!checksumMatch ? 'Checksum mismatch' : 'Blockchain verification failed or pending')
-                    : undefined,
-                credential: storedCredential,
-                verified_fields: {
-                    hash_match: checksumMatch,
-                    blockchain_verified: blockchainVerified,
-                    ipfs_cid_match: true,
-                    checksum_match: checksumMatch,
-                },
-            });
-
-            addStep('Verification complete', isValid ? 'done' : 'fail', isValid ? '✅ All checks passed' : '❌ Some checks failed');
-
-        } catch (err) {
-            console.error('Manual verification failed:', err);
-            setError(`Manual verification error: ${err.message}`);
         } finally {
             setLoading(false);
         }
@@ -394,7 +222,10 @@ const Verification = () => {
 
                         {/* PDF Upload Section */}
                         <div className="mt-6">
-                            <div className="bg-white p-6 rounded-xl border-2 border-dashed border-gray-300 hover:border-blue-chill-400 transition-colors">
+                            <label
+                                htmlFor="pdf-upload"
+                                className="block bg-white p-6 rounded-xl border-2 border-dashed border-gray-300 hover:border-blue-chill-400 transition-colors cursor-pointer"
+                            >
                                 <div className="flex flex-col items-center justify-center">
                                     {loading && !result ? (
                                         <div className="py-2 flex flex-col items-center justify-center">
@@ -404,91 +235,34 @@ const Verification = () => {
                                     ) : (
                                         <>
                                             <Upload className="mx-auto h-10 w-10 text-gray-400 mb-2" />
-                                            <label htmlFor="pdf-upload" className="block relative cursor-pointer group">
-                                                <span className="font-medium text-blue-chill-600 group-hover:text-blue-chill-700">
-                                                    Upload Credential PDF
-                                                </span>
-                                                <input
-                                                    id="pdf-upload"
-                                                    name="pdf-upload"
-                                                    type="file"
-                                                    accept=".pdf"
-                                                    className="sr-only"
-                                                    onChange={(e) => {
-                                                        const file = e.target.files[0];
-                                                        if (file) {
-                                                            if (manualVerify) {
-                                                                handleManualPdfVerify(file);
-                                                            } else {
-                                                                handlePdfUpload(file);
-                                                            }
-                                                        }
-                                                        // Reset input so the same file can be re-selected
-                                                        e.target.value = '';
-                                                    }}
-                                                />
-                                            </label>
+                                            <span className="font-medium text-blue-chill-600 hover:text-blue-chill-700">
+                                                Upload Credential PDF
+                                            </span>
+                                            <input
+                                                id="pdf-upload"
+                                                name="pdf-upload"
+                                                type="file"
+                                                accept=".pdf"
+                                                className="sr-only"
+                                                onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) {
+                                                        handlePdfUpload(file);
+                                                    }
+                                                    // Reset input so the same file can be re-selected
+                                                    e.target.value = '';
+                                                }}
+                                            />
                                             <p className="text-xs text-gray-500 mt-1">PDF only — credential with embedded metadata</p>
-
-                                            {/* Manual Verify Toggle */}
-                                            <div className="mt-4 flex items-center gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setManualVerify(!manualVerify)}
-                                                    className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-                                                    title="When enabled, verification happens entirely in your browser using pdf-lib and ethers.js — no data is sent to the server."
-                                                >
-                                                    {manualVerify
-                                                        ? <ToggleRight className="h-5 w-5 text-blue-chill-600" />
-                                                        : <ToggleLeft className="h-5 w-5 text-gray-400" />}
-                                                    <span className={manualVerify ? 'text-blue-chill-700 font-medium' : ''}>
-                                                        Manual Verify (Client-Side)
-                                                    </span>
-                                                </button>
-                                            </div>
-                                            {manualVerify && (
-                                                <p className="text-xs text-gray-400 mt-1 max-w-md text-center">
-                                                    Your PDF will be verified entirely in your browser. No data is sent to the server.
-                                                    Uses <code className="bg-gray-100 px-1 rounded">pdf-lib</code> and <code className="bg-gray-100 px-1 rounded">ethers.js</code>.
-                                                </p>
-                                            )}
                                         </>
                                     )}
                                 </div>
-                            </div>
+                            </label>
                         </div>
-
-                        {/* Manual Verify Steps Progress */}
-                        {manualVerifySteps.length > 0 && (
-                            <div className="mt-6 bg-gray-50 rounded-lg p-4 border border-gray-200">
-                                <h4 className="text-sm font-semibold text-gray-700 mb-3">Verification Steps</h4>
-                                <div className="space-y-2">
-                                    {manualVerifySteps.map((step, idx) => (
-                                        <div key={idx} className="flex items-start gap-2 text-sm">
-                                            {step.status === 'running' ? (
-                                                <Loader2 className="h-4 w-4 text-blue-chill-600 animate-spin flex-shrink-0 mt-0.5" />
-                                            ) : step.status === 'done' ? (
-                                                <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                                            ) : step.status === 'warn' ? (
-                                                <ShieldCheck className="h-4 w-4 text-yellow-500 flex-shrink-0 mt-0.5" />
-                                            ) : (
-                                                <XCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
-                                            )}
-                                            <div>
-                                                <span className="font-medium text-gray-700">{step.label}</span>
-                                                {step.detail && (
-                                                    <span className="ml-2 text-gray-500">{step.detail}</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
                     </div>
 
                     {/* Loading State Overlay */}
-                    {loading && !result && manualVerifySteps.length === 0 && (
+                    {loading && !result && (
                         <div className="bg-gray-50 px-6 py-12 border-t border-gray-100 flex flex-col items-center justify-center text-center animate-fade-in">
                             <Loader2 className="h-10 w-10 text-blue-chill-600 animate-spin mb-4" />
                             <h3 className="text-lg font-medium text-gray-900">Verifying Credential</h3>
@@ -620,7 +394,7 @@ const Verification = () => {
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         <span className="font-semibold text-gray-600">Issued By:</span>
                                         <div className="col-span-2 text-gray-800">
-                                            <div className="font-medium">{result.credential.issuer?.name}</div>
+                                            <div className="font-medium">{result.credential.metadata?.issuer_name || result.credential.issuer?.name}</div>
                                             {result.credential.issuer?.website_url && (
                                                 <a
                                                     href={result.credential.issuer.website_url}

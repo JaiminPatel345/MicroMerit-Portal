@@ -261,7 +261,7 @@ const PublicCredential = () => {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Link to={`/i/${credential.issuer?.id}`} className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-sm font-medium hover:bg-blue-100 transition-colors">
-                                                {credential.issuer?.name}
+                                                {credential.metadata?.issuer_name || credential.issuer?.name}
                                             </Link>
                                             <span className="text-gray-300">•</span>
                                             <span className="text-sm">Issued {new Date(credential.issued_at).toLocaleDateString()}</span>

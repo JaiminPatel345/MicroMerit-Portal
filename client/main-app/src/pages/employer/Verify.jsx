@@ -63,7 +63,7 @@ const CredentialModal = ({ result, onClose }) => {
                         </div>
                         <div>
                             <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Issuer</p>
-                            <p className="font-medium text-gray-900">{credential.issuer?.name || 'Unknown Issuer'}</p>
+                            <p className="font-medium text-gray-900">{credential.metadata?.issuer_name || credential.issuer?.name || 'Unknown Issuer'}</p>
                         </div>
                     </div>
 
@@ -442,7 +442,7 @@ const EmployerVerify = () => {
                                             </div>
                                             <div>
                                                 <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Issuer</p>
-                                                <p className="font-medium text-gray-900">{verifyResult.credential.issuer?.name}</p>
+                                                <p className="font-medium text-gray-900">{verifyResult.credential.metadata?.issuer_name || verifyResult.credential.issuer?.name}</p>
                                             </div>
                                         </div>
 

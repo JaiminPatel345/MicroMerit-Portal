@@ -24,6 +24,7 @@ export interface IssueCredentialParams {
     ai_extracted_data?: any; // Optional pre-verified data
     verification_status?: any; // Optional verification status
     skip_ai?: boolean; // If true, skip all AI processing (OCR, enrichment, profile update)
+    issuer_name_override?: string; // When set, use this instead of DB issuer.name (e.g. "Google Cloud | Credly")
 }
 
 export interface IssueCredentialResult {
@@ -68,7 +69,8 @@ export class CredentialIssuanceService {
             mimetype,
             ai_extracted_data,
             verification_status,
-            skip_ai
+            skip_ai,
+            issuer_name_override,
         } = params;
 
         // Step 1: Validate issuer exists and is approved
@@ -148,10 +150,13 @@ export class CredentialIssuanceService {
         const uniqueFileName = `credential/${identifier}/${sanitizedTitle}-${randomSuffix}.${extension}`;
 
         // Step 8: Store in database with pending statuses
+        // Use override name if provided (e.g. "Google Cloud | Credly"), otherwise DB issuer name
+        const displayIssuerName = issuer_name_override || issuer.name;
+
         let initialMetadata: any = {
             ...canonicalJson,
             checksum,
-            issuer_name: issuer.name,
+            issuer_name: displayIssuerName,
             ai_extracted: {},
             blockchain_status: 'pending',
             ipfs_status: 'pending',
