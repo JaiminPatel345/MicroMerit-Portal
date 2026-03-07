@@ -182,12 +182,12 @@ const Home = () => {
         },
     ];
 
-    // Placeholder logos for infinite scroll
+    // Partner logos for infinite scroll
     const partnerLogos = [
-        'https://ncvet.gov.in/wp-content/uploads/2023/09/ncvet-logo-full.jpg', // NCVET
-        'https://www.skillindiadigital.gov.in/assets/new-ux-img/skill-india-big-logo.svg', // Skill India Digital
-        'https://img1.digitallocker.gov.in/digilocker-landing-page/assets/img/DigilockerLogo.svg', // DigiLocker
-        'https://nsdcindia.org/sites/default/files/logo.jpg', //NOS
+        'https://upload.wikimedia.org/wikipedia/commons/e/e3/Udemy_logo.svg', // Udemy
+        'https://info.credly.com/hubfs/Credly_Logo_August2020.svg', // Credly
+        'https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg', // Google
+        'https://upload.wikimedia.org/wikipedia/commons/9/97/Coursera-Logo_600x600.svg', // Coursera
     ];
 
     return (
