@@ -34,4 +34,15 @@ router.post(
     asyncHandler(credentialVerificationController.verifyCredentialFromPdf.bind(credentialVerificationController))
 );
 
+/**
+ * POST /credentials/ai-compare
+ * AI-powered document comparison using Google Gemini (public endpoint)
+ * Accepts image or PDF and compares core data against the original IPFS credential PDF.
+ */
+router.post(
+    '/ai-compare',
+    documentUpload.single('file'),
+    asyncHandler(credentialVerificationController.aiCompareVerify.bind(credentialVerificationController))
+);
+
 export default router;

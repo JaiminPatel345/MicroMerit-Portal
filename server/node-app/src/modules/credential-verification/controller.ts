@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { credentialVerificationService } from './service';
+import { credentialVerificationRepository } from './repository';
 import { verifyCredentialSchema } from './schema';
 import { sendSuccess, sendError } from '../../utils/response';
 import { logger } from '../../utils/logger';
@@ -74,6 +75,55 @@ export class CredentialVerificationController {
         } catch (error: any) {
             logger.error('PDF credential verification request failed', { error: error.message });
             sendError(res, error.message, 'Failed to verify credential from PDF', 500);
+        }
+    }
+    /**
+     * AI-powered document comparison verification using Google Gemini
+     * POST /credentials/ai-compare
+     */
+    async aiCompareVerify(req: Request, res: Response): Promise<void> {
+        try {
+            if (!req.file) {
+                sendError(res, 'No file uploaded', 'Validation Error', 400);
+                return;
+            }
+
+            const { credential_id } = req.body;
+            if (!credential_id) {
+                sendError(res, 'credential_id is required', 'Validation Error', 400);
+                return;
+            }
+
+            // Fetch credential from DB to get IPFS pdf_url
+            const credential = await credentialVerificationRepository.findByCredentialId(credential_id);
+            if (!credential) {
+                sendError(res, `No credential found with ID "${credential_id}"`, 'Not Found', 404);
+                return;
+            }
+
+            if (!credential.pdf_url) {
+                sendError(res, 'This credential does not have an associated PDF on IPFS.', 'Not Found', 404);
+                return;
+            }
+
+            const { aiService } = await import('../ai/ai.service');
+
+            const aiResult = await aiService.compareDocumentsWithGemini(
+                req.file.buffer,
+                req.file.mimetype,
+                credential.pdf_url,
+                credential_id
+            );
+
+            sendSuccess(res, {
+                credential_id,
+                certificate_title: credential.certificate_title,
+                issuer_name: credential.issuer?.name,
+                ai_comparison: aiResult,
+            }, 'AI comparison complete', 200);
+        } catch (error: any) {
+            logger.error('AI compare verification failed', { error: error.message });
+            sendError(res, error.message, 'AI Verification Failed', 500);
         }
     }
 }

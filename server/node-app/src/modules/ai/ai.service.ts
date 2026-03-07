@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { PrismaClient } from '@prisma/client';
 import FormData from 'form-data'; // Use import for FormData
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const prisma = new PrismaClient();
 
@@ -424,6 +425,116 @@ export class AIService {
                 confidence: 0.0
             };
         }
+    }
+    /**
+     * Compare a user-uploaded document against the official IPFS PDF using Google Gemini.
+     * Unlike checksum-based verification, this uses AI vision to compare core data fields,
+     * making it useful when the user only has a photo/scan of the document.
+     */
+    async compareDocumentsWithGemini(
+        userFileBuffer: Buffer,
+        userFileMimeType: string,
+        ipfsPdfUrl: string,
+        credentialId: string
+    ): Promise<{
+        match: boolean;
+        confidence: number;
+        mismatches: string[];
+        summary: string;
+    }> {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            throw new Error('GEMINI_API_KEY is not configured on the server.');
+        }
+
+        // Fetch the original PDF from IPFS
+        let originalPdfBuffer: Buffer;
+        try {
+            const response = await axios.get(ipfsPdfUrl, {
+                responseType: 'arraybuffer',
+                timeout: 30000,
+            });
+            originalPdfBuffer = Buffer.from(response.data);
+        } catch (err: any) {
+            throw new Error(`Failed to fetch original credential PDF from IPFS: ${err.message}`);
+        }
+
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        const prompt = `You are a strict document verification expert. You have been provided two documents: Document A (the official credential on record) and Document B (submitted by the user for verification).
+
+Your task is to carefully compare the core credential data in both documents field by field. The fields to compare are:
+- Student/Candidate full name
+- Roll number / Index number / Enrollment number
+- Institution / School / University / Board name
+- All subject or course names
+- All subject or course codes (if present)
+- Marks or grades for each subject
+- Total / aggregate marks
+- Final percentage
+- Percentile (if present)
+
+Rules:
+1. The comparison must be EXACT — even a single character difference (including spelling, spacing, or casing) means the documents do NOT match.
+2. Ignore formatting differences, watermarks, logos, fonts, colors, or image quality.
+3. If any field that is present in Document A is different, missing, or illegible in Document B, the documents do NOT match.
+
+Return ONLY a valid JSON object with the following structure (no markdown, no extra text outside the JSON):
+{
+  "match": true or false,
+  "confidence": <integer 0-100>,
+  "mismatches": ["<description of mismatch 1>", ...],
+  "summary": "<one sentence summary of your finding>"
+}`;
+
+        const originalPdfPart = {
+            inlineData: {
+                data: originalPdfBuffer.toString('base64'),
+                mimeType: 'application/pdf',
+            },
+        };
+
+        // Normalize user mime type — sometimes browsers send octet-stream for PDFs
+        const normalizedUserMime =
+            userFileMimeType === 'application/octet-stream' ||
+            userFileMimeType === 'binary/octet-stream'
+                ? 'application/pdf'
+                : userFileMimeType;
+
+        const userFilePart = {
+            inlineData: {
+                data: userFileBuffer.toString('base64'),
+                mimeType: normalizedUserMime,
+            },
+        };
+
+        const result = await model.generateContent([
+            { text: 'Document A (Official Credential from IPFS):' },
+            originalPdfPart,
+            { text: 'Document B (User-submitted document):' },
+            userFilePart,
+            { text: prompt },
+        ]);
+
+        const responseText = result.response.text().trim();
+
+        // Strip markdown code fences if Gemini wraps output
+        const jsonText = responseText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+
+        let parsed: { match: boolean; confidence: number; mismatches: string[]; summary: string };
+        try {
+            parsed = JSON.parse(jsonText);
+        } catch {
+            throw new Error(`Gemini returned an unexpected response format: ${responseText.slice(0, 200)}`);
+        }
+
+        return {
+            match: Boolean(parsed.match),
+            confidence: Number(parsed.confidence) || 0,
+            mismatches: Array.isArray(parsed.mismatches) ? parsed.mismatches : [],
+            summary: parsed.summary || '',
+        };
     }
 }
 

@@ -19,7 +19,8 @@ import {
     Copy,
     ChevronDown,
     ChevronUp,
-    Globe
+    Globe,
+    Sparkles
 } from 'lucide-react';
 import { learnerApi } from '../../services/authServices';
 
@@ -51,6 +52,7 @@ const CredentialDetails = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [copySuccess, setCopySuccess] = useState(false);
+    const [aiLinkCopied, setAiLinkCopied] = useState(false);
     const [isBlockchainProofOpen, setIsBlockchainProofOpen] = useState(true);
 
     useEffect(() => {
@@ -297,9 +299,30 @@ const CredentialDetails = () => {
                             </button>
                             <button
                                 onClick={() => navigate(`/verify/${credential.credential_id || credential.uid}`)}
-                                className="w-full py-2.5 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                                className="w-full py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
                             >
                                 <ShieldCheck size={18} /> Verify Credential
+                            </button>
+                            <button
+                                onClick={() => navigate(`/verify?ai=${credential.credential_id || credential.uid}`)}
+                                className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg font-medium hover:from-amber-600 hover:to-orange-600 transition-all flex items-center justify-center gap-2 shadow-sm"
+                            >
+                                <Sparkles size={18} /> Verify with AI
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    const link = `${window.location.origin}/verify?ai=${credential.credential_id || credential.uid}`;
+                                    await navigator.clipboard.writeText(link);
+                                    setAiLinkCopied(true);
+                                    setTimeout(() => setAiLinkCopied(false), 2000);
+                                }}
+                                className="w-full py-2.5 bg-white border border-amber-200 text-amber-700 rounded-lg font-medium hover:bg-amber-50 transition-colors flex items-center justify-center gap-2"
+                            >
+                                {aiLinkCopied ? (
+                                    <><Check size={18} className="text-green-600" /> AI Link Copied!</>
+                                ) : (
+                                    <><Copy size={18} /> Copy AI Verification Link</>
+                                )}
                             </button>
                         </div>
 

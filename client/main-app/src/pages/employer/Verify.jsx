@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { employerApi } from '../../services/authServices';
-import { FileCheck, AlertCircle, CheckCircle, XCircle, Search, Loader, Globe, FileText, ArrowLeft, Copy, Check, Camera, Eye, X } from 'lucide-react';
+import { FileCheck, AlertCircle, CheckCircle, XCircle, Search, Loader, Globe, FileText, ArrowLeft, Copy, Check, Camera, Eye, X, Sparkles, Upload } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import CameraCapture from '../../components/CameraCapture';
 
@@ -124,6 +124,14 @@ const EmployerVerify = () => {
     const [showCamera, setShowCamera] = useState(false);
     const [selectedResult, setSelectedResult] = useState(null);
 
+    // AI Compare state
+    const [aiCredentialId, setAiCredentialId] = useState('');
+    const [aiFile, setAiFile] = useState(null);
+    const [aiFileName, setAiFileName] = useState('');
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiResult, setAiResult] = useState(null);
+    const [aiError, setAiError] = useState('');
+
     const handleCameraCapture = async (file) => {
         setLoading(true);
         setError('');
@@ -226,6 +234,26 @@ const EmployerVerify = () => {
         reader.readAsText(file);
     };
 
+    const handleAiCompare = async (e) => {
+        e.preventDefault();
+        if (!aiFile) { setAiError('Please select a file to upload.'); return; }
+        if (!aiCredentialId.trim()) { setAiError('Please enter the Credential ID.'); return; }
+        setAiLoading(true);
+        setAiResult(null);
+        setAiError('');
+        try {
+            const formData = new FormData();
+            formData.append('file', aiFile);
+            formData.append('credential_id', aiCredentialId.trim());
+            const res = await employerApi.aiCompareVerify(formData);
+            setAiResult(res.data.data);
+        } catch (err) {
+            setAiError(err.response?.data?.message || 'AI verification failed. Please try again.');
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
     return (
         <div className="p-6 lg:p-10 max-w-6xl mx-auto space-y-8 min-h-screen bg-gray-50/50">
             <div>
@@ -255,6 +283,14 @@ const EmployerVerify = () => {
             <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm min-h-[500px]">
                 {activeTab === 'single' ? (
                     <div className="max-w-3xl mx-auto pt-4">
+                        {/* Blockchain method badge */}
+                        <div className="flex items-center gap-2 mb-4">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-green-100 text-green-700 border border-green-200">
+                                <CheckCircle size={12} /> 100% accurate and reliable
+                            </span>
+                            <span className="text-sm text-gray-500">Blockchain-backed cryptographic verification</span>
+                        </div>
+
                         <form onSubmit={handleVerifySingle} className="space-y-4 mb-8">
                             <label className="block text-sm font-medium text-gray-700">Credential Identifier</label>
                             <div className="flex gap-3">
@@ -371,6 +407,191 @@ const EmployerVerify = () => {
                                 {error}
                             </div>
                         )}
+
+                        {/* ─────────────────────────────────────────── */}
+                        {/* AI-Powered Verification Section */}
+                        {/* ─────────────────────────────────────────── */}
+                        <div className="mt-10">
+                            <div className="flex items-center gap-3 mb-1">
+                                <div className="p-2 rounded-lg bg-purple-100">
+                                    <Sparkles size={18} className="text-purple-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold text-gray-900">AI-Powered Verification</h3>
+                                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-purple-700">
+                                        <Sparkles size={10} /> More flexible
+                                    </span>
+                                </div>
+                            </div>
+                            <p className="text-sm text-gray-500 mb-5 pl-11">
+                                Don't have the exact original PDF? Upload a photo or a scanned copy of your marksheet or certificate and enter the Credential ID. Google Gemini AI will compare the core data fields against the original document stored on IPFS.
+                            </p>
+
+                            <form onSubmit={handleAiCompare} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Credential ID</label>
+                                    <div className="relative">
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                        <input
+                                            type="text"
+                                            placeholder="Enter Credential ID (e.g. CRED-...)"
+                                            className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-100 focus:bg-white focus:border-purple-400 outline-none transition-all text-sm"
+                                            value={aiCredentialId}
+                                            onChange={(e) => setAiCredentialId(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Upload Document (Image or PDF)</label>
+                                    <div
+                                        className="relative border-2 border-dashed border-purple-200 rounded-xl p-6 text-center hover:border-purple-400 transition-colors cursor-pointer bg-purple-50/30"
+                                        onClick={() => document.getElementById('ai-file-upload').click()}
+                                    >
+                                        {aiFile ? (
+                                            <div className="flex items-center justify-center gap-3">
+                                                <FileText size={22} className="text-purple-500" />
+                                                <div className="text-left">
+                                                    <p className="text-sm font-medium text-gray-800">{aiFileName}</p>
+                                                    <p className="text-xs text-gray-500">Click to change file</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); setAiFile(null); setAiFileName(''); }}
+                                                    className="ml-2 text-gray-400 hover:text-red-500"
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <Upload className="mx-auto h-8 w-8 text-purple-400 mb-2" />
+                                                <p className="text-sm font-medium text-purple-600">Click to upload image or PDF</p>
+                                                <p className="text-xs text-gray-500 mt-1">PNG, JPG, JPEG, WEBP, PDF — max 15 MB</p>
+                                            </>
+                                        )}
+                                        <input
+                                            id="ai-file-upload"
+                                            type="file"
+                                            accept="image/*,.pdf"
+                                            className="sr-only"
+                                            onChange={(e) => {
+                                                const f = e.target.files[0];
+                                                if (f) { setAiFile(f); setAiFileName(f.name); }
+                                                e.target.value = null;
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={aiLoading}
+                                    className="w-full flex items-center justify-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-purple-700 transition-all shadow-lg shadow-purple-600/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                                >
+                                    {aiLoading ? (
+                                        <><Loader className="animate-spin" size={18} /> Analyzing with AI...</>
+                                    ) : (
+                                        <><Sparkles size={18} /> Verify with AI</>
+                                    )}
+                                </button>
+                            </form>
+
+                            {/* AI Error */}
+                            {aiError && (
+                                <div className="mt-4 bg-red-50 text-red-600 p-4 rounded-xl flex items-center gap-3 border border-red-100">
+                                    <AlertCircle size={18} />
+                                    <p className="text-sm">{aiError}</p>
+                                </div>
+                            )}
+
+                            {/* AI Result */}
+                            {aiResult && (
+                                <div className={`mt-6 rounded-2xl border overflow-hidden shadow-sm ${
+                                    aiResult.ai_comparison.match ? 'border-green-100' : 'border-red-100'
+                                }`}>
+                                    {/* Header */}
+                                    <div className={`p-6 text-center ${
+                                        aiResult.ai_comparison.match ? 'bg-green-50/60' : 'bg-red-50/60'
+                                    }`}>
+                                        <div className={`mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-3 ${
+                                            aiResult.ai_comparison.match ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                                        }`}>
+                                            {aiResult.ai_comparison.match ? <CheckCircle size={28} /> : <XCircle size={28} />}
+                                        </div>
+                                        <h4 className="text-xl font-bold text-gray-900">
+                                            {aiResult.ai_comparison.match ? 'Documents Match' : 'Documents Do Not Match'}
+                                        </h4>
+                                        <p className={`text-sm mt-1 ${
+                                            aiResult.ai_comparison.match ? 'text-green-700' : 'text-red-700'
+                                        }`}>
+                                            {aiResult.ai_comparison.summary}
+                                        </p>
+                                    </div>
+
+                                    {/* Details */}
+                                    <div className="bg-white p-6 space-y-4">
+                                        {/* Credential info */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-500 uppercase mb-0.5">Credential ID</p>
+                                                <p className="font-mono text-gray-800">{aiResult.credential_id}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-500 uppercase mb-0.5">Certificate</p>
+                                                <p className="font-medium text-gray-800">{aiResult.certificate_title}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-500 uppercase mb-0.5">Issued By</p>
+                                                <p className="font-medium text-gray-800">{aiResult.issuer_name}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-500 uppercase mb-0.5">AI Confidence</p>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="flex-1 bg-gray-100 rounded-full h-2">
+                                                        <div
+                                                            className={`h-2 rounded-full ${
+                                                                aiResult.ai_comparison.match ? 'bg-green-500' : 'bg-red-500'
+                                                            }`}
+                                                            style={{ width: `${aiResult.ai_comparison.confidence}%` }}
+                                                        />
+                                                    </div>
+                                                    <span className="text-xs font-bold text-gray-700">{aiResult.ai_comparison.confidence}%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Mismatches */}
+                                        {aiResult.ai_comparison.mismatches && aiResult.ai_comparison.mismatches.length > 0 && (
+                                            <div className="bg-red-50 border border-red-100 rounded-xl p-4">
+                                                <p className="text-sm font-bold text-red-700 mb-2">Detected Mismatches</p>
+                                                <ul className="space-y-1.5">
+                                                    {aiResult.ai_comparison.mismatches.map((m, i) => (
+                                                        <li key={i} className="flex items-start gap-2 text-sm text-red-600">
+                                                            <XCircle size={14} className="mt-0.5 shrink-0" />
+                                                            <span>{m}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+
+                                        {aiResult.ai_comparison.match && aiResult.ai_comparison.mismatches?.length === 0 && (
+                                            <div className="bg-green-50 border border-green-100 rounded-xl p-4 flex items-center gap-2 text-sm text-green-700">
+                                                <CheckCircle size={16} />
+                                                All core credential data fields match exactly.
+                                            </div>
+                                        )}
+
+                                        <p className="text-xs text-gray-400 pt-1">
+                                            <Sparkles size={10} className="inline mr-1" />
+                                            Verified using Google Gemini AI. AI comparison is a flexibility tool — for legal proof, use the blockchain-backed method above.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                         {verifyResult && (
                             <div className={`border rounded-2xl overflow-hidden shadow-sm ${verifyResult.status === 'VALID' ? 'border-green-100' : 'border-red-100'}`}>

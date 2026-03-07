@@ -95,6 +95,9 @@ export const employerApi = {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
   chatWithLearner: (payload) => api.post('/employer/chat', payload),
+  aiCompareVerify: (formData) => api.post('/credentials/ai-compare', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
 };
 
 
