@@ -258,6 +258,24 @@ export class LearnerRepository {
     };
   }
   async getCredentialById(credentialId: string) {
+    // First try by credential_id (the public-facing UUID used in /credential/:id URLs)
+    const byCredentialId = await prisma.credential.findUnique({
+      where: { credential_id: credentialId },
+      include: {
+        issuer: {
+          select: {
+            name: true,
+            logo_url: true,
+            website_url: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (byCredentialId) return byCredentialId;
+
+    // Fallback: try by Prisma PK id (used by CredentialAdded status polling via /credential-added/:id)
     return prisma.credential.findUnique({
       where: { id: credentialId },
       include: {

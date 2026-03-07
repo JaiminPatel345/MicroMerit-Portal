@@ -51,7 +51,7 @@ const CredentialDetails = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [copySuccess, setCopySuccess] = useState(false);
-    const [isBlockchainProofOpen, setIsBlockchainProofOpen] = useState(false);
+    const [isBlockchainProofOpen, setIsBlockchainProofOpen] = useState(true);
 
     useEffect(() => {
         const fetchCredential = async () => {
@@ -416,7 +416,7 @@ const CredentialDetails = () => {
                         </div>
 
                         {/* Skills & NSQF */}
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        {/* <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                             <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                                 <Award size={18} className="text-orange-500" /> Skills & Standards
                             </h3>
@@ -506,7 +506,7 @@ const CredentialDetails = () => {
                                     <p className="text-gray-500 text-sm">AI analysis in progress or unavailable.</p>
                                 </div>
                             )}
-                        </div>
+                        </div> */}
 
                         {/* AI Insights & Job Recommendations */}
                         {false && (

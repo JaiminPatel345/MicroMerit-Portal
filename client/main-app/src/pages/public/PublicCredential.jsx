@@ -49,7 +49,7 @@ const PublicCredential = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [copySuccess, setCopySuccess] = useState(false);
-    const [isBlockchainProofOpen, setIsBlockchainProofOpen] = useState(false);
+    const [isBlockchainProofOpen, setIsBlockchainProofOpen] = useState(true);
 
     useEffect(() => {
         const fetchCredential = async () => {
@@ -336,9 +336,9 @@ const PublicCredential = () => {
                                                 href={`https://sepolia.etherscan.io/tx/${credential.tx_hash}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                                                className="flex-1 inline-flex justify-center items-center gap-2 px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors shadow-sm"
                                             >
-                                                <Globe size={16} className="mr-2 text-gray-500" />
+                                                <Globe size={16} />
                                                 View on Blockchain
                                             </a>
                                         )}
@@ -347,9 +347,9 @@ const PublicCredential = () => {
                                                 href={`https://ipfs.io/ipfs/${credential.ipfs_cid}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                                                className="flex-1 inline-flex justify-center items-center gap-2 px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors shadow-sm"
                                             >
-                                                <Hash size={16} className="mr-2 text-gray-500" />
+                                                <Hash size={16} />
                                                 View on IPFS
                                             </a>
                                         )}
@@ -359,7 +359,7 @@ const PublicCredential = () => {
                         </div>
 
                         {/* Skills & NSQF */}
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        {/* <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                             <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                                 <Award size={18} className="text-orange-500" /> Skills & Standards
                             </h3>
@@ -434,7 +434,7 @@ const PublicCredential = () => {
                                     <p className="text-gray-500 text-sm">AI analysis in progress or unavailable.</p>
                                 </div>
                             )}
-                        </div>
+                        </div> */}
 
                         {/* AI Insights */}
                         {false && (

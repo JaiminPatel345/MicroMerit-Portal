@@ -128,14 +128,10 @@ export default function PublicProfile() {
             <h3 className="font-semibold text-blue-chill-700 mb-3 flex gap-2 items-center">
               <ShieldCheck size={16} /> Stats
             </h3>
-            <div className="grid grid-cols-2 gap-4 text-center">
+            <div className="text-center">
               <div className="bg-blue-chill-50 p-3 rounded-lg">
                 <div className="text-xl font-bold text-blue-chill-700">{stats?.totalCredentials || stats?.totalCertificates || 0}</div>
                 <div className="text-xs text-blue-chill-600">Certificates</div>
-              </div>
-              <div className="bg-blue-chill-50 p-3 rounded-lg">
-                <div className="text-xl font-bold text-blue-chill-700">{stats?.trustScore || 0}%</div>
-                <div className="text-xs text-blue-chill-600">Trust Score</div>
               </div>
             </div>
           </div>
