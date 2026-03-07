@@ -25,7 +25,6 @@ export async function writeToBlockchainQueued(
     data_hash: string,
     extraData?: {
         original_pdf_base64?: string;
-        canonical_json?: Record<string, any>;
         checksum?: string;
         pdf_filename?: string;
         pdf_content_type?: string;

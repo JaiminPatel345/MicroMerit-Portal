@@ -4,7 +4,7 @@ import { credentialIssuanceRepository } from './repository';
 import { skillKnowledgeBaseRepository } from '../skill-knowledge-base/repository';
 import { writeToBlockchainQueued } from '../../services/blockchainClient';
 import { buildCanonicalJson, computeDataHash } from '../../utils/canonicalJson';
-import { computePdfChecksum } from '../../utils/pdfMetadata';
+import { computePdfChecksum, embedCredentialId } from '../../utils/pdfMetadata';
 import { NotFoundError, ValidationError } from '../../utils/errors';
 import { logger } from '../../utils/logger';
 import { sendCredentialIssuedEmail } from '../../utils/notification';
@@ -99,14 +99,21 @@ export class CredentialIssuanceService {
             status,
         });
 
-        // Step 3: Compute PDF checksum (SHA-256 of original bytes)
-        const checksum = computePdfChecksum(original_pdf);
-        logger.info('Computed PDF checksum', { checksum });
-
-        // Step 4: Generate credential_id
+        // Step 3: Generate credential_id
         const credential_id = uuidv4();
 
-        // Step 5: Build canonical JSON with checksum (simplified for new flow)
+        // Step 4: Embed credential_id into PDF Keywords.
+        // The checksum is computed on the PDF WITH the credential_id embedded,
+        // so verification can just SHA-256 the file as-is — no stripping needed.
+        const pdfWithId = await embedCredentialId(original_pdf, credential_id);
+        const checksum = computePdfChecksum(pdfWithId);
+        logger.info('Embedded credential_id in PDF & computed checksum', {
+            credential_id,
+            checksum,
+            pdf_size: pdfWithId.length,
+        });
+
+        // Step 5: Build canonical JSON (all pending fields = null)
         const network = process.env.BLOCKCHAIN_NETWORK || 'sepolia';
         const contract_address = process.env.BLOCKCHAIN_CONTRACT_ADDRESS || '';
 
@@ -119,17 +126,21 @@ export class CredentialIssuanceService {
             issued_at,
             network,
             contract_address,
-            ipfs_cid: null,  // Not known yet — IPFS upload happens after blockchain
-            pdf_url: null,   // Not known yet
-            tx_hash: null,   // Not known yet
-            data_hash: null, // Will be computed next
+            ipfs_cid: null,
+            pdf_url: null,
+            tx_hash: null,
+            data_hash: null,
         });
 
         // Step 6: Compute data_hash
         const data_hash = computeDataHash(canonicalJson);
-        logger.info('Computed data hash', { credential_id, data_hash });
+        logger.info('Computed data hash', {
+            credential_id,
+            data_hash,
+            canonical_json: canonicalJson,
+        });
 
-        // Step 7: Generate unique filename for IPFS upload (used later by worker)
+        // Step 7: Generate unique filename for IPFS upload
         const identifier = learner_id ? learner_id.toString() : learner_email.replace(/[^a-zA-Z0-9]/g, '_');
         const sanitizedTitle = certificate_title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
         const randomSuffix = crypto.randomBytes(2).toString('hex');
@@ -165,9 +176,9 @@ export class CredentialIssuanceService {
             issuer_id,
             certificate_title,
             issued_at,
-            ipfs_cid: null,   // Pending — will be set after blockchain + IPFS
-            pdf_url: null,     // Pending — will be set after blockchain + IPFS
-            tx_hash: null,     // Pending — will be set after blockchain confirmation
+            ipfs_cid: null,
+            pdf_url: null,
+            tx_hash: null,
             data_hash,
             metadata: initialMetadata,
             status,
@@ -175,18 +186,19 @@ export class CredentialIssuanceService {
 
         logger.info('Credential stored in DB (blockchain & IPFS pending)', {
             credential_id,
+            db_id: credential.id,
             learner_id,
             learner_email,
             status,
             checksum,
         });
 
-        // Step 9: Queue background job (blockchain → embed metadata → IPFS)
-        // Pass original PDF bytes as base64 so the worker can embed metadata and upload
+        // Step 9: Queue background job (blockchain → IPFS upload)
+        // The PDF already has credential_id embedded. The background job
+        // uploads these EXACT bytes to IPFS — the checksum matches the file.
         try {
             await writeToBlockchainQueued(credential_id, data_hash, {
-                original_pdf_base64: original_pdf.toString('base64'),
-                canonical_json: canonicalJson as any,
+                original_pdf_base64: pdfWithId.toString('base64'),
                 checksum,
                 pdf_filename: uniqueFileName,
                 pdf_content_type: mimetype || 'application/pdf',
@@ -197,7 +209,6 @@ export class CredentialIssuanceService {
                 credential_id,
                 error: error.message
             });
-            // Continue even if queueing fails - status remains 'pending'
         }
 
         // Step 10: Process AI tasks asynchronously (skip if issuer opted out)

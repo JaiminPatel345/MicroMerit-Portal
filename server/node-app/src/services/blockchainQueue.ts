@@ -6,17 +6,17 @@
  * the Node.js process without any external queue dependency.
  *
  * Processing order (per credential):
- *   1. Write to blockchain → get tx_hash
- *   2. Embed tx_hash into PDF metadata → upload enriched PDF to IPFS
+ *   1. Write to blockchain → get tx_hash → update DB
+ *   2. Upload PDF (with credential_id already embedded) to IPFS → update DB
  *
- * This ensures any PDF accessible on IPFS always contains tx_hash in
- * its metadata. No CID is stored inside the PDF metadata.
+ * The PDF received here already has the credential_id in its Keywords
+ * metadata and its checksum was computed on these exact bytes. No
+ * additional metadata embedding is performed.
  */
 
 import { logger } from '../utils/logger';
 import axios from 'axios';
 import { credentialIssuanceRepository } from '../modules/credential-issuance/repository';
-import { embedPdfMetadata } from '../utils/pdfMetadata';
 import { uploadToFilebase } from '../utils/filebase';
 
 const BLOCKCHAIN_SERVICE_URL = process.env.BLOCKCHAIN_SERVICE_URL || 'http://localhost:3001';
@@ -24,8 +24,8 @@ const BLOCKCHAIN_SERVICE_URL = process.env.BLOCKCHAIN_SERVICE_URL || 'http://loc
 export interface BlockchainJobData {
     credential_id: string;
     data_hash: string;
+    /** Base64-encoded PDF with credential_id already embedded in Keywords */
     original_pdf_base64?: string;
-    canonical_json?: Record<string, any>;
     checksum?: string;
     pdf_filename?: string;
     pdf_content_type?: string;
@@ -70,7 +70,7 @@ async function callBlockchainWrite(
 
     const response = await axios.post(
         `${BLOCKCHAIN_SERVICE_URL}/blockchain/write`,
-        { credential_id, data_hash },
+        { credential_id, data_hash, ipfs_cid: 'pending-upload' },
         { headers: { 'Content-Type': 'application/json' }, timeout: 60000 },
     );
 
@@ -94,7 +94,6 @@ async function processCredentialAsync(data: BlockchainJobData): Promise<void> {
         credential_id,
         data_hash,
         original_pdf_base64,
-        canonical_json,
         checksum,
         pdf_filename,
         pdf_content_type,
@@ -103,7 +102,6 @@ async function processCredentialAsync(data: BlockchainJobData): Promise<void> {
     logger.info('[Background] ▶ Starting credential processing', {
         credential_id,
         has_pdf: !!original_pdf_base64,
-        has_canonical_json: !!canonical_json,
         pdf_filename,
     });
 
@@ -160,26 +158,20 @@ async function processCredentialAsync(data: BlockchainJobData): Promise<void> {
     }
 
     // =========================================================================
-    // STEP 2: Embed tx_hash into PDF metadata and upload enriched PDF to IPFS.
-    //         This is the ONLY IPFS upload — so any PDF on IPFS always has tx_hash.
+    // STEP 2: Upload PDF to IPFS as-is (credential_id already embedded).
+    //         No additional metadata embedding — the PDF bytes are final.
     // =========================================================================
-    if (original_pdf_base64 && canonical_json && checksum) {
+    if (original_pdf_base64) {
         try {
-            logger.info('[Background] Step 2 — embedding tx_hash into PDF and uploading to IPFS', {
+            logger.info('[Background] Step 2 — uploading PDF to IPFS (credential_id already embedded)', {
                 credential_id,
-                tx_hash: txHash,
             });
 
             const rawPdf = Buffer.from(original_pdf_base64, 'base64');
-            const enrichedPdf = await embedPdfMetadata(rawPdf, {
-                canonical_json,
-                tx_hash: txHash!,
-                checksum,
-            });
 
             const filename = pdf_filename || `credential/${credential_id}.pdf`;
             const contentType = pdf_content_type || 'application/pdf';
-            const ipfsResult = await uploadToFilebase(enrichedPdf, filename, contentType);
+            const ipfsResult = await uploadToFilebase(rawPdf, filename, contentType);
 
             await credentialIssuanceRepository.updateCredential(credential_id, {
                 metadata: { ipfs_status: 'confirmed' },
@@ -189,12 +181,12 @@ async function processCredentialAsync(data: BlockchainJobData): Promise<void> {
                 pdf_url: ipfsResult.gateway_url,
             });
 
-            logger.info('[Background] Step 2 ✓ — enriched PDF uploaded to IPFS', {
+            logger.info('[Background] Step 2 ✓ — PDF uploaded to IPFS', {
                 credential_id,
                 ipfs_cid: ipfsResult.cid,
             });
         } catch (err: any) {
-            logger.error('[Background] Step 2 ✗ — PDF embed/upload failed', {
+            logger.error('[Background] Step 2 ✗ — IPFS upload failed', {
                 credential_id,
                 error: err.message,
                 stack: err.stack,
@@ -212,14 +204,10 @@ async function processCredentialAsync(data: BlockchainJobData): Promise<void> {
             }
         }
     } else {
-        logger.warn('[Background] Step 2 — skipped (missing pdf_base64/canonical_json/checksum)', {
+        logger.warn('[Background] Step 2 — skipped (no PDF provided)', {
             credential_id,
-            has_pdf: !!original_pdf_base64,
-            has_canonical: !!canonical_json,
-            has_checksum: !!checksum,
         });
 
-        // No PDF to upload — mark ipfs as failed
         try {
             await credentialIssuanceRepository.updateCredential(credential_id, {
                 metadata: { ipfs_status: 'failed' },
@@ -248,7 +236,6 @@ export async function queueBlockchainWrite(
     data_hash: string,
     extraData?: {
         original_pdf_base64?: string;
-        canonical_json?: Record<string, any>;
         checksum?: string;
         pdf_filename?: string;
         pdf_content_type?: string;

@@ -1,7 +1,7 @@
 import { credentialVerificationRepository } from './repository';
-import { buildCanonicalJson, computeDataHash, verifyCredentialHash } from '../../utils/canonicalJson';
-import { verifyBlockchainTransaction, getTransactionData } from '../../services/blockchainClient';
-import { extractPdfMetadata, computePdfChecksum, stripPdfMetadata } from '../../utils/pdfMetadata';
+import { buildCanonicalJson, computeDataHash } from '../../utils/canonicalJson';
+import { verifyBlockchainTransaction } from '../../services/blockchainClient';
+import { extractCredentialId, computePdfChecksum } from '../../utils/pdfMetadata';
 import { NotFoundError } from '../../utils/errors';
 import { logger } from '../../utils/logger';
 
@@ -68,6 +68,8 @@ export class CredentialVerificationService {
             });
 
             // Step 3: Rebuild canonical JSON from database fields
+            // ipfs_cid, pdf_url, tx_hash, and data_hash were all null at issuance time
+            // when the hash was computed, so they must be null here too.
             const canonicalJson = buildCanonicalJson({
                 credential_id: credential.credential_id,
                 learner_id: credential.learner_id,
@@ -77,17 +79,26 @@ export class CredentialVerificationService {
                 issued_at: new Date(credential.issued_at),
                 network,
                 contract_address,
-                ipfs_cid: credential.ipfs_cid,
-                pdf_url: credential.pdf_url,
-                tx_hash: null, // tx_hash was null when hash was computed
-                data_hash: null, // data_hash is always null when computing hash
+                ipfs_cid: null,  // null at hash-computation time
+                pdf_url: null,   // null at hash-computation time
+                tx_hash: null,   // null at hash-computation time
+                data_hash: null, // always null when computing hash
+            });
+
+            logger.info('Rebuilt canonical JSON for verification', {
+                credential_id: credential.credential_id,
+                canonical_json: canonicalJson,
+                db_learner_id: credential.learner_id,
+                db_issuer_id: credential.issuer_id,
+                db_issued_at: credential.issued_at,
+                issued_at_iso: new Date(credential.issued_at).toISOString(),
             });
 
             // Step 4: Recompute hash and verify it matches
             const recomputedHash = computeDataHash(canonicalJson);
             const hashMatch = recomputedHash === credential.data_hash;
 
-            logger.info('Hash verification', {
+            logger.info('Hash verification result', {
                 credential_id: credential.credential_id,
                 stored_hash: credential.data_hash,
                 recomputed_hash: recomputedHash,
@@ -158,24 +169,24 @@ export class CredentialVerificationService {
 
     /**
      * Verify a credential from an uploaded PDF file
-     * 
-     * Flow:
-     * 1. Extract metadata from PDF Keywords field
-     * 2. Strip metadata from PDF, compute checksum of clean PDF
-     * 3. Verify checksum matches canonical_json.checksum from metadata
-     * 4. Recompute hash of canonical JSON (with tx_hash=null, data_hash=null)
-     * 5. Verify blockchain: call blockchain service to check tx_hash
+     *
+     * New simplified flow:
+     * 1. Extract credential_id from PDF Keywords field
+     * 2. Compute SHA-256 checksum of the ENTIRE PDF as-is (no stripping)
+     * 3. Look up credential in DB by credential_id
+     * 4. Compare checksum with stored value
+     * 5. Verify blockchain tx_hash from DB
      * 6. Return result
      */
     async verifyCredentialFromPdf(pdfBuffer: Buffer): Promise<VerificationResult> {
         try {
-            // Step 1: Extract metadata from PDF
-            const metadata = await extractPdfMetadata(pdfBuffer);
+            // Step 1: Extract credential_id from PDF Keywords
+            const credentialId = await extractCredentialId(pdfBuffer);
 
-            if (!metadata) {
+            if (!credentialId) {
                 return {
                     status: 'INVALID',
-                    reason: 'No MicroMerit metadata found in PDF. This PDF may not be a credential issued by our platform.',
+                    reason: 'No MicroMerit credential ID found in PDF. This PDF may not be a credential issued by our platform.',
                     verified_fields: {
                         hash_match: false,
                         blockchain_verified: false,
@@ -185,21 +196,39 @@ export class CredentialVerificationService {
                 };
             }
 
-            const { canonical_json, tx_hash, checksum: storedChecksum } = metadata;
+            logger.info('Extracted credential_id from PDF', { credential_id: credentialId });
 
-            logger.info('Extracted PDF metadata for verification', {
-                tx_hash,
-                checksum: storedChecksum,
-                credential_id: canonical_json?.credential_id,
+            // Step 2: Compute checksum of the entire PDF as-is (no stripping needed)
+            const recomputedChecksum = computePdfChecksum(pdfBuffer);
+
+            logger.info('Computed PDF checksum for verification', {
+                credential_id: credentialId,
+                recomputed_checksum: recomputedChecksum,
+                pdf_size: pdfBuffer.length,
             });
 
-            // Step 2: Strip metadata from PDF and compute checksum of clean PDF
-            const cleanPdf = await stripPdfMetadata(pdfBuffer);
-            const recomputedChecksum = computePdfChecksum(cleanPdf);
+            // Step 3: Look up credential in DB
+            const credential = await credentialVerificationRepository.findByCredentialId(credentialId);
 
+            if (!credential) {
+                return {
+                    status: 'INVALID',
+                    reason: `Credential with ID ${credentialId} not found in the database.`,
+                    verified_fields: {
+                        hash_match: false,
+                        blockchain_verified: false,
+                        ipfs_cid_match: false,
+                        checksum_match: false,
+                    },
+                };
+            }
+
+            // Step 4: Compare checksum with stored value
+            const storedChecksum = (credential.metadata as any)?.checksum;
             const checksumMatch = recomputedChecksum === storedChecksum;
 
-            logger.info('Checksum verification', {
+            logger.info('PDF checksum verification', {
+                credential_id: credentialId,
                 stored_checksum: storedChecksum,
                 recomputed_checksum: recomputedChecksum,
                 match: checksumMatch,
@@ -209,6 +238,11 @@ export class CredentialVerificationService {
                 return {
                     status: 'INVALID',
                     reason: 'PDF checksum mismatch — the file has been modified after issuance.',
+                    credential: {
+                        credential_id: credential.credential_id,
+                        certificate_title: credential.certificate_title,
+                        tx_hash: credential.tx_hash,
+                    },
                     verified_fields: {
                         hash_match: false,
                         blockchain_verified: false,
@@ -218,63 +252,59 @@ export class CredentialVerificationService {
                 };
             }
 
-            // Step 3: Verify blockchain transaction exists
+            // Step 5: Verify blockchain transaction
             let blockchainVerified = false;
-            if (tx_hash) {
-                blockchainVerified = await verifyBlockchainTransaction(tx_hash);
+            if (credential.tx_hash) {
+                blockchainVerified = await verifyBlockchainTransaction(credential.tx_hash);
+                logger.info('Blockchain verification result', {
+                    credential_id: credentialId,
+                    tx_hash: credential.tx_hash,
+                    verified: blockchainVerified,
+                });
+            } else {
+                logger.warn('No tx_hash in DB — blockchain pending or failed', {
+                    credential_id: credentialId,
+                });
             }
 
-            // Step 4: Optionally look up credential in DB for additional info
-            let credentialDetails = null;
-            if (canonical_json?.credential_id) {
-                try {
-                    const credential = await credentialVerificationRepository.findByCredentialId(
-                        canonical_json.credential_id
-                    );
-                    if (credential) {
-                        credentialDetails = {
-                            credential_id: credential.credential_id,
-                            learner: credential.learner ? {
-                                id: credential.learner.id,
-                                name: credential.learner.name,
-                                email: credential.learner.email,
-                            } : null,
-                            learner_email: credential.learner_email,
-                            issuer: {
-                                id: credential.issuer.id,
-                                name: credential.issuer.name,
-                                type: credential.issuer.type,
-                                website_url: credential.issuer.website_url,
-                            },
-                            certificate_title: credential.certificate_title,
-                            issued_at: credential.issued_at,
-                            ipfs_cid: credential.ipfs_cid,
-                            pdf_url: credential.pdf_url,
-                            tx_hash: credential.tx_hash,
-                            data_hash: credential.data_hash,
-                            status: credential.status,
-                        };
-                    }
-                } catch (dbError: any) {
-                    logger.warn('Could not fetch credential from DB during PDF verification', {
-                        credential_id: canonical_json.credential_id,
-                        error: dbError.message,
-                    });
-                }
-            }
+            // Step 6: Build result
+            const credentialDetails = {
+                credential_id: credential.credential_id,
+                learner: credential.learner ? {
+                    id: credential.learner.id,
+                    name: credential.learner.name,
+                    email: credential.learner.email,
+                } : null,
+                learner_email: credential.learner_email,
+                issuer: {
+                    id: credential.issuer.id,
+                    name: credential.issuer.name,
+                    type: credential.issuer.type,
+                    website_url: credential.issuer.website_url,
+                },
+                certificate_title: credential.certificate_title,
+                issued_at: credential.issued_at,
+                ipfs_cid: credential.ipfs_cid,
+                pdf_url: credential.pdf_url,
+                tx_hash: credential.tx_hash,
+                data_hash: credential.data_hash,
+                status: credential.status,
+                metadata: credential.metadata,
+            };
 
-            // Step 5: Overall result
-            if (checksumMatch && blockchainVerified) {
+            const overallValid = checksumMatch && blockchainVerified;
+
+            logger.info('PDF verification summary', {
+                credential_id: credentialId,
+                checksum_match: checksumMatch,
+                blockchain_verified: blockchainVerified,
+                overall: overallValid ? 'VALID' : 'INVALID',
+            });
+
+            if (overallValid) {
                 return {
                     status: 'VALID',
-                    credential: credentialDetails || {
-                        credential_id: canonical_json?.credential_id,
-                        learner_email: canonical_json?.learner_email,
-                        issuer_id: canonical_json?.issuer_id,
-                        certificate_title: canonical_json?.certificate_title,
-                        issued_at: canonical_json?.issued_at,
-                        tx_hash,
-                    },
+                    credential: credentialDetails,
                     verified_fields: {
                         hash_match: true,
                         blockchain_verified: true,
@@ -283,20 +313,18 @@ export class CredentialVerificationService {
                     },
                 };
             } else {
+                const reason = !blockchainVerified
+                    ? 'Blockchain verification failed — transaction not found or pending'
+                    : 'Verification failed';
                 return {
                     status: 'INVALID',
-                    reason: !checksumMatch
-                        ? 'PDF has been tampered with — checksum mismatch'
-                        : 'Blockchain verification failed — transaction not found or invalid',
-                    credential: credentialDetails || {
-                        credential_id: canonical_json?.credential_id,
-                        tx_hash,
-                    },
+                    reason,
+                    credential: credentialDetails,
                     verified_fields: {
-                        hash_match: checksumMatch,
+                        hash_match: true,
                         blockchain_verified: blockchainVerified,
                         ipfs_cid_match: true,
-                        checksum_match: checksumMatch,
+                        checksum_match: true,
                     },
                 };
             }

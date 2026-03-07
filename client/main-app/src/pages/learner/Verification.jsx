@@ -130,6 +130,14 @@ const Verification = () => {
 
     /**
      * Handle Manual (client-side) PDF verification using pdf-lib and ethers
+     *
+     * New simplified flow:
+     * 1. Read PDF bytes
+     * 2. Extract credential_id from Keywords (plain string, not JSON)
+     * 3. Compute SHA-256 of entire PDF as-is (no stripping needed)
+     * 4. Call backend to get stored credential (checksum, tx_hash, etc.)
+     * 5. Compare checksum
+     * 6. Verify blockchain via ethers.js
      */
     const handleManualPdfVerify = async (file) => {
         if (!file) return;
@@ -151,51 +159,75 @@ const Verification = () => {
             const pdfBytes = new Uint8Array(arrayBuffer);
             addStep('Reading PDF file', 'done', `${(pdfBytes.length / 1024).toFixed(1)} KB`);
 
-            // Step 2: Extract metadata using pdf-lib
-            addStep('Extracting metadata from PDF', 'running');
+            // Step 2: Extract credential_id from Keywords
+            addStep('Extracting credential ID from PDF', 'running');
             const { PDFDocument } = await import('pdf-lib');
-            const pdfDoc = await PDFDocument.load(pdfBytes);
+            const pdfDoc = await PDFDocument.load(pdfBytes, { updateMetadata: false });
             const keywords = pdfDoc.getKeywords();
 
             if (!keywords) {
-                addStep('Extracting metadata from PDF', 'fail', 'No MicroMerit metadata found');
-                setError('No MicroMerit metadata found in this PDF. It may not be a credential issued by our platform.');
+                addStep('Extracting credential ID from PDF', 'fail', 'No credential ID found');
+                setError('No MicroMerit credential ID found in this PDF. It may not be a credential issued by our platform.');
                 setLoading(false);
                 return;
             }
 
-            let metadata;
+            // Keywords is the credential_id as a plain string.
+            // Support backward compat: if it looks like JSON, try to parse it.
+            let credentialId;
             try {
-                metadata = JSON.parse(keywords);
-            } catch (e) {
-                addStep('Extracting metadata from PDF', 'fail', 'Could not parse metadata');
-                setError('PDF metadata is corrupted or not in expected format.');
-                setLoading(false);
-                return;
+                const parsed = JSON.parse(keywords);
+                credentialId = parsed?.canonical_json?.credential_id || parsed?.credential_id || keywords;
+            } catch {
+                // Not JSON — it's the plain credential_id string (new format)
+                credentialId = keywords;
             }
 
-            const { canonical_json, tx_hash, checksum: storedChecksum } = metadata;
-            addStep('Extracting metadata from PDF', 'done', `Found tx_hash: ${tx_hash?.substring(0, 16)}...`);
+            addStep('Extracting credential ID from PDF', 'done', `ID: ${credentialId.substring(0, 16)}...`);
 
-            // Step 3: Strip metadata and recompute checksum
-            addStep('Stripping metadata & computing checksum', 'running');
-            // Remove keywords from PDF to get clean bytes
-            pdfDoc.setKeywords([]);
-            const cleanPdfBytes = await pdfDoc.save();
-
-            // Compute SHA-256 of clean PDF
-            const hashBuffer = await crypto.subtle.digest('SHA-256', cleanPdfBytes);
+            // Step 3: Compute SHA-256 of the ENTIRE PDF as-is (no stripping)
+            addStep('Computing PDF checksum', 'running');
+            const hashBuffer = await crypto.subtle.digest('SHA-256', pdfBytes);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
             const recomputedChecksum = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            addStep('Computing PDF checksum', 'done', `SHA-256: ${recomputedChecksum.substring(0, 16)}...`);
 
+            // Step 4: Call backend to get stored credential data
+            addStep('Looking up credential in database', 'running');
+            let storedCredential;
+            try {
+                const response = await axios.post(`${API_BASE_URL}/credentials/verify`, {
+                    credential_id: credentialId,
+                });
+                if (response.data.success && response.data.data?.credential) {
+                    storedCredential = response.data.data.credential;
+                    addStep('Looking up credential in database', 'done', `Found: ${storedCredential.certificate_title}`);
+                } else {
+                    addStep('Looking up credential in database', 'fail', response.data.message || 'Not found');
+                    setError(`Credential ${credentialId} not found in the database.`);
+                    setLoading(false);
+                    return;
+                }
+            } catch (err) {
+                addStep('Looking up credential in database', 'fail', err.response?.data?.message || err.message);
+                setError(`Failed to look up credential: ${err.response?.data?.message || err.message}`);
+                setLoading(false);
+                return;
+            }
+
+            // Step 5: Compare checksum
+            addStep('Verifying PDF integrity (checksum)', 'running');
+            const storedChecksum = storedCredential.metadata?.checksum;
             const checksumMatch = recomputedChecksum === storedChecksum;
+
             if (checksumMatch) {
-                addStep('Stripping metadata & computing checksum', 'done', '✅ Checksum matches');
+                addStep('Verifying PDF integrity (checksum)', 'done', '✅ Checksum matches');
             } else {
-                addStep('Stripping metadata & computing checksum', 'fail', '❌ Checksum mismatch — PDF has been modified');
+                addStep('Verifying PDF integrity (checksum)', 'fail', '❌ Checksum mismatch — PDF has been modified');
                 setResult({
                     status: 'INVALID',
                     reason: 'PDF checksum mismatch — the file has been modified after issuance.',
+                    credential: storedCredential,
                     verified_fields: {
                         hash_match: false,
                         blockchain_verified: false,
@@ -207,14 +239,15 @@ const Verification = () => {
                 return;
             }
 
-            // Step 4: Verify on blockchain using ethers.js
+            // Step 6: Verify on blockchain using ethers.js
             addStep('Querying blockchain for transaction', 'running');
+            const tx_hash = storedCredential.tx_hash;
             let blockchainVerified = false;
             try {
                 const { ethers } = await import('ethers');
                 const networkUrl = import.meta.env.VITE_BLOCKCHAIN_RPC_URL;
-                
-                if (networkUrl && tx_hash && !tx_hash.startsWith('MOCK_TX_')) {
+
+                if (networkUrl && tx_hash && !tx_hash.startsWith('MOCK_TX_') && !tx_hash.startsWith('0x' + credentialId.replace(/-/g, ''))) {
                     const provider = new ethers.JsonRpcProvider(networkUrl);
                     const tx = await provider.getTransaction(tx_hash);
                     if (tx) {
@@ -223,12 +256,13 @@ const Verification = () => {
                     } else {
                         addStep('Querying blockchain for transaction', 'fail', '❌ Transaction not found');
                     }
-                } else if (tx_hash?.startsWith('MOCK_TX_')) {
-                    // Mock mode: treat as verified
+                } else if (tx_hash?.startsWith('MOCK_TX_') || tx_hash?.startsWith('0x' + credentialId.replace(/-/g, ''))) {
                     blockchainVerified = true;
-                    addStep('Querying blockchain for transaction', 'done', `⚠️ Mock transaction (dev mode) — ${tx_hash.substring(0, 20)}...`);
+                    addStep('Querying blockchain for transaction', 'done', `⚠️ Mock transaction (dev mode) — ${tx_hash?.substring(0, 20)}...`);
+                } else if (!tx_hash) {
+                    addStep('Querying blockchain for transaction', 'warn', '⚠️ Blockchain transaction pending');
                 } else {
-                    addStep('Querying blockchain for transaction', 'fail', 'No RPC URL configured or no tx_hash');
+                    addStep('Querying blockchain for transaction', 'fail', 'No RPC URL configured');
                 }
             } catch (bcErr) {
                 console.error('Blockchain query failed:', bcErr);
@@ -236,21 +270,14 @@ const Verification = () => {
                     `⚠️ Could not query blockchain directly. Verify manually on Etherscan.`);
             }
 
-            // Step 5: Build result
+            // Step 7: Build result
             const isValid = checksumMatch && blockchainVerified;
             setResult({
                 status: isValid ? 'VALID' : 'INVALID',
                 reason: !isValid
-                    ? (!checksumMatch ? 'Checksum mismatch' : 'Blockchain verification failed')
+                    ? (!checksumMatch ? 'Checksum mismatch' : 'Blockchain verification failed or pending')
                     : undefined,
-                credential: {
-                    credential_id: canonical_json?.credential_id,
-                    learner_email: canonical_json?.learner_email,
-                    issuer_id: canonical_json?.issuer_id,
-                    certificate_title: canonical_json?.certificate_title,
-                    issued_at: canonical_json?.issued_at,
-                    tx_hash,
-                },
+                credential: storedCredential,
                 verified_fields: {
                     hash_match: checksumMatch,
                     blockchain_verified: blockchainVerified,

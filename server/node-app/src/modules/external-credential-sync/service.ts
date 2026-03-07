@@ -433,7 +433,7 @@ export class ExternalCredentialSyncService {
         // Queue blockchain write (if not mocked)
         if (process.env.BLOCKCHAIN_MOCK_ENABLED !== 'true') {
             try {
-                await writeToBlockchainQueued(credentialId, dataHash, ipfsCid || '');
+                await writeToBlockchainQueued(credentialId, dataHash);
                 logger.info(`Blockchain write queued for external credential`, { credential_id: credentialId });
             } catch (err: any) {
                 logger.error(`Failed to queue blockchain write for ${credentialId}`, {
@@ -622,7 +622,7 @@ export class ExternalCredentialSyncService {
         });
 
         try {
-            await writeToBlockchainQueued(credentialId, dataHash, '');
+            await writeToBlockchainQueued(credentialId, dataHash);
         } catch (error: any) {
             logger.error('Failed to queue blockchain write in deprecated method', {
                 credential_id: credentialId,

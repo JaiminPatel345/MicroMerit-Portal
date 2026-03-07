@@ -60,15 +60,36 @@ export function buildCanonicalJson(params: {
 }
 
 /**
+ * Recursively sort all keys in an object for deterministic JSON serialization.
+ * Unlike JSON.stringify's array replacer (which filters nested keys),
+ * this preserves ALL keys at every nesting level.
+ */
+function deepSortKeys(obj: any): any {
+    if (obj === null || obj === undefined) return obj;
+    if (typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.map(deepSortKeys);
+
+    const sorted: Record<string, any> = {};
+    for (const key of Object.keys(obj).sort()) {
+        sorted[key] = deepSortKeys(obj[key]);
+    }
+    return sorted;
+}
+
+/**
  * Compute SHA256 hash of canonical JSON
- * The data_hash field should be null when computing the hash
+ * The data_hash field should be null when computing the hash.
+ *
+ * Uses deepSortKeys to ensure ALL keys (including nested objects like
+ * `blockchain`) are sorted deterministically before serialization.
  */
 export function computeDataHash(canonicalJson: CanonicalCredential): string {
-    // Create a copy without data_hash for hashing
+    // Create a copy with data_hash = null for hashing
     const jsonForHashing = { ...canonicalJson, data_hash: null };
 
-    // Convert to deterministic JSON string (sorted keys)
-    const jsonString = JSON.stringify(jsonForHashing, Object.keys(jsonForHashing).sort());
+    // Deep-sort keys at every nesting level, then stringify
+    const sorted = deepSortKeys(jsonForHashing);
+    const jsonString = JSON.stringify(sorted);
 
     // Compute SHA256 hash
     return crypto.createHash('sha256').update(jsonString).digest('hex');
