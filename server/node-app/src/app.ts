@@ -1,6 +1,7 @@
 import express, { Application } from 'express';
 import 'dotenv/config';
 import path from 'path';
+import { swaggerSpec } from './swagger';
 import { errorHandler, notFoundHandler } from './middleware/error';
 import { generalRateLimiter } from './middleware/rateLimit';
 import { logger } from './utils/logger';
@@ -56,6 +57,37 @@ app.use((req, res, next) => {
   }
 
   next();
+});
+
+// Swagger API Docs — spec as JSON
+app.get('/api-docs/spec', (req, res) => {
+  res.json(swaggerSpec);
+});
+
+// Swagger API Docs — UI served via CDN
+app.get('/api-docs', (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MicroMerit Issuer API Docs</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script>
+    SwaggerUIBundle({
+      url: '/api-docs/spec',
+      dom_id: '#swagger-ui',
+      presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
+      layout: 'BaseLayout',
+      persistAuthorization: true,
+    });
+  </script>
+</body>
+</html>`);
 });
 
 // Health check route

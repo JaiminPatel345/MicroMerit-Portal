@@ -2,6 +2,8 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Lock, Plus, Trash, Copy } from './icons';
 import { issuerServices } from '../../services/issuerServices';
 
+const API_DOCS_URL = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000') + '/api-docs';
+
 
 const APIManagement = () => {
   const [keys, setKeys] = useState([]);
@@ -93,7 +95,20 @@ const APIManagement = () => {
 
   return (
     <div className="space-y-8">
-      <h3 className="text-2xl font-semibold text-gray-800">API Key Management</h3>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h3 className="text-2xl font-semibold text-gray-800">API Key Management</h3>
+        <a
+          href={API_DOCS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold text-sm shadow hover:bg-indigo-700 transition"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          API Docs
+        </a>
+      </div>
 
       {/* Create Key Form */}
       <div className="p-6 border-b border-gray-200">
