@@ -1,6 +1,35 @@
-import { s3Service } from './s3';
 import { logger } from './logger';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+
+// Local uploads directory (server/node-app/uploads/)
+const UPLOADS_DIR = path.join(__dirname, '../../uploads');
+
+/**
+ * Ensure a directory exists, creating it recursively if needed
+ */
+function ensureDir(dir: string): void {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+/**
+ * Save a buffer to the local filesystem and return the public URL path
+ */
+async function saveBufferToLocal(
+  buffer: Buffer,
+  filename: string,
+  mimeType: string
+): Promise<string> {
+  const filePath = path.join(UPLOADS_DIR, filename);
+  ensureDir(path.dirname(filePath));
+  fs.writeFileSync(filePath, buffer);
+  // Return URL path that will be served as static file
+  const appUrl = process.env.APP_URL || 'http://localhost:3000';
+  return `${appUrl}/uploads/${filename}`;
+}
 
 /**
  * Check if a string is a base64 image
@@ -56,55 +85,45 @@ export function generateImageFilename(prefix: string, extension: string): string
 }
 
 /**
- * Upload base64 image to S3 and return URL
+ * Upload base64 image to local filesystem and return URL
  * @param base64String - Base64 encoded image string
- * @param folder - S3 folder path (e.g., 'profile-photos', 'learner-123')
- * @returns S3 URL of uploaded image
+ * @param folder - Folder path (e.g., 'profile-photos', 'logos/issuer-1')
+ * @returns Local URL of uploaded image
  */
 export async function uploadBase64ImageToS3(
   base64String: string,
   folder: string = 'profile-photos'
 ): Promise<string> {
   try {
-    // Validate it's a base64 image
     if (!isBase64Image(base64String)) {
       throw new Error('Invalid base64 image format. Expected data:image/[type];base64,...');
     }
 
-    // Extract MIME type
     const mimeType = extractMimeType(base64String);
     const extension = getExtensionFromMimeType(mimeType);
-
-    // Convert base64 to buffer
     const buffer = base64ToBuffer(base64String);
 
-    // Validate file size (max 5MB)
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (buffer.length > maxSize) {
       throw new Error('Image size exceeds 5MB limit');
     }
 
-    // Generate unique filename
     const filename = generateImageFilename(folder, extension);
-
-    // Upload to S3
-    const s3Url = await s3Service.uploadFile(buffer, filename, mimeType);
-
-    logger.info('Base64 image uploaded to S3', { filename, size: buffer.length });
-
-    return s3Url;
+    const url = await saveBufferToLocal(buffer, filename, mimeType);
+    logger.info('Base64 image saved to local filesystem', { filename, size: buffer.length });
+    return url;
   } catch (error: any) {
-    logger.error('Failed to upload base64 image to S3', { error: error.message });
+    logger.error('Failed to save base64 image to local filesystem', { error: error.message });
     throw new Error(`Image upload failed: ${error.message}`);
   }
 }
 
 /**
- * Upload image buffer to S3 (from multer file upload)
+ * Upload image buffer to local filesystem
  * @param buffer - Image buffer from multer
  * @param mimeType - MIME type of the image
- * @param folder - S3 folder path
- * @returns S3 URL of uploaded image
+ * @param folder - Folder path
+ * @returns Local URL of uploaded image
  */
 export async function uploadImageBufferToS3(
   buffer: Buffer,
@@ -112,35 +131,27 @@ export async function uploadImageBufferToS3(
   folder: string = 'profile-photos'
 ): Promise<string> {
   try {
-    // Validate file size (max 5MB)
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (buffer.length > maxSize) {
       throw new Error('Image size exceeds 5MB limit');
     }
 
-    // Get extension from MIME type
     const extension = getExtensionFromMimeType(mimeType);
-
-    // Generate unique filename
     const filename = generateImageFilename(folder, extension);
-
-    // Upload to S3
-    const s3Url = await s3Service.uploadFile(buffer, filename, mimeType);
-
-    logger.info('Image buffer uploaded to S3', { filename, size: buffer.length, mimeType });
-
-    return s3Url;
+    const url = await saveBufferToLocal(buffer, filename, mimeType);
+    logger.info('Image buffer saved to local filesystem', { filename, size: buffer.length, mimeType });
+    return url;
   } catch (error: any) {
-    logger.error('Failed to upload image buffer to S3', { error: error.message });
+    logger.error('Failed to save image buffer to local filesystem', { error: error.message });
     throw new Error(`Image upload failed: ${error.message}`);
   }
 }
 
 /**
- * Handle profile photo upload from multer file
+ * Handle profile photo upload from multer file — saves to local filesystem
  * @param file - Multer file object
  * @param userId - User ID for folder organization
- * @returns S3 URL of uploaded image or undefined if no file
+ * @returns Local URL of uploaded image or undefined if no file
  */
 export async function handleProfilePhotoFileUpload(
   file: Express.Multer.File | undefined,
@@ -150,13 +161,26 @@ export async function handleProfilePhotoFileUpload(
     return undefined;
   }
 
-  const folder = `profile-photos/learner-${userId}`;
-  return await uploadImageBufferToS3(file.buffer, file.mimetype, folder);
+  try {
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.buffer.length > maxSize) {
+      throw new Error('Image size exceeds 5MB limit');
+    }
+
+    const extension = getExtensionFromMimeType(file.mimetype);
+    const filename = generateImageFilename(`profile-photos/learner-${userId}`, extension);
+    const url = await saveBufferToLocal(file.buffer, filename, file.mimetype);
+    logger.info('Profile photo saved to local filesystem', { filename, size: file.buffer.length });
+    return url;
+  } catch (error: any) {
+    logger.error('Failed to save profile photo to local filesystem', { error: error.message });
+    throw new Error(`Image upload failed: ${error.message}`);
+  }
 }
 
 /**
  * Handle profile photo upload
- * If input is base64, upload to S3 and return URL
+ * If input is base64, save to local filesystem and return URL
  * If input is already a URL, validate and return it
  * If input is undefined/null, return undefined
  */
@@ -170,9 +194,24 @@ export async function handleProfilePhotoUpload(
 
   // Check if it's a base64 image
   if (isBase64Image(profilePhotoInput)) {
-    // Upload to S3
-    const folder = `profile-photos/learner-${userId}`;
-    return await uploadBase64ImageToS3(profilePhotoInput, folder);
+    try {
+      const mimeType = extractMimeType(profilePhotoInput);
+      const extension = getExtensionFromMimeType(mimeType);
+      const buffer = base64ToBuffer(profilePhotoInput);
+
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (buffer.length > maxSize) {
+        throw new Error('Image size exceeds 5MB limit');
+      }
+
+      const filename = generateImageFilename(`profile-photos/learner-${userId}`, extension);
+      const url = await saveBufferToLocal(buffer, filename, mimeType);
+      logger.info('Base64 profile photo saved to local filesystem', { filename, size: buffer.length });
+      return url;
+    } catch (error: any) {
+      logger.error('Failed to save base64 profile photo to local filesystem', { error: error.message });
+      throw new Error(`Image upload failed: ${error.message}`);
+    }
   }
 
   // Check if it's a valid URL

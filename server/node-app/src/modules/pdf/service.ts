@@ -3,8 +3,25 @@ import QRCode from 'qrcode';
 import { PdfRepository } from './repository';
 import { GeneratePdfInput } from './schema';
 import { logger } from '../../utils/logger';
-import { s3Service } from '../../utils/s3';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+
+const UPLOADS_DIR = path.join(__dirname, '../../../../uploads');
+
+function ensureDir(dir: string): void {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+function saveFileToLocal(buffer: Buffer, relativePath: string): string {
+  const filePath = path.join(UPLOADS_DIR, relativePath);
+  ensureDir(path.dirname(filePath));
+  fs.writeFileSync(filePath, buffer);
+  const appUrl = process.env.APP_URL || 'http://localhost:3000';
+  return `${appUrl}/uploads/${relativePath}`;
+}
 
 export class PdfService {
   private repository: PdfRepository;
@@ -240,11 +257,10 @@ export class PdfService {
   }
 
   /**
-   * Save file to S3
+   * Save file to local filesystem
    */
   private async saveFile(buffer: Buffer, filename: string, contentType: string): Promise<string> {
-    const key = `certificates/${filename}`;
-    return await s3Service.uploadFile(buffer, key, contentType);
+    return saveFileToLocal(buffer, `certificates/${filename}`);
   }
 
   /**
@@ -350,7 +366,7 @@ export class PdfService {
   }
 
   /**
-   * Download PDF file from S3
+   * Download PDF file from local filesystem
    */
   async downloadPdf(credentialUid: string): Promise<{ buffer: Buffer; filename: string }> {
     const pdfUrl = await this.repository.findPdfByCredentialUid(credentialUid);
@@ -359,16 +375,18 @@ export class PdfService {
       throw new Error('PDF certificate not found');
     }
 
-    // Extract S3 key from URL
-    const s3Key = s3Service.extractKeyFromUrl(pdfUrl);
     const filename = `${credentialUid}-certificate.pdf`;
 
     try {
-      const buffer = await s3Service.downloadFile(s3Key);
+      // Extract relative path from URL: strip APP_URL + '/uploads/'
+      const appUrl = process.env.APP_URL || 'http://localhost:3000';
+      const relativePath = pdfUrl.replace(`${appUrl}/uploads/`, '');
+      const filePath = path.join(UPLOADS_DIR, relativePath);
+      const buffer = fs.readFileSync(filePath);
       return { buffer, filename };
     } catch (error) {
-      logger.error('Error downloading PDF from S3:', error);
-      throw new Error('PDF file not found on S3');
+      logger.error('Error reading PDF from local filesystem:', error);
+      throw new Error('PDF file not found');
     }
   }
 }

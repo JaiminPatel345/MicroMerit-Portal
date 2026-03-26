@@ -536,6 +536,48 @@ Return ONLY a valid JSON object with the following structure (no markdown, no ex
             summary: parsed.summary || '',
         };
     }
+
+    async compareCandidates(
+        candidates: Array<{ learner_id: number; credentials: any[] }>,
+        context?: { skills?: string[]; sector?: string }
+    ): Promise<any> {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            throw new Error('GEMINI_API_KEY is not configured on the server.');
+        }
+
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        const contextStr = context
+            ? `Focus on skills: ${context.skills?.join(', ') || 'any'}. Sector: ${context.sector || 'any'}.`
+            : '';
+
+        const prompt = `You are a talent assessment expert. Compare the following candidates based on their verified credentials and provide a structured analysis.
+
+${contextStr}
+
+Candidates:
+${JSON.stringify(candidates, null, 2)}
+
+Return a JSON object with this structure:
+{
+  "summary": "<overall comparison summary>",
+  "ranking": [{ "learner_id": <id>, "rank": <1-based rank>, "strengths": ["..."], "gaps": ["..."] }],
+  "recommendation": "<who to hire and why>"
+}
+Return only valid JSON, no markdown.`;
+
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text().trim();
+        const jsonText = responseText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+
+        try {
+            return JSON.parse(jsonText);
+        } catch {
+            return { summary: responseText, ranking: [], recommendation: '' };
+        }
+    }
 }
 
 export const aiService = new AIService();

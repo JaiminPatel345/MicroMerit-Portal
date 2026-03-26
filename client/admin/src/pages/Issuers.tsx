@@ -1,7 +1,6 @@
 import { formatDate } from '../utils/dateUtils';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
-import toast from 'react-hot-toast';
 import { useAppDispatch, useAppSelector } from '../store/hooks.ts';
 import {
     fetchIssuers,

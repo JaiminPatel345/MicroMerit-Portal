@@ -232,6 +232,33 @@ export class EmployerService {
         return employerRepository.getStats(employerId);
     }
 
+    async compareCandidates(employerId: number, candidateIds: number[], context?: { skills?: string[]; sector?: string }) {
+        const candidates = await Promise.all(candidateIds.map(async (id) => {
+            const credentials = await prisma.credential.findMany({
+                where: { learner_id: id, status: 'issued' },
+                include: { issuer: { select: { name: true } } }
+            });
+            return {
+                learner_id: id,
+                credentials: credentials.map(c => ({
+                    title: c.certificate_title,
+                    issuer: c.issuer.name,
+                    issued_at: c.issued_at,
+                    metadata: c.metadata
+                }))
+            };
+        }));
+
+        const response = await aiService.compareCandidates(candidates, context);
+
+        await employerRepository.logActivity(employerId, 'compare_candidates', undefined, {
+            candidate_ids: candidateIds,
+            context
+        });
+
+        return response;
+    }
+
     /**
      * Chat with AI about a learner's profile
      * Fetches all learner credentials and uses AI to answer employer questions

@@ -1,8 +1,8 @@
 import express, { Application } from 'express';
 import 'dotenv/config';
+import path from 'path';
 import { errorHandler, notFoundHandler } from './middleware/error';
 import { generalRateLimiter } from './middleware/rateLimit';
-import { addSignedUrlsMiddleware } from './middleware/signedUrls';
 import { logger } from './utils/logger';
 
 // Import routes
@@ -25,13 +25,11 @@ const app: Application = express();
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Note: Static file serving for certificates is not needed as we use Amazon S3 for storage
+// Serve uploaded profile photos from local filesystem
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Apply rate limiting
 app.use(generalRateLimiter);
-
-// Apply signed URL middleware to automatically convert S3 URLs in responses
-app.use(addSignedUrlsMiddleware);
 
 // Request logging middleware
 app.use((req, res, next) => {
