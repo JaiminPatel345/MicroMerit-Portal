@@ -39,8 +39,7 @@ const Issuers = () => {
         const status = searchParams.get('status');
         const blocked = searchParams.get('blocked');
 
-        // source is always 'platform' — no connector/external sync concept
-        const newFilters: any = { source: 'platform' };
+        const newFilters: any = {};
         if (status) {
             newFilters.status = status;
             setStatusFilter(status);

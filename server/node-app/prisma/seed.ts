@@ -28,12 +28,14 @@ async function main() {
   // Create external issuers for credential sync
   console.log('Creating external issuers for credential sync...');
   
+  // On-demand external issuers — shown in the "Add Certificate" modal dropdown.
+  // IDs must match the env vars: GOOGLE_DUMMY_ISSUER_ID, UDEMY_DUMMY_ISSUER_ID,
+  // JAIMIN_DUMMY_ISSUER_ID, CREDLY_ISSUER_ID in server/node-app/.env
   const externalIssuers = [
-    { id: 4, name: 'NSDC', email: 'nsdc@example.com', type: 'external' },
-    { id: 5, name: 'NSQF', email: 'nsqf@example.com', type: 'external' },
-    { id: 6, name: 'Udemy', email: 'udemy@example.com', type: 'external' },
-    { id: 7, name: 'Jaimin Pvt Ltd', email: 'jaimin@example.com', type: 'external' },
-    { id: 8, name: 'Credly', email: 'credly@example.com', type: 'external' },
+    { id: 6, name: 'Udemy',         email: 'udemy@example.com',   type: 'external' },  // UDEMY_DUMMY_ISSUER_ID=6
+    { id: 7, name: 'Jaimin Pvt Ltd',email: 'jaimin@example.com',  type: 'external' },  // JAIMIN_DUMMY_ISSUER_ID=7
+    { id: 8, name: 'Credly',        email: 'credly@example.com',  type: 'external' },  // CREDLY_ISSUER_ID=8
+    { id: 9, name: 'Google',        email: 'google@example.com',  type: 'external' },  // GOOGLE_DUMMY_ISSUER_ID=9
   ];
 
   for (const issuerData of externalIssuers) {
@@ -54,6 +56,62 @@ async function main() {
   }
   console.log('');
   
+  // Create test platform issuers — visible in admin portal (type != 'external')
+  console.log('Creating test platform issuers...');
+  const issuerPassword = await bcrypt.hash('issuer123', 10);
+
+  const platformIssuers = [
+    {
+      email: 'issuer@test.com',
+      name: 'CHARUSAT University',
+      type: 'university',
+      status: 'approved',
+      website_url: 'https://charusat.ac.in',
+      official_domain: 'charusat.ac.in',
+      contact_person_name: 'Dr. Rajesh Patel',
+      contact_person_designation: 'Registrar',
+      address: 'CHARUSAT Campus, Changa, Anand, Gujarat 388421',
+    },
+    {
+      email: 'issuer2@test.com',
+      name: 'TechSkill Academy',
+      type: 'training_institute',
+      status: 'approved',
+      website_url: 'https://techskill.example.com',
+      official_domain: 'techskill.example.com',
+      contact_person_name: 'Amit Shah',
+      contact_person_designation: 'Director',
+      address: 'Ahmedabad, Gujarat',
+    },
+    {
+      email: 'issuer3@test.com',
+      name: 'InnovateCorp Pvt Ltd',
+      type: 'corporate',
+      status: 'pending',
+      website_url: 'https://innovatecorp.example.com',
+      official_domain: 'innovatecorp.example.com',
+      contact_person_name: 'Priya Mehta',
+      contact_person_designation: 'HR Manager',
+      address: 'Surat, Gujarat',
+    },
+  ];
+
+  for (const issuerData of platformIssuers) {
+    await prisma.issuer.upsert({
+      where: { email: issuerData.email },
+      update: {},
+      create: {
+        ...issuerData,
+        password_hash: issuerPassword,
+        is_blocked: false,
+        approved_at: issuerData.status === 'approved' ? new Date() : null,
+      } as any,
+    });
+    console.log(`✅ Platform issuer created: ${issuerData.name} (${issuerData.status})`);
+  }
+  console.log('   Login: issuer@test.com / issuer123');
+  console.log('');
+
   console.log('🎉 Database seeding completed!');
 }
 

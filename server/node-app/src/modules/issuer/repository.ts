@@ -102,22 +102,16 @@ export class IssuerRepository {
     is_blocked?: boolean;
     source?: 'connector' | 'platform';
   }): Promise<issuer[]> {
-    // Get connector issuer IDs from environment
-    const connectorIssuerIds: number[] = [];
-    if (process.env.NSDC_ISSUER_ID) connectorIssuerIds.push(parseInt(process.env.NSDC_ISSUER_ID, 10));
-    if (process.env.UDEMY_ISSUER_ID) connectorIssuerIds.push(parseInt(process.env.UDEMY_ISSUER_ID, 10));
-    if (process.env.JAIMIN_ISSUER_ID) connectorIssuerIds.push(parseInt(process.env.JAIMIN_ISSUER_ID, 10));
-    if (process.env.SIH_ISSUER_ID) connectorIssuerIds.push(parseInt(process.env.SIH_ISSUER_ID, 10));
-
     const where: any = {};
     if (filters?.status) where.status = filters.status;
     if (filters?.is_blocked !== undefined) where.is_blocked = filters.is_blocked;
 
-    // Handle source filtering
-    if (filters?.source === 'connector' && connectorIssuerIds.length > 0) {
-      where.id = { in: connectorIssuerIds };
-    } else if (filters?.source === 'platform' && connectorIssuerIds.length > 0) {
-      where.id = { notIn: connectorIssuerIds };
+    // 'platform' = issuers who registered via the portal (type != 'external')
+    // 'connector' = automated external sync issuers (type == 'external')
+    if (filters?.source === 'platform') {
+      where.type = { not: 'external' };
+    } else if (filters?.source === 'connector') {
+      where.type = 'external';
     }
 
     return prisma.issuer.findMany({

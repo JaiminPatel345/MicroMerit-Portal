@@ -143,34 +143,40 @@ const CredentialDetails = () => {
     // };
 
     const handleDownloadPDF = async () => {
-        console.log(import.meta.env.VITE_AI_SERVICE_URL);
-        if (credential?.pdf_url) {
+        if (!credential?.pdf_url) return;
+
+        const triggerDownload = (blobOrUrl, filename) => {
+            const blobUrl = typeof blobOrUrl === 'string' ? blobOrUrl : window.URL.createObjectURL(blobOrUrl);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            if (typeof blobOrUrl !== 'string') window.URL.revokeObjectURL(blobUrl);
+        };
+
+        try {
+            // Fetch the original PDF
+            const response = await fetch(credential.pdf_url);
+            const blob = await response.blob();
+            const file = new File([blob], 'credential.pdf', { type: 'application/pdf' });
+
+            const credId = credential.credential_id || credential.uid;
+            const qrData = `${window.location.origin}/verify?id=${credId}`;
+
             try {
-                // Fetch the original PDF
-                const response = await fetch(credential.pdf_url);
-                const blob = await response.blob();
-                const file = new File([blob], 'credential.pdf', { type: 'application/pdf' });
-                
-                // Add QR code with verification URL
-                // Use credential_id as primary, fallback to uid
-                const credId = credential.credential_id || credential.uid;
-                const qrData = `${window.location.origin}/verify?id=${credId}`;
-                
+                // Try to append QR code via AI service
                 const pdfWithQr = await aiServices.appendQrToCredential(file, qrData);
-                
-                // Download the PDF
-                const blobUrl = window.URL.createObjectURL(pdfWithQr);
-                const link = document.createElement('a');
-                link.href = blobUrl;
-                link.download = `${credential.certificate_title}_with_qr.pdf`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(blobUrl);
-            } catch (error) {
-                console.error('Download failed:', error);
-                alert('Download failed. Please try again.');
+                triggerDownload(pdfWithQr, `${credential.certificate_title}_with_qr.pdf`);
+            } catch {
+                // AI service unavailable — download original PDF without QR
+                triggerDownload(blob, `${credential.certificate_title}.pdf`);
             }
+        } catch (error) {
+            console.error('Download failed:', error);
+            // Last resort — open in new tab
+            window.open(credential.pdf_url, '_blank');
         }
     };
 

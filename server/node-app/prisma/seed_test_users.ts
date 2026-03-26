@@ -35,12 +35,6 @@ const PROVIDER_ISSUERS = [
         type: 'corporate',
         status: 'approved',
     },
-    {
-        name: 'SIH (Smart India Hackathon)',
-        email: 'sih@example.com',
-        type: 'government',
-        status: 'approved',
-    },
 ];
 
 async function main() {

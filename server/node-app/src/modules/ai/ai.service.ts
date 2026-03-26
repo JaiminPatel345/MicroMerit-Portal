@@ -462,7 +462,7 @@ export class AIService {
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-        const prompt = `You are a strict document verification expert. You have been provided two documents: Document A (the official credential on record) and Document B (submitted by the user for verification).
+        const prompt = `You are a strict document verification expert. You have been provided two documents: the "Original Credential" (the official credential on record from IPFS) and the "Submitted Copy" (uploaded by the user for verification).
 
 Your task is to carefully compare the core credential data in both documents field by field. The fields to compare are:
 - Student/Candidate full name
@@ -478,7 +478,7 @@ Your task is to carefully compare the core credential data in both documents fie
 Rules:
 1. The comparison must be EXACT — even a single character difference (including spelling, spacing, or casing) means the documents do NOT match.
 2. Ignore formatting differences, watermarks, logos, fonts, colors, or image quality.
-3. If any field that is present in Document A is different, missing, or illegible in Document B, the documents do NOT match.
+3. If any field that is present in the Original Credential is different, missing, or illegible in the Submitted Copy, the documents do NOT match.
 
 Return ONLY a valid JSON object with the following structure (no markdown, no extra text outside the JSON):
 {
@@ -510,9 +510,9 @@ Return ONLY a valid JSON object with the following structure (no markdown, no ex
         };
 
         const result = await model.generateContent([
-            { text: 'Document A (Official Credential from IPFS):' },
+            { text: 'Original Credential (Official record from IPFS):' },
             originalPdfPart,
-            { text: 'Document B (User-submitted document):' },
+            { text: 'Submitted Copy (Uploaded by user for verification):' },
             userFilePart,
             { text: prompt },
         ]);

@@ -186,11 +186,9 @@ const jaiminPrivateConnector: OnDemandConnector = {
 const credlyConnector: OnDemandConnector = {
   id: 'credly',
   name: 'Credly',
-  // Hardcoded fallback=2 — Credly issuer (ID=2) was inserted manually into DB.
-  issuerId: parseInt(process.env.CREDLY_ISSUER_ID || '2', 10),
+  issuerId: parseInt(process.env.CREDLY_ISSUER_ID || '8', 10),
 
   buildUrl(credentialId) {
-    // credentialId = the badge UUID from a Credly badge URL
     return `https://api.credly.com/v1/obi/v2/badge_assertions/${credentialId}`;
   },
 

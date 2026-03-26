@@ -59,6 +59,9 @@ const Verification = () => {
     const [error, setError] = useState(null);
     const [pdfFile, setPdfFile] = useState(null);
 
+    // Active tab: 'blockchain' | 'ai'
+    const [activeTab, setActiveTab] = useState(aiParam ? 'ai' : 'blockchain');
+
     // AI Compare state
     const [aiCredentialId, setAiCredentialId] = useState(aiParam);
     const [aiFile, setAiFile] = useState(null);
@@ -67,6 +70,7 @@ const Verification = () => {
     const [aiResult, setAiResult] = useState(null);
     const [aiError, setAiError] = useState('');
 
+    const resultRef = useRef(null);
     const aiSectionRef = useRef(null);
     const aiUploadZoneRef = useRef(null);
 
@@ -82,6 +86,15 @@ const Verification = () => {
             return () => clearTimeout(timer);
         }
     }, [aiParam]);
+    // Scroll to result when verification completes
+    useEffect(() => {
+        if (result) {
+            setTimeout(() => {
+                resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+    }, [result]);
+
     // Initial load handler
     useEffect(() => {
         if (id) {
@@ -138,7 +151,6 @@ const Verification = () => {
         setLoading(true);
         setError(null);
         setResult(null);
-        setManualVerifySteps([]);
 
         try {
             const response = await credentialServices.verifyCredentialFromPdf(file);
@@ -188,7 +200,7 @@ const Verification = () => {
         <div className="min-h-screen bg-gray-50 pb-12">
             {/* Header Section */}
             <div className="bg-white border-b border-gray-100">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 text-center relative">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 text-center relative">
                     <Link
                         to="/"
                         className="absolute left-4 sm:left-6 lg:left-8 top-6 inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-blue-chill-700 bg-gray-100 hover:bg-blue-chill-50 px-4 py-2 rounded-lg transition-colors"
@@ -200,9 +212,41 @@ const Verification = () => {
                     <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight sm:text-5xl mb-4">
                         Verify a Credential
                     </h1>
-                    <p className="max-w-2xl mx-auto text-lg text-gray-500">
+                    <p className="max-w-2xl mx-auto text-lg text-gray-500 mb-8">
                         Instantly verify the authenticity of certificates issued on the {APP_NAME} blockchain network.
                     </p>
+
+                    {/* Mode Toggle */}
+                    <div className="inline-flex items-center bg-gray-100 rounded-2xl p-1.5 gap-1">
+                        <button
+                            onClick={() => { setActiveTab('blockchain'); setAiResult(null); setAiError(''); setAiFile(null); setAiFileName(''); }}
+                            className={`relative flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                                activeTab === 'blockchain'
+                                    ? 'bg-white text-blue-chill-700 shadow-md shadow-blue-chill-100 border border-blue-chill-100'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            <ShieldCheck size={17} className={activeTab === 'blockchain' ? 'text-blue-chill-600' : 'text-gray-400'} />
+                            Blockchain Verify
+                            {activeTab === 'blockchain' && (
+                                <span className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" />
+                            )}
+                        </button>
+                        <button
+                            onClick={() => { setActiveTab('ai'); setResult(null); setError(null); setPdfFile(null); }}
+                            className={`relative flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                                activeTab === 'ai'
+                                    ? 'bg-white text-purple-700 shadow-md shadow-purple-100 border border-purple-100'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            <Sparkles size={17} className={activeTab === 'ai' ? 'text-purple-600' : 'text-gray-400'} />
+                            AI Verification
+                            {activeTab === 'ai' && (
+                                <span className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 bg-purple-500 rounded-full border-2 border-white" />
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -210,6 +254,7 @@ const Verification = () => {
                 {/* Search Box Card */}
                 <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
                     <div className="p-6 sm:p-8">
+                    {activeTab === 'blockchain' && (<>
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 {/* Type Selector */}
@@ -327,18 +372,10 @@ const Verification = () => {
                         </label>
                     </div>
 
-                    {/* ─────────────────────────────────────────── */}
-                    {/* AI-Powered Verification Section */}
-                    {/* ─────────────────────────────────────────── */}
-                    <div ref={aiSectionRef} className="px-6 sm:px-8 pb-8 pt-2">
-                        <div className="mt-6 relative">
-                            <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                                <div className="w-full border-t border-gray-200" />
-                            </div>
-                            <div className="relative flex justify-center">
-                                <span className="bg-white px-2 text-sm text-gray-500">Or verify with AI</span>
-                            </div>
-                        </div>
+                    </>)}
+                    {activeTab === 'ai' && (
+                    <div ref={aiSectionRef}>
+                        <div>
 
                         <div className="mt-6">
                             <div className="flex items-center gap-3 mb-1">
@@ -522,7 +559,9 @@ const Verification = () => {
                                 </div>
                             )}
                         </div>
+                        </div>
                     </div>
+                    )}
                     </div>
 
                     {/* Loading State Overlay */}
@@ -553,7 +592,7 @@ const Verification = () => {
 
                 {/* Success Result */}
                 {result && (
-                    <div className="mt-8 space-y-6 animate-fade-in">
+                    <div ref={resultRef} className="mt-8 space-y-6 animate-fade-in">
 
                         {/* Status Card */}
                         <div className={`rounded-xl shadow-lg border overflow-hidden ${result.status === 'VALID' && result.credential?.status !== 'revoked'
