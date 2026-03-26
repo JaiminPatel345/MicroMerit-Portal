@@ -126,64 +126,57 @@ export const employerRepository = {
 
     async searchCandidates(filters: {
         skills?: string[],
-        sector?: string,
-        nsqf_level?: number,
-        job_role?: string,
+        name?: string,
+        certificate_title?: string,
+        location?: string,
         keyword?: string,
         issuer?: string
     }) {
         try {
             // Base query to find learners
             // We'll use raw query to handle the complex JSON filtering for skills effectively
-            
+
             const conditions: string[] = [`l.status = 'active'`];
             const params: any[] = [];
             let paramCount = 1;
 
-            // --- 1. SECTOR FILTER (Strict) ---
-            if (filters.sector) {
-                // Find learners who have at least one issued credential in this sector
-                conditions.push(`EXISTS (
-                    SELECT 1 FROM "Credential" c 
-                    WHERE c.learner_id = l.id 
-                    AND c.status = 'issued'
-                    AND c.sector ILIKE $${paramCount++}
-                )`);
-                params.push(`%${filters.sector}%`);
+            // --- 1. NAME FILTER ---
+            if (filters.name) {
+                conditions.push(`l.name ILIKE $${paramCount++}`);
+                params.push(`%${filters.name}%`);
             }
 
-            // --- 2. NSQF LEVEL FILTER (Strict) ---
-            if (filters.nsqf_level) {
+            // --- 2. CERTIFICATE TITLE FILTER ---
+            if (filters.certificate_title) {
                 conditions.push(`EXISTS (
-                    SELECT 1 FROM "Credential" c 
-                    WHERE c.learner_id = l.id 
+                    SELECT 1 FROM "Credential" c
+                    WHERE c.learner_id = l.id
                     AND c.status = 'issued'
-                    AND c.nsqf_level = $${paramCount++}
+                    AND c.certificate_title ILIKE $${paramCount++}
                 )`);
-                params.push(filters.nsqf_level);
+                params.push(`%${filters.certificate_title}%`);
             }
 
-            // --- 3. ISSUER FILTER (Strict) ---
+            // --- 3. LOCATION FILTER (from skill profile JSON) ---
+            if (filters.location) {
+                conditions.push(`EXISTS (
+                    SELECT 1 FROM "LearnerSkillProfile" lsp_loc
+                    WHERE lsp_loc.learner_id = l.id
+                    AND lsp_loc.data::text ILIKE $${paramCount++}
+                )`);
+                params.push(`%${filters.location}%`);
+            }
+
+            // --- 4. ISSUER FILTER ---
             if (filters.issuer) {
                  conditions.push(`EXISTS (
-                    SELECT 1 FROM "Credential" c 
+                    SELECT 1 FROM "Credential" c
                     JOIN "issuer" i ON c.issuer_id = i.id
-                    WHERE c.learner_id = l.id 
+                    WHERE c.learner_id = l.id
                     AND c.status = 'issued'
                     AND i.name ILIKE $${paramCount++}
                 )`);
                 params.push(`%${filters.issuer}%`);
-            }
-
-             // --- 4. JOB ROLE FILTER (Strict - on Title) ---
-            if (filters.job_role) {
-                conditions.push(`EXISTS (
-                    SELECT 1 FROM "Credential" c 
-                    WHERE c.learner_id = l.id 
-                    AND c.status = 'issued'
-                    AND c.certificate_title ILIKE $${paramCount++}
-                )`);
-                params.push(`%${filters.job_role}%`);
             }
 
 

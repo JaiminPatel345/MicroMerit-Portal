@@ -6,10 +6,10 @@ import { Link } from 'react-router-dom';
 const EmployerSearch = () => {
     const [filters, setFilters] = useState({
         keyword: '',
-        nsqf_level: '',
         skills: '',
-        sector: '',
-        job_role: '',
+        name: '',
+        certificate_title: '',
+        location: '',
         issuer: ''
     });
     const [showAdvanced, setShowAdvanced] = useState(false);
@@ -52,10 +52,10 @@ const EmployerSearch = () => {
     const clearFilters = () => {
         setFilters({
             keyword: '',
-            nsqf_level: '',
             skills: '',
-            sector: '',
-            job_role: '',
+            name: '',
+            certificate_title: '',
+            location: '',
             issuer: ''
         });
         setSearched(false);
@@ -63,6 +63,7 @@ const EmployerSearch = () => {
     };
 
     const activeFiltersCount = Object.entries(filters).filter(([k, v]) => k !== 'keyword' && v !== '').length;
+
 
     const [selectedCandidates, setSelectedCandidates] = useState([]);
     const [showComparison, setShowComparison] = useState(false);
@@ -88,8 +89,7 @@ const EmployerSearch = () => {
             const res = await employerApi.compareCandidates({
                 candidate_ids: selectedCandidates,
                 context: {
-                    skills: filters.skills ? filters.skills.split(',').map(s => s.trim()) : [],
-                    sector: filters.sector
+                    skills: filters.skills ? filters.skills.split(',').map(s => s.trim()) : []
                 }
             });
             setComparisonData(res.data.data);
@@ -146,7 +146,7 @@ const EmployerSearch = () => {
                         Discover Certified <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-chill-200 to-blue-chill-400">Excellence</span>
                     </h1>
                     <p className="text-blue-100/80 mb-10 text-lg max-w-2xl mx-auto font-light">
-                        Connect with verified talent. Filter by skills, sector, or specific credentials to find the perfect match for your team.
+                        Connect with verified talent. Filter by skills, certificate, issuer, name, or location to find the perfect match for your team.
                     </p>
 
                     <div className="max-w-3xl mx-auto bg-white p-2 rounded-2xl shadow-xl shadow-blue-900/20">
@@ -159,7 +159,7 @@ const EmployerSearch = () => {
                                     <input
                                         type="text"
                                         className="block w-full pl-11 pr-4 py-3.5 bg-gray-50 border-0 rounded-xl text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-100 focus:bg-white transition-all outline-none"
-                                        placeholder="Search by skill, job role, or issuer..."
+                                        placeholder="Search by name, skill, certificate, or issuer..."
                                         value={filters.keyword}
                                         onChange={(e) => setFilters({ ...filters, keyword: e.target.value })}
                                     />
@@ -216,59 +216,39 @@ const EmployerSearch = () => {
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Job Role</label>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Certificate Title</label>
                                     <input
                                         className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:bg-white focus:border-blue-200 outline-none transition-all"
-                                        placeholder="e.g. Developer"
-                                        value={filters.job_role}
-                                        onChange={(e) => setFilters({ ...filters, job_role: e.target.value })}
+                                        placeholder="e.g. Data Science, AWS Cloud"
+                                        value={filters.certificate_title}
+                                        onChange={(e) => setFilters({ ...filters, certificate_title: e.target.value })}
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Sector</label>
-                                    <select
-                                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:bg-white focus:border-blue-200 outline-none transition-all"
-                                        value={filters.sector}
-                                        onChange={(e) => setFilters({ ...filters, sector: e.target.value })}
-                                    >
-                                        <option value="">Any Sector</option>
-                                        {[
-                                            "Aerospace & Aviation", "Agriculture", "Apparel", "Automotive", "Beauty & Wellness", "BFSI", 
-                                            "Capital Goods & Manufacturing", "Chemicals & Petrochemicals", "Construction", 
-                                            "Education, Training & Research", "Electronics & HW", "Environmental Science", 
-                                            "Food Industry/Food Processing", "Gem & Jewellery", "Glass & Ceramics", "Handicrafts & Carpets", 
-                                            "Healthcare", "Home Management and Caregiving", "Hydrocarbon", "Infrastructure", "Instrumentation", 
-                                            "Iron & Steel", "IT-ITeS", "Leather", "Life Sciences", "Media & Entertainment", "Mining", 
-                                            "Office Administration & Facility Management", "Paints & Coatings", "Paper & Paper Products", 
-                                            "Persons with Disability", "Plumbing", "Power", "Private Security", "Retail", "Rubber Industry", 
-                                            "Sports, Physical Education, Fitness & Leisure", "Telecom", "Textile & Handloom", 
-                                            "Tourism & Hospitality", "Transportation, Logistics & Warehousing", 
-                                            "Water Supply, Sewerage, Waste Management & Remediation activities", "Wood & Carpentry"
-                                        ].map(sec => (
-                                            <option key={sec} value={sec}>{sec}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">NSQF Level</label>
-                                    <select
-                                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:bg-white focus:border-blue-200 outline-none transition-all"
-                                        value={filters.nsqf_level}
-                                        onChange={(e) => setFilters({ ...filters, nsqf_level: e.target.value })}
-                                    >
-                                        <option value="">Any Level</option>
-                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(lvl => (
-                                            <option key={lvl} value={lvl}>Level {lvl}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="md:col-span-2 lg:col-span-2 space-y-1.5">
                                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Issuer Name</label>
                                     <input
                                         className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:bg-white focus:border-blue-200 outline-none transition-all"
-                                        placeholder="Search for candidates certified by specific organizations..."
+                                        placeholder="e.g. NSDC, Coursera"
                                         value={filters.issuer}
                                         onChange={(e) => setFilters({ ...filters, issuer: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Student Name</label>
+                                    <input
+                                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:bg-white focus:border-blue-200 outline-none transition-all"
+                                        placeholder="e.g. Raj Mehta"
+                                        value={filters.name}
+                                        onChange={(e) => setFilters({ ...filters, name: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Location</label>
+                                    <input
+                                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 focus:bg-white focus:border-blue-200 outline-none transition-all"
+                                        placeholder="e.g. Mumbai, Delhi"
+                                        value={filters.location}
+                                        onChange={(e) => setFilters({ ...filters, location: e.target.value })}
                                     />
                                 </div>
                             </div>

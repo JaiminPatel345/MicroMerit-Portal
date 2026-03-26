@@ -84,13 +84,14 @@ export class AdminRepository {
    * Analytics methods
    */
   async getPlatformStats() {
-    const [totalLearners, activeLearners, totalIssuers, approvedIssuers, totalCredentials] =
+    const [totalLearners, activeLearners, totalIssuers, approvedIssuers, totalCredentials, totalEmployers] =
       await Promise.all([
         prisma.learner.count(),
         prisma.learner.count({ where: { status: 'active' } }),
         prisma.issuer.count(),
         prisma.issuer.count({ where: { status: 'approved', is_blocked: false } }),
         prisma.credential.count(),
+        prisma.employer.count(),
       ]);
 
     return {
@@ -99,6 +100,7 @@ export class AdminRepository {
       totalIssuers,
       approvedIssuers,
       totalCredentials,
+      totalEmployers,
     };
   }
 

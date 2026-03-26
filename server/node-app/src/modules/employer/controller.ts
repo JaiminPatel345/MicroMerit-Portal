@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { employerService } from './service';
+import { credentialVerificationService } from '../credential-verification/service';
 import { employerRegistrationSchema, employerLoginSchema, updateEmployerProfileSchema, refreshTokenSchema, bulkVerifySchema, candidateSearchSchema, compareCandidatesSchema } from './schema';
 import { sendSuccess, sendError } from '../../utils/response';
 import { logger } from '../../utils/logger';
@@ -14,13 +15,6 @@ export class EmployerController {
 
             const result = await employerService.register(data);
             sendSuccess(res, result, 'Registration successful', 201);
-
-            // Registration is now step 1 (unverified), so no tokens yet.
-            res.status(201).json({
-                success: true,
-                message: result.message,
-                data: { email: result.email, id: result.id }
-            });
         } catch (error: any) {
             logger.error('Employer registration failed', { error: error.message, stack: error.stack });
 
@@ -232,92 +226,60 @@ export class EmployerController {
             if (!req.user) return sendError(res, 'Unauthorized');
             if (!req.file) return sendError(res, 'No file uploaded', 'Validation Error', 400);
 
-            const { aiService } = await import('../ai/ai.service');
-
             const file = req.file;
-            const mimeType = file.mimetype;
+            if (!file.mimetype.includes('zip') && !file.originalname.endsWith('.zip')) {
+                return sendError(res, 'Only ZIP archives are supported.', 'Validation Error', 400);
+            }
 
-            let credentialIds: string[] = [];
+            const AdmZip = (await import('adm-zip')).default;
+            const zip = new AdmZip(file.buffer);
+
+            // Filter exactly like issuer bulk upload — skip macOS resource forks and hidden files
+            const pdfEntries = zip.getEntries().filter(entry =>
+                !entry.isDirectory &&
+                !entry.entryName.startsWith('__MACOSX') &&
+                !entry.entryName.startsWith('.') &&
+                entry.entryName.toLowerCase().endsWith('.pdf')
+            );
+
+            console.log(`[BulkVerify] Found ${pdfEntries.length} PDFs in ZIP (total entries: ${zip.getEntries().length})`);
+
             const report: any = {
-                processed_files: 0,
-                successful_extractions: 0,
-                failed_extractions: 0,
-                extraction_errors: [],
-                verification_results: []
+                processed_files: pdfEntries.length,
+                verification_results: [] as any[],
+                extraction_errors: [] as any[],
             };
 
-            // ---- CSV ----
-            if (mimeType.includes('csv') || file.originalname.endsWith('.csv')) {
-                const csvContent = file.buffer.toString('utf-8');
-
-                credentialIds = csvContent
-                    .split(/[\r\n,]+/)
-                    .map(id => id.trim())
-                    .filter(Boolean);
-
-                report.processed_files = credentialIds.length;
-                report.successful_extractions = credentialIds.length;
+            if (pdfEntries.length === 0) {
+                return sendSuccess(res, { report }, 'No PDF files found in ZIP.');
             }
 
-            // ---- ZIP ----
-            else if (mimeType.includes('zip') || file.originalname.endsWith('.zip')) {
-                console.log('Processing ZIP file...');
+            // Process each PDF one by one — same function as POST /credentials/verify-pdf
+            for (const entry of pdfEntries) {
+                const fileName = entry.entryName.split('/').pop() || entry.entryName;
+                try {
+                    const pdfBuffer = Buffer.from(entry.getData());
+                    console.log(`[BulkVerify] Verifying "${fileName}" (${pdfBuffer.length} bytes)...`);
 
-                const extractionResult = await aiService.extractBulkIds(file.buffer, file.originalname);
-                if (!extractionResult?.success) {
-                    return sendError(res, 'Failed to process ZIP file', 'Processing Error', 500);
+                    // Exact same call as credentialVerificationController.verifyCredentialFromPdf
+                    const result = await credentialVerificationService.verifyCredentialFromPdf(pdfBuffer);
+
+                    console.log(`[BulkVerify] "${fileName}" => ${result.status}`);
+                    report.verification_results.push({
+                        id: result.credential?.credential_id || fileName,
+                        status: result.status,
+                        credential: result.credential,
+                        reason: result.reason,
+                        verified_fields: result.verified_fields,
+                    });
+                } catch (err: any) {
+                    console.error(`[BulkVerify] "${fileName}" => ERROR: ${err.message}`);
+                    report.extraction_errors.push({
+                        filename: fileName,
+                        error: err.message || 'Verification failed',
+                    });
                 }
-
-                report.processed_files = extractionResult.total;
-
-                const extractedResults = extractionResult.results || [];
-
-                // Efficient streaming-style filtering
-                const validExtractions = [];
-                const errors = [];
-
-                for (const r of extractedResults) {
-                    if (r.certificate_number && (r.status === 'found' || r.status === 'needs_review')) {
-                        validExtractions.push(r);
-                    } else {
-                        errors.push({ filename: r.filename, error: r.error || 'No ID found' });
-                    }
-                }
-
-                credentialIds = validExtractions.map((r: any) => r.certificate_number);
-
-                report.successful_extractions = credentialIds.length;
-                report.failed_extractions = report.processed_files - report.successful_extractions;
-                report.extraction_errors = errors;
             }
-
-            else {
-                return sendError(res, 'Unsupported file type. Upload CSV or ZIP only.', 'Validation Error', 400);
-            }
-
-            // No extracted IDs
-            if (credentialIds.length === 0) {
-                return sendSuccess(res, { report }, 'No valid credential IDs found to verify.');
-            }
-
-            // ---- Efficient parallel verify (chunk size 100) ----
-            console.log(`Verifying ${credentialIds.length} IDs...`);
-
-            const chunkSize = 100;
-            const chunks = [];
-
-            for (let i = 0; i < credentialIds.length; i += chunkSize) {
-                chunks.push(credentialIds.slice(i, i + chunkSize));
-            }
-
-            const results = await Promise.allSettled(
-                chunks.map(chunk => employerService.bulkVerify(req.user!.id, chunk))
-            );
-
-            // Flatten and filter errors
-            report.verification_results = results.flatMap((r: any) =>
-                r.status === 'fulfilled' ? r.value : [{ error: r.reason }]
-            );
 
             return sendSuccess(res, { report }, 'Bulk Verification Processed');
 

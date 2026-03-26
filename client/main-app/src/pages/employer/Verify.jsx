@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
+import axios from 'axios';
+import JSZip from 'jszip';
 import { employerApi } from '../../services/authServices';
-import { FileCheck, AlertCircle, CheckCircle, XCircle, Search, Loader, Globe, FileText, ArrowLeft, Copy, Check, Camera, Eye, X, Sparkles, Upload } from 'lucide-react';
+import { credentialServices } from '../../services/credentialServices';
+import { FileCheck, AlertCircle, CheckCircle, XCircle, Search, Loader, Globe, FileText, ArrowLeft, Copy, Check, Camera, Eye, X, Sparkles, Upload, Archive } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import CameraCapture from '../../components/CameraCapture';
+
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000/api';
 
 const CopyButton = ({ text }) => {
     const [copied, setCopied] = useState(false);
@@ -119,10 +124,12 @@ const EmployerVerify = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const [bulkIds, setBulkIds] = useState('');
-    const [bulkResults, setBulkResults] = useState(null);
     const [showCamera, setShowCamera] = useState(false);
     const [selectedResult, setSelectedResult] = useState(null);
+
+    // Bulk report state
+    const [bulkReport, setBulkReport] = useState(null);
+    const [resultsFilter, setResultsFilter] = useState('all');
 
     // AI Compare state
     const [aiCredentialId, setAiCredentialId] = useState('');
@@ -175,7 +182,7 @@ const EmployerVerify = () => {
 
         try {
             const payload = { [type]: inputValue.trim() };
-            const res = await employerApi.verifyCredential(payload);
+            const res = await axios.post(`${API_BASE_URL}/credentials/verify`, payload);
             setVerifyResult(res.data.data);
         } catch (err) {
             setError(err.response?.data?.message || 'Verification failed');
@@ -187,51 +194,93 @@ const EmployerVerify = () => {
         }
     };
 
-    const handleBulkVerify = async () => {
-        setLoading(true);
-        setBulkResults(null);
-        setError('');
-
-        try {
-            const ids = bulkIds.split(/[\n,]+/).map(id => id.trim()).filter(id => id);
-            if (ids.length === 0) {
-                setError("Please enter at least one credential ID");
-                setLoading(false);
-                return;
-            }
-            const res = await employerApi.bulkVerify({ credential_ids: ids });
-            setBulkResults(res.data.data);
-        } catch (err) {
-            setError(err.response?.data?.message || 'Bulk verify failed');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     };
 
-    const handleFileUpload = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+    const normalizeResultsToReport = (results) => {
+        const normalized = results.map(r => ({ ...r, valid: r.valid || r.status === 'VALID' }));
+        const total = normalized.length;
+        const valid = normalized.filter(r => r.valid).length;
+        const errors = normalized.filter(r => r.status === 'ERROR').length;
+        const failed = total - valid - errors;
+        const successRate = total > 0 ? Math.round((valid / total) * 100) : 0;
+        return { total, valid, failed, errors, successRate, results: normalized };
+    };
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const text = event.target.result;
-            // Split by newlines and commas to get potential IDs
-            const ids = text.split(/[\n,]+/)
-                .map(id => id.trim())
-                .filter(id => id); // Remove empty strings
-            
-            if (ids.length > 0) {
-                // Determine if we append or replace. Let's append if there's existing content.
-                const newContent = bulkIds ? `${bulkIds}\n${ids.join('\n')}` : ids.join('\n');
-                setBulkIds(newContent);
+    const handleZipUpload = async (e) => {
+        const zipFile = e.target.files[0];
+        if (!zipFile) return;
+        setLoading(true);
+        setBulkReport(null);
+        setError('');
+        try {
+            // Extract PDFs from ZIP in the browser
+            const zip = await JSZip.loadAsync(zipFile);
+            const pdfEntries = Object.entries(zip.files).filter(
+                ([name, entry]) => !entry.dir && !name.startsWith('__MACOSX') && !name.startsWith('.') && name.toLowerCase().endsWith('.pdf')
+            );
+
+            if (pdfEntries.length === 0) {
+                setError('No PDF files found in ZIP.');
+                setLoading(false);
+                e.target.value = null;
+                return;
             }
-        };
-        reader.readAsText(file);
+
+            const results = [];
+
+            // Verify each PDF using the SAME route as /verify: POST /credentials/verify-pdf
+            for (const [name, entry] of pdfEntries) {
+                const fileName = name.split('/').pop() || name;
+                try {
+                    const blob = await entry.async('blob');
+                    const pdfFile = new File([blob], fileName, { type: 'application/pdf' });
+
+                    // Same function used by single PDF verify and public /verify page
+                    const response = await credentialServices.verifyCredentialFromPdf(pdfFile);
+
+                    if (response.success) {
+                        const r = response.data;
+                        results.push({
+                            id: r.credential?.credential_id || fileName,
+                            status: r.status,
+                            valid: r.status === 'VALID',
+                            reason: r.reason,
+                            credential: r.credential,
+                            verified_fields: r.verified_fields,
+                        });
+                    } else {
+                        results.push({
+                            id: fileName,
+                            status: 'INVALID',
+                            valid: false,
+                            error: response.message || 'Verification failed',
+                        });
+                    }
+                } catch (err) {
+                    results.push({
+                        id: fileName,
+                        status: 'ERROR',
+                        valid: false,
+                        error: err.response?.data?.message || err.message || 'Verification failed',
+                    });
+                }
+            }
+
+            if (results.length === 0) {
+                setError('No valid certificate files found in ZIP.');
+            } else {
+                setBulkReport(normalizeResultsToReport(results));
+                setResultsFilter('all');
+            }
+        } catch (err) {
+            setError(err.message || 'Failed to process ZIP file');
+        } finally {
+            setLoading(false);
+            e.target.value = null;
+        }
     };
 
     const handleAiCompare = async (e) => {
@@ -334,17 +383,17 @@ const EmployerVerify = () => {
                                     {loading ? (
                                         <div className="py-4 flex flex-col items-center justify-center">
                                             <Loader className="h-10 w-10 text-blue-chill-600 animate-spin mb-2" />
-                                            <p className="text-sm text-gray-500">Extracting ID from document...</p>
+                                            <p className="text-sm text-gray-500">Verifying PDF...</p>
                                         </div>
                                     ) : (
                                         <>
-                                            <FileText className="mx-auto h-10 w-10 text-gray-400 mb-2" />
+                                            <Upload className="mx-auto h-10 w-10 text-gray-400 mb-2" />
                                             <label htmlFor="single-file-upload" className="block relative cursor-pointer group">
-                                                <span className="font-medium text-blue-chill-600 group-hover:text-blue-chill-700">Upload Document</span>
-                                                <input 
-                                                    id="single-file-upload" 
-                                                    type="file" 
-                                                    accept=".pdf,.png,.jpg,.jpeg" 
+                                                <span className="font-medium text-blue-chill-600 group-hover:text-blue-chill-700">Upload Credential PDF</span>
+                                                <input
+                                                    id="single-file-upload"
+                                                    type="file"
+                                                    accept=".pdf"
                                                     className="sr-only"
                                                     disabled={loading}
                                                     onChange={async (e) => {
@@ -352,31 +401,26 @@ const EmployerVerify = () => {
                                                         if (file) {
                                                             setLoading(true);
                                                             setError('');
+                                                            setVerifyResult(null);
                                                             try {
-                                                                const formData = new FormData();
-                                                                formData.append('file', file);
-                                                                const res = await employerApi.extractIdFromDoc(formData);
-                                                                
-                                                                if (res.data.success && res.data.data.found && res.data.data.credential_id) {
-                                                                    setInputValue(res.data.data.credential_id);
-                                                                    if (res.data.data.status === 'needs_review') {
-                                                                        setError(`ID found with confidence ${res.data.data.confidence}%. Please verify: ${res.data.data.credential_id}`);
-                                                                    }
+                                                                const response = await credentialServices.verifyCredentialFromPdf(file);
+                                                                if (response.success) {
+                                                                    setVerifyResult(response.data);
                                                                 } else {
-                                                                    setError(res.data.data?.message || 'No Credential ID found in document. Please enter manually.');
+                                                                    setError(response.message || 'PDF verification failed');
                                                                 }
                                                             } catch (err) {
                                                                 console.error(err);
-                                                                setError(err.response?.data?.message || 'Failed to process document');
+                                                                setError(err.response?.data?.message || 'Failed to verify PDF');
                                                             } finally {
                                                                 setLoading(false);
-                                                                e.target.value = null;
+                                                                e.target.value = '';
                                                             }
                                                         }
                                                     }}
                                                 />
                                             </label>
-                                            <p className="text-xs text-gray-500 mt-1">PDF, PNG, JPG</p>
+                                            <p className="text-xs text-gray-500 mt-1">PDF only — credential with embedded metadata</p>
                                         </>
                                     )}
                                 </div>
@@ -695,172 +739,188 @@ const EmployerVerify = () => {
                         )}
                     </div>
                 ) : (
-                    <div className="max-w-3xl mx-auto pt-4">
+                    <div className="max-w-4xl mx-auto pt-4">
+                        {/* ZIP Upload Panel */}
                         <div className="mb-6">
-                            <div className="flex justify-between items-center mb-2">
-                                <label className="block text-sm font-medium text-gray-700">Enter Credential IDs (one per line or comma-separated)</label>
-                                <div className="relative">
-                                    <input
-                                        type="file"
-                                        accept=".csv,.txt"
-                                        onChange={handleFileUpload}
-                                        className="hidden"
-                                        id="csv-upload"
-                                    />
-                                    <label
-                                        htmlFor="csv-upload"
-                                        className="cursor-pointer text-sm text-blue-chill-600 hover:text-blue-chill-700 font-medium flex items-center gap-1"
-                                    >
-                                        <FileText size={16} /> Import from CSV
-                                    </label>
+                                <p className="text-sm text-gray-500 mb-4">Upload a ZIP archive containing certificate PDFs. Each PDF is verified individually — PDF checksum integrity is checked alongside blockchain confirmation.</p>
+                                <div
+                                    className={`border-2 border-dashed rounded-2xl p-10 text-center transition-colors ${loading ? 'border-blue-chill-300 bg-blue-chill-50/30 cursor-default' : 'border-gray-300 hover:border-blue-chill-400 hover:bg-gray-50/50 cursor-pointer'}`}
+                                    onClick={() => !loading && document.getElementById('bulk-zip-upload').click()}
+                                >
+                                    {loading ? (
+                                        <div className="flex flex-col items-center gap-3">
+                                            <Loader className="h-12 w-12 text-blue-chill-600 animate-spin" />
+                                            <p className="text-base font-semibold text-blue-chill-700">Processing certificates...</p>
+                                            <p className="text-sm text-gray-400">Checking PDF integrity and verifying each certificate on the blockchain</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Archive className="mx-auto h-14 w-14 text-gray-300 mb-3" />
+                                            <p className="text-base font-semibold text-gray-700 mb-1">
+                                                Drop your ZIP or <span className="text-blue-chill-600 underline underline-offset-2">click to browse</span>
+                                            </p>
+                                            <p className="text-sm text-gray-400">ZIP archive of PDF certificates — up to 100 files at once</p>
+                                        </>
+                                    )}
+                                    <input id="bulk-zip-upload" type="file" accept=".zip" className="sr-only" onChange={handleZipUpload} />
                                 </div>
                             </div>
-                            <textarea
-                                className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-chill-500 outline-none h-48 font-mono text-sm bg-gray-50"
-                                placeholder="CRED-12345&#10;CRED-67890&#10;CRED-54321"
-                                value={bulkIds}
-                                onChange={(e) => setBulkIds(e.target.value)}
-                            />
-                        </div>
 
-                        <div className="flex justify-end mb-8">
-                            <button
-                                onClick={handleBulkVerify}
-                                disabled={loading}
-                                className="bg-blue-chill-600 text-white px-8 py-3 rounded-xl font-medium hover:bg-blue-chill-700 transition-colors flex items-center gap-2"
-                            >
-                                {loading ? <Loader className="animate-spin" /> : <>Verify Bulk List <FileCheck size={18} /></>}
-                            </button>
-                        </div>
-
-                        <div className="mb-6 relative">
-                            <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                                <div className="w-full border-t border-gray-200" />
+                        {/* Error */}
+                        {error && !bulkReport && (
+                            <div className="bg-red-50 text-red-600 p-4 rounded-xl flex items-center gap-3 border border-red-100 mb-4">
+                                <AlertCircle size={20} className="shrink-0" />
+                                <span className="text-sm">{error}</span>
                             </div>
-                            <div className="relative flex justify-center">
-                                <span className="bg-white px-2 text-sm text-gray-500">Or upload bulk ZIP</span>
-                            </div>
-                        </div>
+                        )}
 
-                        <div className="mb-8">
-                             <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-chill-400 transition-colors cursor-pointer"
-                                  onClick={() => document.getElementById('bulk-zip-upload').click()}>
-                                <div className="space-y-1 text-center">
-                                    <FileCheck className="mx-auto h-12 w-12 text-gray-400" />
-                                    <div className="flex text-sm text-gray-600">
-                                        <label htmlFor="bulk-zip-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-chill-600 hover:text-blue-chill-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-chill-500">
-                                            <span>Upload ZIP of Certificates</span>
-                                            <input 
-                                                id="bulk-zip-upload" 
-                                                name="bulk-zip-upload" 
-                                                type="file" 
-                                                accept=".zip" 
-                                                className="sr-only"
-                                                onChange={async (e) => {
-                                                    const file = e.target.files[0];
-                                                    if (file) {
-                                                        setLoading(true);
-                                                        setBulkResults(null);
-                                                        setError('');
-                                                        try {
-                                                            const formData = new FormData();
-                                                            formData.append('file', file);
-                                                            const res = await employerApi.bulkVerifyUpload(formData);
-                                                            
-                                                            // The backend returns { report: { ... } }
-                                                            // We normalize it to a flat list for the table if possible, or handle report structure
-                                                            if (res.data.data.report) {
-                                                                // Use the detailed verification results
-                                                                const flatResults = res.data.data.report.verification_results.map(r => ({
-                                                                    id: r.credential?.credential_id || r.id || r.credential_id || 'Unknown',
-                                                                    status: r.status,
-                                                                    valid: r.status === 'VALID',
-                                                                    error: r.error || r.reason,
-                                                                    credential: r.credential,
-                                                                    verified_fields: r.verified_fields
-                                                                }));
-                                                                
-                                                                // If there were extraction errors, append them too
-                                                                if (res.data.data.report.extraction_errors && res.data.data.report.extraction_errors.length > 0) {
-                                                                    res.data.data.report.extraction_errors.forEach(err => {
-                                                                        flatResults.push({
-                                                                            id: err.filename,
-                                                                            status: 'ERROR',
-                                                                            valid: false,
-                                                                            error: `Extraction failed: ${err.error}`
-                                                                        });
-                                                                    });
-                                                                }
-
-                                                                if (flatResults.length === 0 && res.data.data.report.processed_files === 0) {
-                                                                     setError("No valid certificate files found in ZIP.");
-                                                                } else if (flatResults.length === 0) {
-                                                                     setError("No credential IDs could be extracted from the files.");
-                                                                } else {
-                                                                    setBulkResults(flatResults);
-                                                                }
-                                                            } else {
-                                                                // Fallback for CSV direct list
-                                                                setBulkResults(res.data.data);
-                                                            }
-                                                        } catch (err) {
-                                                            console.error("Bulk upload failed", err);
-                                                            setError(err.response?.data?.message || 'Bulk verify upload failed');
-                                                        } finally {
-                                                            setLoading(false);
-                                                            e.target.value = null;
-                                                        }
-                                                    }
-                                                }}
-                                            />
-                                        </label>
-                                        <p className="pl-1">to verify multiple PDFs</p>
+                        {/* Results */}
+                        {bulkReport && (
+                            <div className="space-y-5 mt-2">
+                                {/* Summary Stats */}
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 text-center">
+                                        <p className="text-4xl font-black text-gray-900">{bulkReport.total}</p>
+                                        <p className="text-xs font-semibold text-gray-500 mt-1 uppercase tracking-wide">Total</p>
                                     </div>
-                                    <p className="text-xs text-gray-500">ZIP archive containing PDFs</p>
+                                    <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-center">
+                                        <p className="text-4xl font-black text-green-700">{bulkReport.valid}</p>
+                                        <p className="text-xs font-semibold text-green-600 mt-1 uppercase tracking-wide">Valid</p>
+                                    </div>
+                                    <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-center">
+                                        <p className="text-4xl font-black text-red-700">{bulkReport.failed}</p>
+                                        <p className="text-xs font-semibold text-red-600 mt-1 uppercase tracking-wide">Invalid</p>
+                                    </div>
+                                    <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 text-center">
+                                        <p className="text-4xl font-black text-orange-700">{bulkReport.errors}</p>
+                                        <p className="text-xs font-semibold text-orange-600 mt-1 uppercase tracking-wide">Errors</p>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
 
-                        {bulkResults && (
-                            <div className="space-y-4">
-                                <h3 className="font-bold text-gray-900 border-b pb-2">Batch Results ({bulkResults.length})</h3>
-                                <div className="border rounded-xl overflow-hidden shadow-sm">
-                                    <table className="w-full text-sm text-left">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-6 py-4 font-semibold text-gray-600">ID</th>
-                                                <th className="px-6 py-4 font-semibold text-gray-600">Status</th>
-                                                <th className="px-6 py-4 font-semibold text-gray-600">Details</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-100 bg-white">
-                                            {bulkResults.map((res, idx) => (
-                                                <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                                                    <td className="px-6 py-4 font-mono text-gray-600">{res.id}</td>
-                                                    <td className="px-6 py-4">
-                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${res.valid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                            {res.status}
+                                {/* Success Rate Bar */}
+                                <div className="bg-white border border-gray-200 rounded-2xl p-5">
+                                    <div className="flex justify-between items-center mb-3">
+                                        <div>
+                                            <p className="text-sm font-bold text-gray-700">Verification Success Rate</p>
+                                            <p className="text-xs text-gray-400 mt-0.5">{bulkReport.valid} of {bulkReport.total} credentials verified on-chain</p>
+                                        </div>
+                                        <span className={`text-2xl font-black ${bulkReport.successRate >= 80 ? 'text-green-600' : bulkReport.successRate >= 50 ? 'text-orange-500' : 'text-red-600'}`}>
+                                            {bulkReport.successRate}%
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                                        <div
+                                            className={`h-3 rounded-full transition-all duration-700 ${bulkReport.successRate >= 80 ? 'bg-gradient-to-r from-green-400 to-green-500' : bulkReport.successRate >= 50 ? 'bg-gradient-to-r from-orange-400 to-orange-500' : 'bg-gradient-to-r from-red-400 to-red-500'}`}
+                                            style={{ width: `${bulkReport.successRate}%` }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Filter Tabs */}
+                                <div className="flex border-b border-gray-200 gap-1">
+                                    {[
+                                        { key: 'all', label: 'All', count: bulkReport.total },
+                                        { key: 'valid', label: 'Valid', count: bulkReport.valid },
+                                        { key: 'failed', label: 'Invalid', count: bulkReport.failed },
+                                        { key: 'error', label: 'Errors', count: bulkReport.errors },
+                                    ].map(tab => (
+                                        <button
+                                            key={tab.key}
+                                            onClick={() => setResultsFilter(tab.key)}
+                                            className={`pb-2.5 px-4 text-sm font-semibold transition-colors relative flex items-center gap-2 ${resultsFilter === tab.key ? 'text-blue-chill-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                        >
+                                            {tab.label}
+                                            <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${resultsFilter === tab.key ? 'bg-blue-chill-100 text-blue-chill-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                {tab.count}
+                                            </span>
+                                            {resultsFilter === tab.key && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-chill-600" />}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Results List */}
+                                <div className="space-y-3 pb-4">
+                                    {bulkReport.results
+                                        .filter(r => {
+                                            if (resultsFilter === 'valid') return r.valid;
+                                            if (resultsFilter === 'failed') return !r.valid && r.status !== 'ERROR';
+                                            if (resultsFilter === 'error') return r.status === 'ERROR';
+                                            return true;
+                                        })
+                                        .map((item, idx) => (
+                                            <div
+                                                key={idx}
+                                                className={`rounded-2xl border p-4 transition-shadow hover:shadow-sm ${item.valid ? 'border-green-100 bg-green-50/20' : item.status === 'ERROR' ? 'border-orange-100 bg-orange-50/20' : 'border-red-100 bg-red-50/20'}`}
+                                            >
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                                                        <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${item.valid ? 'bg-green-100' : item.status === 'ERROR' ? 'bg-orange-100' : 'bg-red-100'}`}>
+                                                            {item.valid
+                                                                ? <CheckCircle size={16} className="text-green-600" />
+                                                                : item.status === 'ERROR'
+                                                                ? <AlertCircle size={16} className="text-orange-600" />
+                                                                : <XCircle size={16} className="text-red-600" />
+                                                            }
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-mono text-xs text-gray-500 truncate">{item.id}</p>
+                                                            {item.credential?.certificate_title && (
+                                                                <p className="text-sm font-bold text-gray-900 mt-0.5 truncate">{item.credential.certificate_title}</p>
+                                                            )}
+                                                            {item.credential?.learner_email && (
+                                                                <p className="text-xs text-gray-500 mt-0.5">{item.credential.learner_email}</p>
+                                                            )}
+                                                            {(item.error || item.reason) && !item.valid && (
+                                                                <p className={`text-xs mt-1 font-medium ${item.status === 'ERROR' ? 'text-orange-600' : 'text-red-600'}`}>
+                                                                    {item.error || item.reason}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 shrink-0">
+                                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${item.valid ? 'bg-green-100 text-green-700' : item.status === 'ERROR' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>
+                                                            {item.status}
                                                         </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-gray-500">
-                                                        {!res.valid ? (
-                                                            <span className="text-red-600 text-xs">{res.error || 'Verification Failed'}</span>
-                                                        ) : (
-                                                            <div className="flex items-center gap-3">
-                                                                <span className="flex items-center gap-1 text-green-600 text-xs font-medium"><CheckCircle size={14} /> Verified</span>
-                                                                <button 
-                                                                    onClick={() => setSelectedResult(res)}
-                                                                    className="flex items-center gap-1 text-blue-chill-600 bg-blue-chill-50 px-2 py-1 rounded-md text-xs font-bold hover:bg-blue-chill-100 transition-colors"
-                                                                >
-                                                                    <Eye size={12} /> View
-                                                                </button>
-                                                            </div>
+                                                        {item.valid && (
+                                                            <button
+                                                                onClick={() => setSelectedResult(item)}
+                                                                className="flex items-center gap-1 text-blue-chill-600 bg-blue-chill-50 hover:bg-blue-chill-100 px-2.5 py-1 rounded-lg text-xs font-bold transition-colors"
+                                                            >
+                                                                <Eye size={12} /> Details
+                                                            </button>
                                                         )}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                                    </div>
+                                                </div>
+                                                {item.valid && item.verified_fields && (
+                                                    <div className="mt-3 pt-3 border-t border-green-100 flex gap-6">
+                                                        {[
+                                                            { label: 'Data Integrity', key: 'hash_match' },
+                                                            { label: 'Blockchain', key: 'blockchain_verified' },
+                                                            { label: 'IPFS', key: 'ipfs_cid_match' },
+                                                        ].map(check => (
+                                                            <div key={check.key} className="flex items-center gap-1.5">
+                                                                <span className={`text-sm font-bold ${item.verified_fields[check.key] ? 'text-green-500' : 'text-gray-300'}`}>
+                                                                    {item.verified_fields[check.key] ? '✓' : '✗'}
+                                                                </span>
+                                                                <span className="text-xs text-gray-500">{check.label}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))
+                                    }
+                                    {bulkReport.results.filter(r => {
+                                        if (resultsFilter === 'valid') return r.valid;
+                                        if (resultsFilter === 'failed') return !r.valid && r.status !== 'ERROR';
+                                        if (resultsFilter === 'error') return r.status === 'ERROR';
+                                        return true;
+                                    }).length === 0 && (
+                                        <div className="text-center py-12 text-gray-400">
+                                            <CheckCircle size={36} className="mx-auto mb-3 text-green-200" />
+                                            <p className="text-sm font-medium">No {resultsFilter === 'valid' ? 'valid' : resultsFilter === 'failed' ? 'invalid' : 'error'} records in this batch</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

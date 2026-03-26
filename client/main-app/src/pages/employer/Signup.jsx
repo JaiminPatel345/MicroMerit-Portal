@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { employerLoginSuccess } from '../../store/authEmployerSlice';
 import { employerApi } from '../../services/authServices';
 import logo_1 from '../../assets/logo_1.png';
 import { APP_NAME } from '../../config/appConfig';
@@ -24,6 +26,7 @@ const EmployerSignup = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const dispatch = useDispatch();
 
     useEffect(() => {
         if (step === 2) {
@@ -129,12 +132,16 @@ const EmployerSignup = () => {
 
             // Extract tokens from the response
             if (res.data.success) {
-                const tokens = res.data.data?.tokens || res.data.tokens;
+                const { tokens, employer } = res.data.data;
 
                 if (tokens) {
-                    localStorage.setItem('accessToken', tokens.accessToken);
-                    localStorage.setItem('refreshToken', tokens.refreshToken);
-                    localStorage.setItem('role', 'employer');
+                    dispatch(employerLoginSuccess({
+                        employer: employer,
+                        accessToken: tokens.accessToken,
+                        refreshToken: tokens.refreshToken
+                    }));
+                    localStorage.setItem('token', tokens.accessToken);
+                    localStorage.setItem('userRole', 'employer');
                 }
 
                 setStep(3); // Go to Mock PAN Verification Loader
