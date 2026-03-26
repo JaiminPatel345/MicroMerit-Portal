@@ -1,4 +1,4 @@
-# MicroMerit Portal — Report Writing Prompts
+# MicroMerit Portal 
 # For: Jaimin Detroja (22CP081) | BVM Engineering College | 4CP33 FSEP
 
 ---
