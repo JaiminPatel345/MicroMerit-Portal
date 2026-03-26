@@ -48,10 +48,10 @@ MicroMerit Portal is a **Micro-Credential Aggregator Platform** powered by Block
 - **Dual Verification UI** (`/verify`): Two-tab interface — "Blockchain Verify" (cryptographic proof via tx_hash/credential_id/ipfs_cid or PDF checksum) and "AI Verification" (flexible document comparison via Gemini). Each tab is independently accessible via URL param `?ai=<credential_id>`.
 - Admin portal: issuer approval, credential oversight, analytics
 - Public learner profile pages (`/p/:slug`), public credential pages (`/c/:id`)
-
-### Needs Fixing (Known Bugs — priorities)
-1. **Bulk Issuance** (`issuer/bulk-upload` page + `/credential-issuance` module): Fix bulk upload flow for issuers.
-2. **Employer AI Chatbot** (`employer/verify` page + `server/node-app/src/modules/employer`): Broken — needs to be fixed and shown in demo.
+- **Bulk Issuance** (`issuer/bulk-upload`): Issuers upload a ZIP of JSON credential files; each file is processed by the adapter pattern (`IssuerBulkAdapterFactory`), anchored to blockchain with a proper canonical-JSON data_hash, and stored in DB. Progress tracked via batch polling UI.
+- **Employer AI Chatbot** (`/employer/search`): Employer enters a learner's email and a natural-language question; backend fetches all that learner's verified credentials and sends them as context to the LLM (`POST /employer/chat`), which returns an AI-generated answer, relevant skills, referenced certificates, and confidence score. Displayed in a chat panel on the Search page.
+- **Employer Globe Search** (`/employer/search`): Filter candidates by skills, certificate title, issuer, student name, and location. AI candidate comparison (up to 3 at once) with CSV export.
+- **Employer Verification Portal** (`/employer/verify`): Single credential verification (same as public `/verify` — by ID/tx_hash/IPFS CID, PDF upload, or AI document comparison) + bulk ZIP verification (each PDF verified individually via `POST /credentials/verify-pdf`).
 
 ### Disabled / Future Scope (DO NOT enable or mention as current features)
 - **Pathways / Roadmap AI** (`/roadmap`, `/pathway` routes exist in `App.jsx` — commented out from navbar): Based on current certificates, shows what skills to learn next. **Mention in report as "Future Scope".**
@@ -197,7 +197,7 @@ Blockchain verification is cryptographically absolute but requires the exact ori
 ### Code
 - **No security hardening needed** — this is a college demo project. Do not add security warnings, rate limiting, input sanitization improvements, or auth hardening to code.
 - **No scalability improvements** — do not refactor for scale.
-- **Fix bugs when asked** — current priorities: bulk issuance, employer chatbot.
+- **Fix bugs when asked**.
 - Do not add features, refactors, or "improvements" beyond what is asked.
 
 ### Documentation / Reports
