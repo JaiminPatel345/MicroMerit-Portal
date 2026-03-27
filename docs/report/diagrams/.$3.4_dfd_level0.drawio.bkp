@@ -1,0 +1,73 @@
+<mxGraphModel adaptiveColors="auto">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+
+    <mxCell id="title" value="Figure 3.4: DFD Level 0 – Context Diagram" style="text;html=1;fontSize=18;fontStyle=1;align=center;" vertex="1" parent="1">
+      <mxGeometry x="250" y="10" width="600" height="40" as="geometry"/>
+    </mxCell>
+
+    <!-- Central Process -->
+    <mxCell id="p0" value="0&lt;br&gt;&lt;b&gt;MicroMerit Portal&lt;/b&gt;&lt;br&gt;Micro-Credential&lt;br&gt;Aggregator Platform" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="400" y="280" width="250" height="150" as="geometry"/>
+    </mxCell>
+
+    <!-- External Entities -->
+    <mxCell id="e_learner" value="Learner&lt;br&gt;(Student)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="80" y="80" width="150" height="60" as="geometry"/>
+    </mxCell>
+    <mxCell id="e_issuer" value="Issuer&lt;br&gt;(Institution)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="80" y="380" width="150" height="60" as="geometry"/>
+    </mxCell>
+    <mxCell id="e_employer" value="Employer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="830" y="80" width="150" height="60" as="geometry"/>
+    </mxCell>
+    <mxCell id="e_admin" value="Admin" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="830" y="380" width="150" height="60" as="geometry"/>
+    </mxCell>
+    <mxCell id="e_blockchain" value="Ethereum&lt;br&gt;Blockchain" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="80" y="560" width="150" height="60" as="geometry"/>
+    </mxCell>
+    <mxCell id="e_ipfs" value="IPFS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="450" y="560" width="150" height="60" as="geometry"/>
+    </mxCell>
+    <mxCell id="e_extprov" value="External Credential&lt;br&gt;Providers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="830" y="560" width="160" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- Data Flows -->
+    <mxCell id="f1" edge="1" parent="1" source="e_learner" target="p0" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;strokeWidth=1.5;" value="Login, View Credentials, Sync External">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="f2" edge="1" parent="1" source="e_issuer" target="p0" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;strokeWidth=1.5;" value="Submit Credential (PDF + Metadata), Bulk Upload">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="f3" edge="1" parent="1" source="e_employer" target="p0" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;strokeWidth=1.5;" value="Search Candidates, Verify Credentials, AI Chat">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="f4" edge="1" parent="1" source="e_admin" target="p0" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;strokeWidth=1.5;" value="Approve Issuers, Monitor Credentials">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="f5" edge="1" parent="1" source="p0" target="e_blockchain" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;strokeWidth=1.5;" value="data_hash, credential_id">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="f6" edge="1" parent="1" source="p0" target="e_ipfs" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;strokeWidth=1.5;" value="PDF File, CID">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="f7" edge="1" parent="1" source="p0" target="e_extprov" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;strokeWidth=1.5;" value="Fetch Learner Credentials">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- Return flows -->
+    <mxCell id="f8" edge="1" parent="1" source="p0" target="e_learner" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;strokeWidth=1.5;dashed=1;exitX=0;exitY=0.3;exitDx=0;exitDy=0;entryX=1;entryY=1;entryDx=0;entryDy=0;" value="Credentials, Profile, QR Code">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="f9" edge="1" parent="1" source="p0" target="e_employer" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;strokeWidth=1.5;dashed=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" value="Search Results, Verification Status">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="f10" edge="1" parent="1" source="e_blockchain" target="p0" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;strokeWidth=1.5;dashed=1;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" value="tx_hash, Verification Result">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+  </root>
+</mxGraphModel>

@@ -3,8 +3,8 @@
     <mxCell id="0"/>
     <mxCell id="1" parent="0"/>
 
-    <mxCell id="title" value="External Credential Sync - Connector Pattern" style="text;html=1;fontSize=16;fontStyle=1;align=center;" vertex="1" parent="1">
-      <mxGeometry x="150" y="10" width="500" height="30" as="geometry"/>
+    <mxCell id="title" value="Figure 3.8: External Credential Sync – Connector Pattern" style="text;html=1;fontSize=16;fontStyle=1;align=center;" vertex="1" parent="1">
+      <mxGeometry x="100" y="10" width="600" height="30" as="geometry"/>
     </mxCell>
 
     <mxCell id="learner" value="Learner triggers&lt;br&gt;External Sync" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
@@ -76,22 +76,16 @@
     <mxCell id="ef8" edge="1" parent="1" source="conn_credly" target="prov_credly" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
       <mxGeometry relative="1" as="geometry"/>
     </mxCell>
-    <mxCell id="ef10" edge="1" parent="1" source="prov_udemy" target="normalize" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=1;entryDx=0;entryDy=0;">
+    <mxCell id="ef10" edge="1" parent="1" source="prov_udemy" target="normalize" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=0;entryDx=0;entryDy=0;">
       <mxGeometry relative="1" as="geometry">
         <Array as="points">
-          <mxPoint x="170" y="570"/>
-          <mxPoint x="299" y="570"/>
-          <mxPoint x="299" y="645"/>
+          <mxPoint x="170" y="560"/>
+          <mxPoint x="299" y="560"/>
         </Array>
       </mxGeometry>
     </mxCell>
-    <mxCell id="ef11" edge="1" parent="1" source="prov_credly" target="normalize" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;">
-      <mxGeometry relative="1" as="geometry">
-        <Array as="points">
-          <mxPoint x="380" y="570"/>
-          <mxPoint x="380" y="645"/>
-        </Array>
-      </mxGeometry>
+    <mxCell id="ef11" edge="1" parent="1" source="prov_credly" target="normalize" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+      <mxGeometry relative="1" as="geometry"/>
     </mxCell>
     <mxCell id="ef12" edge="1" parent="1" source="normalize" target="decide" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
       <mxGeometry relative="1" as="geometry"/>

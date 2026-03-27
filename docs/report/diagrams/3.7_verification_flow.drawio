@@ -3,7 +3,7 @@
     <mxCell id="0"/>
     <mxCell id="1" parent="0"/>
 
-    <mxCell id="title" value="Credential Verification Flow - Dual Method" style="text;html=1;fontSize=16;fontStyle=1;align=center;" vertex="1" parent="1">
+    <mxCell id="title" value="Figure 3.7: Dual-Method Verification Flow" style="text;html=1;fontSize=16;fontStyle=1;align=center;" vertex="1" parent="1">
       <mxGeometry x="250" y="10" width="500" height="30" as="geometry"/>
     </mxCell>
 
@@ -34,7 +34,7 @@
       <mxGeometry x="30" y="440" width="150" height="35" as="geometry"/>
     </mxCell>
     <mxCell id="bc_a3" value="Rebuild Canonical JSON&lt;br&gt;(ipfs_cid, tx_hash = null)&lt;br&gt;Sort keys, SHA-256" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
-      <mxGeometry x="15" y="500" width="180" height="55" as="geometry"/>
+      <mxGeometry x="15" y="500" width="170" height="55" as="geometry"/>
     </mxCell>
     <mxCell id="bc_a4" value="Compare with stored&lt;br&gt;data_hash = hash_match?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
       <mxGeometry x="30" y="580" width="150" height="70" as="geometry"/>
@@ -48,7 +48,7 @@
       <mxGeometry x="220" y="430" width="160" height="45" as="geometry"/>
     </mxCell>
     <mxCell id="bc_b3" value="SHA-256 of PDF buffer&lt;br&gt;Compare with stored checksum" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
-      <mxGeometry x="210" y="500" width="180" height="50" as="geometry"/>
+      <mxGeometry x="215" y="500" width="175" height="50" as="geometry"/>
     </mxCell>
     <mxCell id="bc_b4" value="checksum_match?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
       <mxGeometry x="230" y="580" width="140" height="60" as="geometry"/>

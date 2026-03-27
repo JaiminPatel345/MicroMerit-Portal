@@ -1,91 +1,95 @@
-<mxGraphModel adaptiveColors="auto">
-  <root>
-    <mxCell id="0"/>
-    <mxCell id="1" parent="0"/>
-
-    <mxCell id="title" value="Bulk Issuance - Adapter Pattern Flow" style="text;html=1;fontSize=16;fontStyle=1;align=center;" vertex="1" parent="1">
-      <mxGeometry x="250" y="10" width="400" height="30" as="geometry"/>
-    </mxCell>
-
-    <mxCell id="s1" value="Issuer uploads ZIP file&lt;br&gt;(JSON credential files)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
-      <mxGeometry x="310" y="60" width="220" height="45" as="geometry"/>
-    </mxCell>
-    <mxCell id="s2" value="Create BulkUploadBatch record&lt;br&gt;(status: processing)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
-      <mxGeometry x="310" y="140" width="220" height="45" as="geometry"/>
-    </mxCell>
-    <mxCell id="s3" value="Extract files from ZIP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
-      <mxGeometry x="340" y="220" width="160" height="35" as="geometry"/>
-    </mxCell>
-    <mxCell id="s4" value="For each file:" style="text;html=1;fontSize=12;fontStyle=3;align=center;" vertex="1" parent="1">
-      <mxGeometry x="370" y="280" width="100" height="20" as="geometry"/>
-    </mxCell>
-
-    <!-- Adapter Pattern Box -->
-    <mxCell id="adapter_box" value="IssuerBulkAdapterFactory" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d6b656;dashed=1;verticalAlign=top;fontStyle=1;fontSize=12;arcSize=4;strokeWidth=2;" vertex="1" parent="1">
-      <mxGeometry x="170" y="310" width="500" height="250" as="geometry"/>
-    </mxCell>
-
-    <mxCell id="a1" value="identify()&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Detect file type (JSON/PDF/Image)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
-      <mxGeometry x="200" y="350" width="200" height="45" as="geometry"/>
-    </mxCell>
-    <mxCell id="a2" value="extractMetadata()&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Parse JSON / OCR via AI service&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
-      <mxGeometry x="440" y="350" width="200" height="45" as="geometry"/>
-    </mxCell>
-    <mxCell id="a3" value="verify()&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Validate credential data&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
-      <mxGeometry x="200" y="430" width="200" height="45" as="geometry"/>
-    </mxCell>
-    <mxCell id="a4" value="normalize()&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Map to standard Credential schema&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
-      <mxGeometry x="440" y="430" width="200" height="45" as="geometry"/>
-    </mxCell>
-    <mxCell id="a5" value="DefaultAdapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontStyle=2;" vertex="1" parent="1">
-      <mxGeometry x="330" y="510" width="180" height="30" as="geometry"/>
-    </mxCell>
-
-    <!-- Post-adapter steps -->
-    <mxCell id="s5" value="Build Canonical JSON + data_hash" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;fontStyle=1;" vertex="1" parent="1">
-      <mxGeometry x="305" y="590" width="230" height="35" as="geometry"/>
-    </mxCell>
-    <mxCell id="s6" value="Anchor to Blockchain + Upload to IPFS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
-      <mxGeometry x="300" y="660" width="240" height="35" as="geometry"/>
-    </mxCell>
-    <mxCell id="s7" value="Update batch:&lt;br&gt;success_count / failed_count" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
-      <mxGeometry x="310" y="730" width="220" height="40" as="geometry"/>
-    </mxCell>
-    <mxCell id="s8" value="Batch Complete&lt;br&gt;(Polling UI shows progress)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
-      <mxGeometry x="320" y="800" width="200" height="45" as="geometry"/>
-    </mxCell>
-
-    <!-- Edges -->
-    <mxCell id="ef1" edge="1" parent="1" source="s1" target="s2" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-    <mxCell id="ef2" edge="1" parent="1" source="s2" target="s3" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-    <mxCell id="ef3" edge="1" parent="1" source="s3" target="a1" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-    <mxCell id="ef4" edge="1" parent="1" source="a1" target="a2" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-    <mxCell id="ef5" edge="1" parent="1" source="a2" target="a3" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-    <mxCell id="ef6" edge="1" parent="1" source="a3" target="a4" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-    <mxCell id="ef7" edge="1" parent="1" source="a4" target="s5" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-    <mxCell id="ef8" edge="1" parent="1" source="s5" target="s6" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-    <mxCell id="ef9" edge="1" parent="1" source="s6" target="s7" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-    <mxCell id="ef10" edge="1" parent="1" source="s7" target="s8" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-
-  </root>
-</mxGraphModel>
+<mxfile host="Electron" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.6.1 Chrome/142.0.7444.265 Electron/39.8.0 Safari/537.36" version="29.6.1">
+  <diagram id="qHqiTfKQnFTJCQGnqdsI" name="Page-1">
+    <mxGraphModel dx="1426" dy="843" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0" adaptiveColors="auto">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;fontSize=16;fontStyle=1;align=center;" value="Figure 3.9: Bulk Issuance – Adapter Pattern Flow" vertex="1">
+          <mxGeometry height="30" width="500" x="200" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="s1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" value="Issuer uploads ZIP file&lt;br&gt;(JSON credential files)" vertex="1">
+          <mxGeometry height="45" width="220" x="310" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" value="Create BulkUploadBatch record&lt;br&gt;(status: processing)" vertex="1">
+          <mxGeometry height="45" width="220" x="310" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" value="Extract files from ZIP" vertex="1">
+          <mxGeometry height="35" width="160" x="340" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="s4" parent="1" style="text;html=1;fontSize=12;fontStyle=3;align=center;" value="For each file:" vertex="1">
+          <mxGeometry height="20" width="100" x="370" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="adapter_box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d6b656;dashed=1;verticalAlign=top;fontStyle=1;fontSize=12;arcSize=4;strokeWidth=2;" value="IssuerBulkAdapterFactory" vertex="1">
+          <mxGeometry height="250" width="500" x="170" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="a1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" value="identify()&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Detect file type (JSON/PDF/Image)&lt;/font&gt;" vertex="1">
+          <mxGeometry height="45" width="200" x="200" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" value="extractMetadata()&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Parse JSON / OCR via AI service&lt;/font&gt;" vertex="1">
+          <mxGeometry height="45" width="200" x="440" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" value="verify()&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Validate credential data&lt;/font&gt;" vertex="1">
+          <mxGeometry height="45" width="200" x="200" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" value="normalize()&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;Map to standard Credential schema&lt;/font&gt;" vertex="1">
+          <mxGeometry height="45" width="200" x="440" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="a5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontStyle=2;" value="DefaultAdapter" vertex="1">
+          <mxGeometry height="30" width="180" x="330" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="s5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;fontStyle=1;" value="Build Canonical JSON + data_hash" vertex="1">
+          <mxGeometry height="35" width="230" x="305" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="s6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" value="Anchor to Blockchain + Upload to IPFS" vertex="1">
+          <mxGeometry height="35" width="240" x="300" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="s7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" value="Update batch:&lt;br&gt;success_count / failed_count" vertex="1">
+          <mxGeometry height="40" width="220" x="310" y="730" as="geometry" />
+        </mxCell>
+        <mxCell id="s8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" value="Batch Complete&lt;br&gt;(Polling UI shows progress)" vertex="1">
+          <mxGeometry height="45" width="200" x="320" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="ef1" edge="1" parent="1" source="s1" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;" target="s2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ef2" edge="1" parent="1" source="s2" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;" target="s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ef3" edge="1" parent="1" source="s3" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;" target="a1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ef4" edge="1" parent="1" source="a1" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;" target="a2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ef5" edge="1" parent="1" source="a2" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="a3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="540" y="415" />
+              <mxPoint x="300" y="415" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ef6" edge="1" parent="1" source="a3" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;" target="a4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ef7" edge="1" parent="1" source="a4" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;" target="s5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="540" y="550" />
+              <mxPoint x="420" y="550" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ef8" edge="1" parent="1" source="s5" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;" target="s6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ef9" edge="1" parent="1" source="s6" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;" target="s7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ef10" edge="1" parent="1" source="s7" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;" target="s8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

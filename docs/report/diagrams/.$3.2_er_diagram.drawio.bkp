@@ -4,7 +4,7 @@
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" parent="1" style="text;html=1;fontSize=18;fontStyle=1;align=center;" value="Figure 3.2: Entity Relationship (ER) Diagram" vertex="1">
+        <mxCell id="title" parent="1" style="text;html=1;fontSize=18;fontStyle=1;align=center;" value="Entity Relationship Diagram - MicroMerit Portal" vertex="1">
           <mxGeometry height="40" width="600" x="250" y="10" as="geometry" />
         </mxCell>
         <mxCell id="issuer" parent="1" style="shape=table;startSize=30;container=1;collapsible=0;childLayout=tableLayout;fixedRows=1;rowLines=1;fontStyle=1;fontSize=13;fillColor=#d5e8d4;strokeColor=#82b366;rounded=1;" value="issuer" vertex="1">
@@ -565,16 +565,11 @@
         <mxCell id="r1l" parent="1" style="text;html=1;fontSize=10;fontStyle=2;align=center;" value="1 : N" vertex="1">
           <mxGeometry height="16" width="40" x="310" y="145" as="geometry" />
         </mxCell>
-        <mxCell id="r2" edge="1" parent="1" source="l2" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;strokeWidth=2;endArrow=ERmany;endFill=0;startArrow=ERzeroToOne;startFill=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="cr4" value="">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="348" y="475" />
-              <mxPoint x="348" y="185" />
-            </Array>
-          </mxGeometry>
+        <mxCell id="r2" edge="1" parent="1" source="l2" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;strokeWidth=2;endArrow=ERmany;endFill=0;startArrow=ERzeroToOne;startFill=0;" target="cr4" value="">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="r2l" parent="1" style="text;html=1;fontSize=10;fontStyle=2;align=center;" value="0..1 : N" vertex="1">
-          <mxGeometry height="16" width="55" x="352" y="320" as="geometry" />
+          <mxGeometry height="16" width="55" x="310" y="195" as="geometry" />
         </mxCell>
         <mxCell id="r3" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;strokeWidth=2;endArrow=ERmany;endFill=0;startArrow=ERmandOne;startFill=0;" value="">
           <mxGeometry relative="1" as="geometry">

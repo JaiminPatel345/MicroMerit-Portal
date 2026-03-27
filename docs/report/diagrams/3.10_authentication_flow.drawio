@@ -3,8 +3,8 @@
     <mxCell id="0"/>
     <mxCell id="1" parent="0"/>
 
-    <mxCell id="title" value="Authentication Flow - Multi-Method" style="text;html=1;fontSize=16;fontStyle=1;align=center;" vertex="1" parent="1">
-      <mxGeometry x="200" y="10" width="360" height="30" as="geometry"/>
+    <mxCell id="title" value="Figure 3.10: Multi-Method Authentication Flow" style="text;html=1;fontSize=16;fontStyle=1;align=center;" vertex="1" parent="1">
+      <mxGeometry x="150" y="10" width="460" height="30" as="geometry"/>
     </mxCell>
 
     <mxCell id="start" value="User visits&lt;br&gt;Login / Register" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">

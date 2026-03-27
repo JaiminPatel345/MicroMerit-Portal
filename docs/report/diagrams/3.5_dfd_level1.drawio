@@ -3,7 +3,7 @@
     <mxCell id="0"/>
     <mxCell id="1" parent="0"/>
 
-    <mxCell id="title" value="DFD Level 1 - MicroMerit Portal" style="text;html=1;fontSize=18;fontStyle=1;align=center;" vertex="1" parent="1">
+    <mxCell id="title" value="Figure 3.5: DFD Level 1" style="text;html=1;fontSize=18;fontStyle=1;align=center;" vertex="1" parent="1">
       <mxGeometry x="350" y="10" width="500" height="40" as="geometry"/>
     </mxCell>
 
@@ -59,15 +59,38 @@
     <mxCell id="df3" edge="1" parent="1" source="p2" target="p3" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;" value="Credential + PDF">
       <mxGeometry relative="1" as="geometry"/>
     </mxCell>
-    <mxCell id="df4" edge="1" parent="1" source="p3" target="ds3" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;" value="data_hash">
-      <mxGeometry relative="1" as="geometry"/>
+
+    <!-- df4: p3 to ds3 (data_hash) - route RIGHT of p6 to avoid passing through it -->
+    <mxCell id="df4" edge="1" parent="1" source="p3" target="ds3" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" value="data_hash">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="950" y="143"/>
+          <mxPoint x="950" y="565"/>
+        </Array>
+      </mxGeometry>
     </mxCell>
-    <mxCell id="df5" edge="1" parent="1" source="p3" target="ds2" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;" value="PDF">
-      <mxGeometry relative="1" as="geometry"/>
+
+    <!-- df5: p3 to ds2 (PDF) - route RIGHT of p6 to avoid passing through it -->
+    <mxCell id="df5" edge="1" parent="1" source="p3" target="ds2" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" value="PDF">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="920" y="107"/>
+          <mxPoint x="920" y="505"/>
+        </Array>
+      </mxGeometry>
     </mxCell>
-    <mxCell id="df6" edge="1" parent="1" source="p2" target="ds1" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" value="Credential Record">
-      <mxGeometry relative="1" as="geometry"/>
+
+    <!-- df6: p2 to ds1 (Credential Record) - route BELOW ext_user via far-left corridor -->
+    <mxCell id="df6" edge="1" parent="1" source="p2" target="ds1" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" value="Credential Record">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="480" y="260"/>
+          <mxPoint x="50" y="260"/>
+          <mxPoint x="50" y="505"/>
+        </Array>
+      </mxGeometry>
     </mxCell>
+
     <mxCell id="df7" edge="1" parent="1" source="ext_user" target="p4" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;" value="Verify Request">
       <mxGeometry relative="1" as="geometry"/>
     </mxCell>
@@ -77,9 +100,17 @@
     <mxCell id="df9" edge="1" parent="1" source="p5" target="ext_prov" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;" value="API Request">
       <mxGeometry relative="1" as="geometry"/>
     </mxCell>
-    <mxCell id="df10" edge="1" parent="1" source="p6" target="ds1" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" value="Query">
-      <mxGeometry relative="1" as="geometry"/>
+
+    <!-- df10: p6 to ds1 (Query) - route below ext_prov via horizontal band at y=475 -->
+    <mxCell id="df10" edge="1" parent="1" source="p6" target="ds1" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" value="Query">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="800" y="475"/>
+          <mxPoint x="300" y="475"/>
+        </Array>
+      </mxGeometry>
     </mxCell>
+
     <mxCell id="df11" edge="1" parent="1" source="p7" target="ds1" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;" value="CRUD">
       <mxGeometry relative="1" as="geometry"/>
     </mxCell>
