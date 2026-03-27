@@ -44,11 +44,27 @@ Replace placeholders:
 - Name and ID: Jaimin Detroja (22CP081)
 
 ### Acknowledgement
-Write the following text verbatim (2 paragraphs, sincere, professional tone):
+Write the following text verbatim (do not paraphrase or rewrite — use exactly this content, formatted as shown):
 
-> I would like to express my sincere gratitude to all those who guided and supported me throughout this project.
+Title: **ACKNOWLEDGEMENT** (centered, bold, underlined)
+
+Paragraphs (justified, with one blank line between each):
+
+> I want to express my sincere gratitude to everyone who supported and guided me during the development of my **MicroMerit Portal** project. This work would not have been possible without the encouragement, mentorship, and cooperation of several individuals and organizations.
 >
-> I extend my heartfelt thanks to my external project guide for their continuous encouragement and valuable feedback at every stage. I am deeply grateful to my internal project guides for providing academic support and technical guidance. I also thank the faculty members of the Computer Engineering Department, BVM Engineering College, and my institution for providing the necessary resources and a conducive environment for learning. This project has been a significant learning experience, and I am thankful to everyone who contributed, directly or indirectly, to its successful completion.
+> I am also thankful to **Zupple Labs**, where I have been working as a developer, for the practical exposure to real-world software development that greatly enriched my technical understanding and directly contributed to the quality of this project.
+>
+> I am very thankful to my internal guides, **Dr. Narendra M. Patel** and **Dr. Bhavesh A. Tanawala**, for their ongoing support, valuable feedback, and motivation. Their academic guidance and constructive suggestions helped me stay focused and improve the quality of my work at every stage.
+>
+> I would like to extend my thanks to the project convener, **Dr. Hemant D. Vasava**, for his support and coordination, which ensured the smooth progress of this project.
+>
+> Lastly, I want to thank my institution, **Birla Vishvakarma Mahavidyalaya (BVM) Engineering College**, and all the faculty members who contributed to my learning journey and helped me build a strong foundation for successfully completing this project.
+
+After the paragraphs, leave a few blank lines, then add (left-aligned):
+
+Jaimin Detroja
+
+22CP081
 
 ### Plagiarism Report
 Leave one full blank page with heading "Plagiarism Report" — to be filled after checking with one of the listed tools.
@@ -504,53 +520,185 @@ After the table, write: "All endpoints return JSON responses with a consistent s
 
 ## 4.4 User Interface Implementation
 
-Write 1 intro paragraph: The frontend is implemented in React 18 with Vite and Tailwind CSS, providing responsive interfaces tailored to each user role. The following subsections describe key screens with their screenshots.
+Write 1 intro paragraph: The frontend is implemented in React 18 with Vite and Tailwind CSS, providing responsive, role-specific interfaces for Learners, Issuers, Employers, and Administrators. Each role has a dedicated section of the application with tailored navigation and functionality. The following subsections describe key screens across all four roles, accompanied by screenshots.
 
-**SCREENSHOT INSTRUCTIONS FOR AGENT:** At every `[INSERT FIGURE 4.X]` marker below, insert an actual screenshot from the running application. Take screenshots by running the app locally (Main App: http://localhost:5173, Admin: http://localhost:5174) and capturing the relevant page. Resize each screenshot to fit within the page width (max ~14cm wide) and place it centered. All screenshots must be in PNG format. If a screenshot is not yet available, leave a placeholder box with the caption — do NOT skip the figure number.
+**SCREENSHOT INSTRUCTIONS FOR AGENT:** At every `[INSERT FIGURE 4.X]` marker below, place the corresponding screenshot provided by the developer. Resize each screenshot to fit within the page width (max ~14cm wide), center it, and place the caption directly beneath. All screenshots must be in PNG format. Do NOT skip or renumber any figure.
 
-Then add subsections for each UI section, writing 2–3 sentences for each and marking where screenshots go:
+Then add subsections for each role and screen as follows:
 
-### 4.4.1 Learner Dashboard
-The learner dashboard displays a grid of issued credentials, each showing the certificate title, issuer name, issue date, and blockchain status badge (Pending / Confirmed). Clicking a credential opens a detailed view with the PDF viewer, blockchain transaction details, and a QR code for sharing.
+---
 
-**[INSERT FIGURE 4.1: Screenshot of Learner Dashboard]**
-Caption: "Figure 4.1: Learner Credential Dashboard"
+### 4.4.1 Learner Interface
 
-### 4.4.2 Issuer Credential Issuance
-The issuance form allows the issuer to upload a PDF, fill in metadata fields (or use AI OCR auto-fill by uploading the document), and submit. After submission, the credential card appears immediately with a "Pending" blockchain status, which updates to "Confirmed" after the background job completes.
+The Learner role has six key screens covering the full credential lifecycle from account creation to credential management and public profile sharing.
 
-**[INSERT FIGURE 4.2: Screenshot of Credential Issuance Form]**
-Caption: "Figure 4.2: Credential Issuance Interface"
+#### Signup — Step 3 (Role Selection & Profile Completion)
+The third step of the signup flow prompts the learner to select their role (Learner, Issuer, or Employer), enter their Student ID, and set their profile slug for the public profile URL. This step completes account creation and redirects to the role-specific dashboard.
 
-### 4.4.3 Bulk Upload Progress
-The bulk upload page shows a drag-and-drop ZIP upload zone, followed by a live-updating progress panel showing Total / Success / Failed counts as the batch is processed.
+**[INSERT FIGURE 4.1: Screenshot of Learner Signup Step 3]**
+Caption: "Figure 4.1: Learner Registration — Step 3 (Role & Profile Setup)"
 
-**[INSERT FIGURE 4.3: Screenshot of Bulk Upload Progress]**
-Caption: "Figure 4.3: Bulk Issuance Progress Interface"
+#### Learner Dashboard
+The learner dashboard presents a summary card showing the total number of verified credentials, blockchain-confirmed credentials, and pending credentials. Below the summary, a credential grid displays each certificate with its title, issuing institution, issue date, and blockchain status badge (Pending / Confirmed).
 
-### 4.4.4 Dual Verification Interface
-The /verify page has two tabs: "Blockchain Verify" and "AI Verification". The blockchain tab accepts a credential ID, tx_hash, or IPFS CID in a text field, or a PDF file upload. The result panel shows hash_match, blockchain_verified, and an overall VALID / INVALID badge. The AI tab accepts a credential ID and a document upload, showing a confidence bar, matched/mismatched fields, and a summary.
+**[INSERT FIGURE 4.2: Screenshot of Learner Dashboard]**
+Caption: "Figure 4.2: Learner Dashboard — Credential Overview"
 
-**[INSERT FIGURE 4.4: Screenshot of Verification Interface]**
-Caption: "Figure 4.4: Dual-Method Credential Verification Interface"
+#### Credential Wallet
+The wallet page lists all credentials belonging to the learner in a detailed table or card view, including IPFS CID, transaction hash, and a download button for the original PDF. Learners can filter credentials by issuer, date range, or blockchain status.
 
-### 4.4.5 Employer Search and AI Chatbot
-The employer search page shows a filter sidebar (skill, title, issuer, location) and a results grid with learner cards. The right panel contains the AI chatbot: the employer types a learner's email, enters a question, and the chat panel shows the AI response with referenced certificates and confidence score.
+**[INSERT FIGURE 4.3: Screenshot of Learner Wallet]**
+Caption: "Figure 4.3: Learner Credential Wallet"
 
-**[INSERT FIGURE 4.5: Screenshot of Employer Search with AI Chatbot]**
-Caption: "Figure 4.5: Employer Candidate Search and AI Chatbot"
+#### Individual Credential View
+Clicking any credential opens its detail page, showing the full certificate metadata, an embedded PDF viewer for the original document stored on IPFS, the blockchain transaction hash linked to Etherscan, and a QR code that links to the public credential verification page.
 
-### 4.4.6 Public Credential Page
-The public credential page (/c/:id) shows the credential details, issuer information, blockchain transaction hash (hyperlinked to Etherscan), IPFS CID (hyperlinked to IPFS gateway), and an embedded PDF viewer. A "Verify This Credential" button links to the /verify page pre-filled with the credential ID.
+**[INSERT FIGURE 4.4: Screenshot of Individual Credential Detail Page]**
+Caption: "Figure 4.4: Individual Credential Detail View"
 
-**[INSERT FIGURE 4.6: Screenshot of Public Credential Page]**
-Caption: "Figure 4.6: Public Credential Page"
+#### Add Certificate (External Credential Sync)
+The Add Certificate page allows learners to link credentials from external providers (NSDC, Udemy, Credly-like platforms). The learner selects the provider, enters their provider account identifier, and the system fetches and normalizes their credentials through the connector pattern, adding them to the wallet.
 
-### 4.4.7 Admin Dashboard
-The admin dashboard (Port 5174) shows a summary of pending issuer applications, total credentials on the platform, and recent activity. The Issuers tab lists all registered issuers with their approval status and action buttons to approve or reject with reason.
+**[INSERT FIGURE 4.5: Screenshot of Add Certificate / External Sync Page]**
+Caption: "Figure 4.5: External Credential Sync — Add Certificate"
 
-**[INSERT FIGURE 4.7: Screenshot of Admin Dashboard]**
-Caption: "Figure 4.7: Admin Dashboard"
+#### Learner Profile
+The profile page allows the learner to update personal information, upload a profile photo, and manage their public profile slug. A preview link shows how their public profile page (/p/:slug) appears to employers and verifiers.
+
+**[INSERT FIGURE 4.6: Screenshot of Learner Profile Page]**
+Caption: "Figure 4.6: Learner Profile Management"
+
+---
+
+### 4.4.2 Issuer Interface
+
+The Issuer role provides five functional screens for credential management, analytics, and API integration.
+
+#### Issuer Dashboard
+The issuer dashboard displays summary statistics: total credentials issued, credentials pending blockchain confirmation, confirmed credentials, and failed issuances. Recent issuance activity is listed in a timeline, and quick-action buttons link to the issuance form and bulk upload.
+
+**[INSERT FIGURE 4.7: Screenshot of Issuer Dashboard]**
+Caption: "Figure 4.7: Issuer Dashboard — Issuance Overview"
+
+#### Credentials List (/credentials)
+The credentials page lists all credentials issued by this issuer with their blockchain status, learner email, certificate title, and issue date. Issuers can search and filter the list, and click into individual credentials to view full details.
+
+**[INSERT FIGURE 4.8: Screenshot of Issuer Credentials List]**
+Caption: "Figure 4.8: Issuer Credentials List"
+
+#### Credential Issuance Form (/issuance)
+The issuance form requires the issuer to upload the credential PDF and enter the certificate title. On submission, the credential is immediately saved to the database with a Pending blockchain status, and a background job anchors the data hash to the Ethereum Sepolia blockchain and uploads the PDF to IPFS. The credential card appears instantly in the dashboard while anchoring completes asynchronously.
+
+**[INSERT FIGURE 4.9: Screenshot of Credential Issuance Form]**
+Caption: "Figure 4.9: Credential Issuance Form"
+
+#### Certificate Added Successfully
+Upon successful submission of the issuance form, the system displays a "Certificate Added Successfully!" confirmation screen, showing the newly created credential card with the certificate title, learner details, and a Pending blockchain status badge. This immediate feedback confirms that the credential has been saved and the background anchoring job has been queued.
+
+**[INSERT FIGURE 4.10: Screenshot of Certificate Added Successfully]**
+Caption: "Figure 4.10: Certificate Added Successfully — Issuance Confirmation"
+
+#### Issued Credential View
+After issuance, the issuer can view the credential record showing the embedded PDF, the generated credential ID, the blockchain transaction hash (once confirmed), and the IPFS CID. This screen also displays the learner's name and email and provides a shareable verification link.
+
+**[INSERT FIGURE 4.11: Screenshot of Issued Credential Detail]**
+Caption: "Figure 4.11: Issued Credential Detail View"
+
+#### Analytics (/analytics)
+The analytics page provides charts and statistics for the issuer: credentials issued over time (line chart), breakdown by blockchain status (pie chart), and a table of top learners by credential count. This helps issuers monitor issuance volume and blockchain confirmation rates.
+
+**[INSERT FIGURE 4.12: Screenshot of Issuer Analytics Page]**
+Caption: "Figure 4.12: Issuer Analytics Dashboard"
+
+#### API Key Management (/api)
+The API page allows issuers to generate and revoke API keys for programmatic credential issuance. Each key is displayed with its creation date, last-used timestamp, and a revoke button. The page also includes an API usage guide with sample cURL requests for the credential issuance endpoint.
+
+**[INSERT FIGURE 4.13: Screenshot of API Key Management Page]**
+Caption: "Figure 4.13: Issuer API Key Management"
+
+---
+
+### 4.4.3 Employer Interface
+
+The Employer role has five screens covering an overview dashboard, candidate discovery, AI-assisted querying, and credential verification.
+
+#### Employer Dashboard
+The employer dashboard provides a summary of recent activity: total candidate searches performed, credentials verified, and saved candidate profiles. Quick-action cards link to the search page and verification portal, and a recent searches panel shows the employer's latest queries for fast re-access.
+
+**[INSERT FIGURE 4.14: Screenshot of Employer Dashboard]**
+Caption: "Figure 4.14: Employer Dashboard — Overview"
+
+#### Candidate Search (/employer/search)
+The search page presents a filter panel (skills, certificate title, issuer name, learner name, and location) and a results grid showing matching learner cards with their top credentials and skill tags. Employers can select up to three candidates for an AI-powered side-by-side comparison, and export results as a CSV file.
+
+**[INSERT FIGURE 4.15: Screenshot of Employer Candidate Search]**
+Caption: "Figure 4.15: Employer Candidate Search"
+
+#### AI Chatbot (on Search Page)
+The AI chatbot panel on the search page allows the employer to enter a learner's email and ask a natural-language question (e.g., "Does this candidate have any cloud certifications?"). The backend fetches all verified credentials for that learner and sends them as context to the LLM, which returns an answer with referenced certificates, relevant skills, and a confidence score.
+
+**[INSERT FIGURE 4.16: Screenshot of Employer AI Chatbot]**
+Caption: "Figure 4.16: Employer AI Chatbot — Natural Language Credential Query"
+
+#### Single Credential Verification (/employer/verify)
+The employer verification page provides the same dual-method verification as the public /verify page: a Blockchain Verify tab (accepts credential ID, tx_hash, IPFS CID, or PDF upload) and an AI Verification tab (accepts a credential ID and a scanned/photo copy of the document). Results show a VALID / INVALID badge with supporting evidence.
+
+**[INSERT FIGURE 4.17: Screenshot of Employer Single Verification]**
+Caption: "Figure 4.17: Employer Single Credential Verification"
+
+#### Bulk ZIP Verification
+The bulk verification section allows the employer to upload a ZIP archive containing multiple credential PDFs. The system processes each PDF individually — extracting the embedded credential ID from PDF metadata and verifying checksum and blockchain record — and produces a per-file VALID / INVALID result table with download support.
+
+**[INSERT FIGURE 4.18: Screenshot of Employer Bulk Verification]**
+Caption: "Figure 4.18: Employer Bulk Credential Verification"
+
+---
+
+### 4.4.4 Dual Verification Interface (/verify)
+
+The public verification page is accessible to any user and implements two independent verification methods on separate tabs.
+
+#### Blockchain Verification Tab
+The Blockchain Verify tab accepts a Credential ID, blockchain transaction hash, or IPFS CID in a single text field, or allows the verifier to upload the original credential PDF directly. For identifier-based verification, the system rebuilds the canonical JSON hash and queries the smart contract on Sepolia, returning a result panel with hash_match status, blockchain_verified status, and an overall VALID or INVALID verdict with supporting detail. For PDF upload, the system extracts the embedded credential ID, recomputes the SHA-256 checksum, and cross-references the blockchain record.
+
+**[INSERT FIGURE 4.19: Screenshot of Blockchain Verification Tab]**
+Caption: "Figure 4.19: Blockchain Credential Verification Interface"
+
+#### AI Verification Tab
+The AI Verification tab accepts a Credential ID and an uploaded copy of the document (scan, photo, or printed version). The system fetches the original PDF from IPFS and sends both documents to Google Gemini 2.5 Flash for field-by-field semantic comparison. The result panel displays an overall match verdict, a confidence percentage bar, a list of matched and mismatched fields, and a one-sentence AI-generated summary. A disclaimer note clarifies that AI verification is for practical identification and that blockchain verification provides legal-grade cryptographic proof.
+
+**[INSERT FIGURE 4.20: Screenshot of AI Verification Tab]**
+Caption: "Figure 4.20: AI Document Comparison Verification Interface"
+
+---
+
+### 4.4.5 Admin Portal (Port 5174)
+
+The Admin portal is a separate React application providing platform-wide oversight across four dashboards.
+
+#### Admin Overview Dashboard
+The main dashboard displays platform-wide KPI cards: total registered users (by role), total credentials issued, pending issuer applications, and credentials awaiting blockchain confirmation. A recent-activity feed shows the latest issuances and registrations across the platform.
+
+**[INSERT FIGURE 4.21: Screenshot of Admin Overview Dashboard]**
+Caption: "Figure 4.21: Admin Portal — Overview Dashboard"
+
+#### Issuer Management Dashboard
+The Issuers dashboard lists all registered issuer accounts with their approval status (Pending / Approved / Rejected). Each row has action buttons to approve or reject the application with an optional reason. Rejected issuers are blocked from accessing the issuance form until re-approved.
+
+**[INSERT FIGURE 4.22: Screenshot of Admin Issuer Management]**
+Caption: "Figure 4.22: Admin Issuer Approval and Management"
+
+#### Credential Oversight Dashboard
+The Credentials dashboard provides an admin-level view of all credentials across all issuers, with filters for blockchain status, issuer, and date range. Admins can inspect individual credential records, view blockchain and IPFS details, and flag credentials if needed.
+
+**[INSERT FIGURE 4.23: Screenshot of Admin Credential Oversight]**
+Caption: "Figure 4.23: Admin Credential Oversight Dashboard"
+
+#### Analytics Dashboard
+The admin analytics dashboard aggregates platform-wide statistics: issuance volume over time, credential status distribution, most active issuers, and NSQF level breakdown. These charts support platform monitoring and reporting.
+
+**[INSERT FIGURE 4.24: Screenshot of Admin Analytics Dashboard]**
+Caption: "Figure 4.24: Admin Platform Analytics Dashboard"
 
 ## 4.5 Results and Output
 

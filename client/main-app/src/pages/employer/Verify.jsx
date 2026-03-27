@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import JSZip from 'jszip';
 import { employerApi } from '../../services/authServices';
@@ -126,6 +126,15 @@ const EmployerVerify = () => {
 
     const [showCamera, setShowCamera] = useState(false);
     const [selectedResult, setSelectedResult] = useState(null);
+    const resultRef = useRef(null);
+
+    useEffect(() => {
+        if (verifyResult) {
+            setTimeout(() => {
+                resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+    }, [verifyResult]);
 
     // Bulk report state
     const [bulkReport, setBulkReport] = useState(null);
@@ -638,7 +647,7 @@ const EmployerVerify = () => {
                         </div>
 
                         {verifyResult && (
-                            <div className={`border rounded-2xl overflow-hidden shadow-sm ${verifyResult.status === 'VALID' ? 'border-green-100' : 'border-red-100'}`}>
+                            <div ref={resultRef} className={`border rounded-2xl overflow-hidden shadow-sm ${verifyResult.status === 'VALID' ? 'border-green-100' : 'border-red-100'}`}>
                                 {/* Header Status */}
                                 <div className={`p-8 text-center ${verifyResult.status === 'VALID' ? 'bg-green-50/50' : 'bg-red-50/50'}`}>
                                     <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${verifyResult.status === 'VALID' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
