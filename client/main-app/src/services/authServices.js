@@ -66,6 +66,7 @@ export const learnerApi = {
   getCredential: (id) => api.get(`/learner/credentials/${id}`),
   getPublicProfile: (id, params) => api.get(`/learner/public/${id}`, { params }),
   getRoadmap: () => api.get('/learner/roadmap'),
+  regenerateRoadmap: () => api.post('/learner/roadmap/regenerate'),
   getSkillProfile: () => api.get('/learner/skill-profile'),
   getPublicCredential: (id) => api.get(`/credentials/public/${id}`),
   getCredentialStatus: (id) => api.get(`/learner/credentials/${id}`),

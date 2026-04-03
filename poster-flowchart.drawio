@@ -1,0 +1,190 @@
+<mxGraphModel dx="1200" dy="850" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="700" math="0" shadow="0" adaptiveColors="auto">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+
+    <!-- Issuance Flow (Left side) -->
+    <mxCell id="issue_title" parent="1" style="text;html=1;fontSize=13;fontStyle=5;align=center;" value="CREDENTIAL ISSUANCE FLOW" vertex="1">
+      <mxGeometry x="50" y="10" width="300" height="25" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="start" parent="1" style="ellipse;fillColor=#333333;strokeColor=#333333;" value="" vertex="1">
+      <mxGeometry x="185" y="45" width="25" height="25" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="a1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;fontStyle=1;" value="Issuer Submits Credential&lt;br&gt;(PDF + Metadata)" vertex="1">
+      <mxGeometry x="105" y="85" width="190" height="35" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="a2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="Generate UUID, Embed in PDF&lt;br&gt;SHA-256(PDF) = checksum" vertex="1">
+      <mxGeometry x="105" y="140" width="190" height="35" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="a3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;fontStyle=1;" value="Build Canonical JSON (sorted keys)&lt;br&gt;SHA-256 = data_hash" vertex="1">
+      <mxGeometry x="105" y="195" width="190" height="35" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="a4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="Save to DB (pending status)&lt;br&gt;Return HTTP Response" vertex="1">
+      <mxGeometry x="105" y="250" width="190" height="35" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="split_label" parent="1" style="text;html=1;fontSize=10;fontStyle=3;align=center;" value="Background Jobs (parallel)" vertex="1">
+      <mxGeometry x="100" y="305" width="200" height="20" as="geometry"/>
+    </mxCell>
+
+    <!-- Blockchain branch -->
+    <mxCell id="b1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;fontStyle=1;" value="Blockchain Anchoring&lt;br&gt;Smart Contract on Sepolia" vertex="1">
+      <mxGeometry x="20" y="340" width="160" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="b2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" value="Receive tx_hash" vertex="1">
+      <mxGeometry x="35" y="395" width="130" height="25" as="geometry"/>
+    </mxCell>
+
+    <!-- IPFS branch -->
+    <mxCell id="i1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;fontStyle=1;" value="Upload PDF to IPFS" vertex="1">
+      <mxGeometry x="220" y="340" width="160" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="i2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" value="Receive ipfs_cid" vertex="1">
+      <mxGeometry x="235" y="395" width="130" height="25" as="geometry"/>
+    </mxCell>
+
+    <!-- Final -->
+    <mxCell id="done" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;fontStyle=1;" value="Credential Fully Anchored" vertex="1">
+      <mxGeometry x="105" y="445" width="190" height="30" as="geometry"/>
+    </mxCell>
+
+    <!-- Divider -->
+    <mxCell id="divider" parent="1" style="line;strokeWidth=2;strokeColor=#999999;dashed=1;" value="" vertex="1">
+      <mxGeometry x="430" y="30" width="10" height="450" as="geometry"/>
+    </mxCell>
+
+    <!-- Verification Flow (Right side) -->
+    <mxCell id="verify_title" parent="1" style="text;html=1;fontSize=13;fontStyle=5;align=center;" value="DUAL VERIFICATION FLOW" vertex="1">
+      <mxGeometry x="520" y="10" width="300" height="25" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="vstart" parent="1" style="ellipse;fillColor=#333333;strokeColor=#333333;" value="" vertex="1">
+      <mxGeometry x="658" y="45" width="25" height="25" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="v1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;fontStyle=1;" value="Verifier Provides Input" vertex="1">
+      <mxGeometry x="580" y="85" width="180" height="30" as="geometry"/>
+    </mxCell>
+
+    <!-- Decision diamond -->
+    <mxCell id="vd" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;fontStyle=1;" value="Method?" vertex="1">
+      <mxGeometry x="620" y="135" width="100" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- Blockchain Verify branch -->
+    <mxCell id="bc_label" parent="1" style="text;html=1;fontSize=10;fontStyle=5;align=center;fontColor=#b85450;" value="BLOCKCHAIN" vertex="1">
+      <mxGeometry x="470" y="155" width="100" height="20" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="v_bc1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=8;" value="By ID / tx_hash / IPFS CID&lt;br&gt;OR PDF Upload" vertex="1">
+      <mxGeometry x="460" y="205" width="155" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="v_bc2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=8;" value="Re-compute canonical hash&lt;br&gt;Compare with stored data_hash" vertex="1">
+      <mxGeometry x="460" y="260" width="155" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="v_bc3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=8;fontStyle=1;" value="Query Smart Contract&lt;br&gt;on Sepolia Testnet" vertex="1">
+      <mxGeometry x="460" y="315" width="155" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="v_bc_result" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;fontStyle=1;" value="VALID / INVALID&lt;br&gt;(Deterministic)" vertex="1">
+      <mxGeometry x="475" y="375" width="125" height="30" as="geometry"/>
+    </mxCell>
+
+    <!-- AI Verify branch -->
+    <mxCell id="ai_label" parent="1" style="text;html=1;fontSize=10;fontStyle=5;align=center;fontColor=#82b366;" value="AI (GEMINI)" vertex="1">
+      <mxGeometry x="765" y="155" width="100" height="20" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="v_ai1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=8;" value="Upload any copy (scan/photo)&lt;br&gt;+ Credential ID" vertex="1">
+      <mxGeometry x="725" y="205" width="165" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="v_ai2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=8;" value="Fetch original PDF from IPFS" vertex="1">
+      <mxGeometry x="735" y="260" width="145" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="v_ai3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=8;fontStyle=1;" value="Gemini 2.5 Flash compares&lt;br&gt;both documents field-by-field" vertex="1">
+      <mxGeometry x="725" y="315" width="165" height="35" as="geometry"/>
+    </mxCell>
+    <mxCell id="v_ai_result" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;fontStyle=1;" value="Match + Confidence %&lt;br&gt;(Semantic)" vertex="1">
+      <mxGeometry x="745" y="375" width="125" height="30" as="geometry"/>
+    </mxCell>
+
+    <!-- Final verify result -->
+    <mxCell id="vfinal" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;fontStyle=1;" value="Verification Complete" vertex="1">
+      <mxGeometry x="580" y="440" width="180" height="30" as="geometry"/>
+    </mxCell>
+
+    <!-- EDGES: Issuance -->
+    <mxCell id="ea0" edge="1" parent="1" source="start" target="a1" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ea1" edge="1" parent="1" source="a1" target="a2" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ea2" edge="1" parent="1" source="a2" target="a3" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ea3" edge="1" parent="1" source="a3" target="a4" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ea4" edge="1" parent="1" source="a4" target="b1" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ea5" edge="1" parent="1" source="a4" target="i1" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="eb1" edge="1" parent="1" source="b1" target="b2" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ei1" edge="1" parent="1" source="i1" target="i2" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="eb2" edge="1" parent="1" source="b2" target="done" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ei2" edge="1" parent="1" source="i2" target="done" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <!-- EDGES: Verification -->
+    <mxCell id="ev0" edge="1" parent="1" source="vstart" target="v1" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ev1" edge="1" parent="1" source="v1" target="vd" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ev2" edge="1" parent="1" source="vd" target="v_bc1" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ev3" edge="1" parent="1" source="vd" target="v_ai1" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ev4" edge="1" parent="1" source="v_bc1" target="v_bc2" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ev5" edge="1" parent="1" source="v_bc2" target="v_bc3" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ev6" edge="1" parent="1" source="v_bc3" target="v_bc_result" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ev7" edge="1" parent="1" source="v_ai1" target="v_ai2" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ev8" edge="1" parent="1" source="v_ai2" target="v_ai3" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ev9" edge="1" parent="1" source="v_ai3" target="v_ai_result" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ev10" edge="1" parent="1" source="v_bc_result" target="vfinal" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="ev11" edge="1" parent="1" source="v_ai_result" target="vfinal" style="edgeStyle=orthogonalEdgeStyle;orthogonalLoop=1;rounded=1;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+  </root>
+</mxGraphModel>

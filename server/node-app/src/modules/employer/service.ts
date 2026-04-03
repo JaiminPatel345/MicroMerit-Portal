@@ -233,13 +233,20 @@ export class EmployerService {
     }
 
     async compareCandidates(employerId: number, candidateIds: number[], context?: { skills?: string[]; sector?: string }) {
+        // Fetch learner details + credentials for each candidate
         const candidates = await Promise.all(candidateIds.map(async (id) => {
+            const learner = await prisma.learner.findUnique({
+                where: { id },
+                select: { id: true, name: true, profileUrl: true }
+            });
             const credentials = await prisma.credential.findMany({
                 where: { learner_id: id, status: 'issued' },
                 include: { issuer: { select: { name: true } } }
             });
             return {
                 learner_id: id,
+                name: learner?.name || `Candidate ${id}`,
+                profileUrl: learner?.profileUrl || null,
                 credentials: credentials.map(c => ({
                     title: c.certificate_title,
                     issuer: c.issuer.name,
@@ -249,14 +256,29 @@ export class EmployerService {
             };
         }));
 
-        const response = await aiService.compareCandidates(candidates, context);
+        const aiResponse = await aiService.compareCandidates(candidates, context);
+
+        // Transform AI response to match frontend expected format
+        const ranking = aiResponse.ranking || [];
+        const result = candidates.map(c => {
+            const rank = ranking.find((r: any) => r.learner_id === c.learner_id) || {};
+            return {
+                id: c.learner_id,
+                name: c.name,
+                avatar: c.profileUrl,
+                nsqf_level: 0,
+                skills_count: c.credentials.length,
+                fit_score: rank.fit_score || 0,
+                top_skills: rank.strengths || []
+            };
+        });
 
         await employerRepository.logActivity(employerId, 'compare_candidates', undefined, {
             candidate_ids: candidateIds,
             context
         });
 
-        return response;
+        return result;
     }
 
     /**

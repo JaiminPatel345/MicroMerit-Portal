@@ -335,6 +335,26 @@ export class LearnerController {
       sendError(res, error.message, 'Failed to retrieve skill profile', 500);
     }
   }
+
+  /**
+   * Regenerate learner roadmap and skill profile
+   * POST /learner/roadmap/regenerate
+   */
+  async regenerateRoadmap(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        sendError(res, 'User not authenticated', 'Authentication required', 401);
+        return;
+      }
+
+      await learnerService.updateLearnerAIProfile(req.user.id);
+      const roadmap = await learnerService.getRoadmap(req.user.id);
+      sendSuccess(res, roadmap, 'Roadmap regenerated successfully');
+    } catch (error: any) {
+      logger.error('Regenerate roadmap failed', { error: error.message });
+      sendError(res, error.message, 'Failed to regenerate roadmap', 500);
+    }
+  }
 }
 
 export const learnerController = new LearnerController();

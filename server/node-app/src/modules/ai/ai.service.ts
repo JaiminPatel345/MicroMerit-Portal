@@ -174,22 +174,98 @@ export class AIService {
         }
     }
     /**
-     * Generate a career roadmap for a learner
+     * Generate a career roadmap for a learner using Gemini
      */
     async generateRoadmap(certificates: any[], learnerProfile: any): Promise<any> {
         try {
-            const response = await axios.post(
-                `${this.aiServiceUrl}/ai/generate-roadmap`,
-                {
-                    certificates,
-                    learner_profile: learnerProfile
-                },
-                {
-                    headers: { 'Content-Type': 'application/json' },
-                    timeout: 45000 // Longer timeout for generation
-                }
-            );
-            return response.data;
+            const apiKey = process.env.GEMINI_API_KEY;
+            if (!apiKey) throw new Error('GEMINI_API_KEY is not configured');
+
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+            const certSummary = certificates.map(c => {
+                const meta = (c.metadata as any) || {};
+                const aiExtracted = meta.ai_extracted || {};
+                return {
+                    title: c.certificate_title,
+                    issuer: c.issuer?.name || meta.issuer_name || 'Unknown',
+                    issued_at: c.issued_at,
+                    skills: aiExtracted.skills || aiExtracted.subjects || [],
+                    grade: aiExtracted.grade || aiExtracted.percentage || null
+                };
+            });
+
+            const prompt = `You are an expert career advisor for the Indian job market. Analyze this learner's verified credentials and generate a personalized career roadmap.
+
+Learner: ${learnerProfile?.name || 'Student'}
+Credentials (${certSummary.length}):
+${JSON.stringify(certSummary, null, 2)}
+
+Generate a JSON response with this EXACT structure:
+{
+  "current_status": "<2-3 sentence summary of where this learner stands based on their actual credentials — mention specific certificate names and skills they have>",
+  "title": "<a short professional title like 'Aspiring Data Scientist' or 'Emerging Full-Stack Developer' based on their credentials>",
+  "future_plans": [
+    {
+      "goal": "<specific, actionable goal>",
+      "timeline": "<e.g. 3-6 months>",
+      "description": "<why this goal matters and how to achieve it>",
+      "skills_to_acquire": {
+        "basic": ["<foundational skills>"],
+        "intermediate": ["<core skills>"],
+        "advanced": ["<expert skills>"]
+      }
+    }
+  ],
+  "conditional_paths": [
+    {
+      "path_name": "<career path name>",
+      "condition": "<what the learner needs to do>",
+      "outcome": "<what career this leads to>"
+    }
+  ],
+  "stackable_pathways": [
+    {
+      "pathway_name": "<progression pathway title>",
+      "description": "<brief description>",
+      "progress_percentage": <0-100 based on how many required skills the learner already has>,
+      "estimated_duration": "<time to complete remaining>",
+      "required_skills": [
+        { "skill": "<skill name>", "status": "completed" },
+        { "skill": "<skill name>", "status": "missing" }
+      ],
+      "next_credential": "<specific certification to pursue next>"
+    }
+  ],
+  "job_opportunities": [
+    {
+      "role": "<specific job title>",
+      "match_percentage": <0-100>,
+      "salary_range": "<range in LPA for Indian market>",
+      "missing_skills": ["<skills needed to qualify>"]
+    }
+  ]
+}
+
+Rules:
+- Generate 2-3 future_plans, 2-3 conditional_paths, 1-3 stackable_pathways, 3-5 job_opportunities
+- Mark skills the learner already has (from their certificates) as "completed" in stackable_pathways
+- Be specific — reference actual certificate names, real technologies, real job roles
+- Salary ranges should reflect current Indian job market (in LPA)
+- match_percentage for jobs should reflect how many required skills the learner already has
+- Return ONLY valid JSON, no markdown fences`;
+
+            const result = await model.generateContent(prompt);
+            const responseText = result.response.text().trim();
+            const jsonText = responseText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+
+            try {
+                return JSON.parse(jsonText);
+            } catch {
+                console.error('Failed to parse roadmap JSON from Gemini');
+                return null;
+            }
         } catch (error: any) {
             console.error('AI Service - Generate Roadmap Error:', error.message);
             return null;
@@ -197,21 +273,65 @@ export class AIService {
     }
 
     /**
-     * Generate a skill profile for a learner
+     * Generate a skill profile for a learner using Gemini
      */
     async generateSkillProfile(certificates: any[]): Promise<any> {
         try {
-            const response = await axios.post(
-                `${this.aiServiceUrl}/ai/generate-skill-profile`,
-                {
-                    certificates
-                },
-                {
-                    headers: { 'Content-Type': 'application/json' },
-                    timeout: 45000
-                }
-            );
-            return response.data;
+            const apiKey = process.env.GEMINI_API_KEY;
+            if (!apiKey) throw new Error('GEMINI_API_KEY is not configured');
+
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+            const certSummary = certificates.map(c => {
+                const meta = (c.metadata as any) || {};
+                const aiExtracted = meta.ai_extracted || {};
+                return {
+                    title: c.certificate_title,
+                    issuer: c.issuer?.name || meta.issuer_name || 'Unknown',
+                    skills: aiExtracted.skills || aiExtracted.subjects || [],
+                    grade: aiExtracted.grade || aiExtracted.percentage || null
+                };
+            });
+
+            const prompt = `You are an expert career analyst for the Indian job market. Analyze these verified credentials and generate a detailed skill profile.
+
+Credentials (${certSummary.length}):
+${JSON.stringify(certSummary, null, 2)}
+
+Generate a JSON response with this EXACT structure:
+{
+  "current_skills": [
+    { "skill": "<skill name>", "proficiency": <0-100>, "category": "Technical|Soft|Domain", "verified_by": "<issuer name that verified this>" }
+  ],
+  "ready_to_apply_jobs": [
+    { "role": "<job title>", "match_percentage": <0-100>, "salary_range": "<in LPA>", "matching_skills": ["<skills the learner has for this role>"] }
+  ],
+  "field_analysis": {
+    "current_field": "<primary field based on credentials>",
+    "achievable_roles": [
+      { "role": "<job title>", "gap_description": "<what's needed>", "missing_skills": ["<specific skills>"], "estimated_time": "<time to bridge gap>" }
+    ]
+  }
+}
+
+Rules:
+- Extract ALL skills from the certificate titles and metadata
+- Proficiency should reflect credential level (basic cert = 40-60, advanced = 70-90)
+- Include 5-10 current_skills, 3-5 ready_to_apply_jobs, 3-5 achievable_roles
+- Salary ranges should reflect current Indian market in LPA
+- Return ONLY valid JSON, no markdown fences`;
+
+            const result = await model.generateContent(prompt);
+            const responseText = result.response.text().trim();
+            const jsonText = responseText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+
+            try {
+                return JSON.parse(jsonText);
+            } catch {
+                console.error('Failed to parse skill profile JSON from Gemini');
+                return null;
+            }
         } catch (error: any) {
             console.error('AI Service - Generate Skill Profile Error:', error.message);
             return null;
@@ -563,9 +683,10 @@ ${JSON.stringify(candidates, null, 2)}
 Return a JSON object with this structure:
 {
   "summary": "<overall comparison summary>",
-  "ranking": [{ "learner_id": <id>, "rank": <1-based rank>, "strengths": ["..."], "gaps": ["..."] }],
+  "ranking": [{ "learner_id": <id>, "rank": <1-based rank>, "fit_score": <integer 0-100>, "strengths": ["skill1", "skill2", ...], "gaps": ["..."] }],
   "recommendation": "<who to hire and why>"
 }
+fit_score is a percentage (0-100) indicating how well the candidate fits based on their credentials and the requested skills. strengths should list specific skill names extracted from their credentials.
 Return only valid JSON, no markdown.`;
 
         const result = await model.generateContent(prompt);

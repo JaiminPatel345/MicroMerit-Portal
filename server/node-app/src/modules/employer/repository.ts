@@ -181,17 +181,11 @@ export const employerRepository = {
 
 
             // --- 5. SKILLS FILTER (Strict JSON check) ---
-            // Check in LearnerSkillProfile.data -> allSkills (array of strings or objects)
+            // Check in LearnerSkillProfile.data -> allSkills, topSkills, or current_skills
             if (filters.skills && filters.skills.length > 0) {
-                // We want learners where ANY of the requested skills exist in their profile
-                // JSON structure: data: { allSkills: ["Java", {name: "Python"}] }
-                
-                // Construct a robust JSON path OR check
-                // This checks if any of the filter skills exist in the allSkills array (handling both string/object)
                 const skillConditions = filters.skills.map(skill => {
                     const p = `$${paramCount++}`;
                     params.push(`%${skill.trim()}%`);
-                    // Check if skill string exists OR if object with name exists
                      return `(
                         EXISTS (
                             SELECT 1 FROM jsonb_array_elements(lsp.data -> 'allSkills') as skill
@@ -202,7 +196,12 @@ export const employerRepository = {
                         EXISTS (
                             SELECT 1 FROM jsonb_array_elements(lsp.data -> 'topSkills') as start_skill
                             WHERE (jsonb_typeof(start_skill) = 'string' AND start_skill #>> '{}' ILIKE ${p})
-                            OR (jsonb_typeof(start_skill) = 'object' AND start_skill ->> 'skill' ILIKE ${p}) 
+                            OR (jsonb_typeof(start_skill) = 'object' AND start_skill ->> 'skill' ILIKE ${p})
+                        )
+                        OR
+                        EXISTS (
+                            SELECT 1 FROM jsonb_array_elements(lsp.data -> 'current_skills') as cs
+                            WHERE (jsonb_typeof(cs) = 'object' AND cs ->> 'skill' ILIKE ${p})
                         )
                     )`;
                 }).join(' OR ');
@@ -210,27 +209,11 @@ export const employerRepository = {
                 conditions.push(`(${skillConditions})`);
             }
 
-             // --- 6. KEYWORD SEARCH (Broad) ---
+             // --- 6. KEYWORD SEARCH (Name only) ---
              if (filters.keyword) {
                 const p = `$${paramCount++}`;
                 params.push(`%${filters.keyword}%`);
-                
-                conditions.push(`(
-                    l.name ILIKE ${p}
-                    OR l.email ILIKE ${p}
-                    OR EXISTS (
-                        SELECT 1 FROM "Credential" c 
-                        JOIN "issuer" i ON c.issuer_id = i.id
-                        WHERE c.learner_id = l.id 
-                        AND c.status = 'issued'
-                        AND (c.certificate_title ILIKE ${p} OR i.name ILIKE ${p})
-                    )
-                     OR EXISTS (
-                        SELECT 1 FROM "LearnerSkillProfile" lsp2
-                        WHERE lsp2.learner_id = l.id
-                        AND lsp2.data::text ILIKE ${p}
-                    )
-                )`);
+                conditions.push(`l.name ILIKE ${p}`);
              }
 
             // JOIN with SkillProfile to enable skill filtering

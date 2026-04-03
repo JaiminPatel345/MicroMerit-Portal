@@ -52,10 +52,9 @@ MicroMerit Portal is a **Micro-Credential Aggregator Platform** powered by Block
 - **Employer AI Chatbot** (`/employer/search`): Employer enters a learner's email and a natural-language question; backend fetches all that learner's verified credentials and sends them as context to the LLM (`POST /employer/chat`), which returns an AI-generated answer, relevant skills, referenced certificates, and confidence score. Displayed in a chat panel on the Search page.
 - **Employer Globe Search** (`/employer/search`): Filter candidates by skills, certificate title, issuer, student name, and location. AI candidate comparison (up to 3 at once) with CSV export.
 - **Employer Verification Portal** (`/employer/verify`): Single credential verification (same as public `/verify` — by ID/tx_hash/IPFS CID, PDF upload, or AI document comparison) + bulk ZIP verification (each PDF verified individually via `POST /credentials/verify-pdf`).
+- **Learner Pathways / Roadmap** (`/roadmap`, `/pathway`): AI-powered career roadmap using Google Gemini 2.5 Flash. Based on the learner's verified credentials, generates: current standing summary, future goals with skill breakdowns (basic/intermediate/advanced), strategic career pivots, stackable pathways with progress tracking (completed vs missing skills), and job opportunities with match percentages and salary ranges. Learners can regenerate their roadmap anytime via a "Refresh Roadmap" button (`POST /learner/roadmap/regenerate`). Also generates a Skill Profile with proficiency levels, field analysis, and job readiness. Data stored in `LearnerRoadmap` and `LearnerSkillProfile` tables as JSONB.
 
 ### Disabled / Future Scope (DO NOT enable or mention as current features)
-- **Pathways / Roadmap AI** (`/roadmap`, `/pathway` routes exist in `App.jsx` — commented out from navbar): Based on current certificates, shows what skills to learn next. **Mention in report as "Future Scope".**
-- **Skill Profile AI generation**: AI-generated skill profiles — partially present but not shown in demo.
 - Course recommendations.
 
 ---
@@ -204,7 +203,7 @@ Blockchain verification is cryptographically absolute but requires the exact ori
 - **IPFS**: Always say "IPFS" — never mention "Filebase" in any report or doc.
 - **Security**: Can be mentioned positively in reports (blockchain immutability, IPFS content addressing, JWT auth, OTP verification) even if implementation is minimal.
 - **Scalability**: Can be mentioned positively in reports (microservices architecture, Redis queues, horizontal scalability potential) as design intentions.
-- **Pathways**: Mention as **Future Scope** in reports.
+- **Pathways**: Now a working feature — include in reports as an implemented AI-powered career guidance tool.
 - **Employer Chatbot**: Include as a feature (it will be fixed).
 - **Blockchain**: Mention Ethereum/Solidity smart contracts on Sepolia testnet; in mock mode it simulates anchoring.
 
@@ -241,10 +240,12 @@ Blockchain verification is cryptographically absolute but requires the exact ori
 | Bulk issuance adapter | `server/node-app/src/adapters/issuerBulkAdapters/index.ts` |
 | External sync connectors | `server/node-app/src/modules/external-credential-sync/connectors/` |
 | Connector factory | `server/node-app/src/modules/external-credential-sync/connector.factory.ts` |
-| AI service | `server/ai_groq_service/main.py` |
+| AI service (OCR) | `server/ai_groq_service/main.py` |
+| AI service (Gemini - roadmap, compare, doc verify) | `server/node-app/src/modules/ai/ai.service.ts` |
 | Blockchain contracts | `server/blockchain/contracts/` |
 | Dummy server routes | `server/dummy-server/src/routes/` |
 | Admin portal | `client/admin/src/` |
 | Issuer pages | `client/main-app/src/pages/issuer/` |
 | Learner pages | `client/main-app/src/pages/learner/` |
+| Learner Pathways/Roadmap | `client/main-app/src/pages/learner/Roadmap.jsx` |
 | Employer pages | `client/main-app/src/pages/employer/` |

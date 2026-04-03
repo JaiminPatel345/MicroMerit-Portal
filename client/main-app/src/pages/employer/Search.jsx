@@ -32,13 +32,14 @@ const EmployerSearch = () => {
         fetchInitialCandidates();
     }, []);
 
-    const handleSearch = async (e) => {
+    const handleSearch = async (e, overrideFilters) => {
         e?.preventDefault();
         setLoading(true);
         setSearched(true);
         try {
+            const source = overrideFilters || filters;
             const cleanFilters = Object.fromEntries(
-                Object.entries(filters).filter(([_, v]) => v !== '')
+                Object.entries(source).filter(([_, v]) => v !== '')
             );
             const res = await employerApi.searchCandidates(cleanFilters);
             setResults(res.data.data);
@@ -159,7 +160,7 @@ const EmployerSearch = () => {
                                     <input
                                         type="text"
                                         className="block w-full pl-11 pr-4 py-3.5 bg-gray-50 border-0 rounded-xl text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-100 focus:bg-white transition-all outline-none"
-                                        placeholder="Search by name, skill, certificate, or issuer..."
+                                        placeholder="Search by candidate name..."
                                         value={filters.keyword}
                                         onChange={(e) => setFilters({ ...filters, keyword: e.target.value })}
                                     />
@@ -295,7 +296,7 @@ const EmployerSearch = () => {
                                 return (
                                     <button
                                         key={k}
-                                        onClick={() => { setFilters({ ...filters, [k]: '' }); handleSearch(); }}
+                                        onClick={() => { const newFilters = { ...filters, [k]: '' }; setFilters(newFilters); handleSearch(null, newFilters); }}
                                         className="px-3 py-1 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-colors flex items-center gap-1.5 group"
                                     >
                                         <span className="capitalize">{k.replace('_', ' ')}</span>: <span className="text-gray-900 group-hover:text-red-600 font-semibold">{v}</span>

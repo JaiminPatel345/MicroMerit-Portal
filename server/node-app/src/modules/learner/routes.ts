@@ -113,6 +113,13 @@ resourceRouter.get(
   requireLearner,
   asyncHandler(learnerController.getSkillProfile.bind(learnerController))
 );
+
+resourceRouter.post(
+  '/roadmap/regenerate',
+  authenticateToken,
+  requireLearner,
+  asyncHandler(learnerController.regenerateRoadmap.bind(learnerController))
+);
 // External issuers list (for Add Certificate modal dropdown)
 resourceRouter.get(
   '/external-issuers',

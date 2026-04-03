@@ -24,13 +24,16 @@ Micro Credential aggregator platform with Blockchain, IPFS and AI powered skill 
 ### 🤖 AI-Powered Features
 - **OCR Processing**: Extract credential details from PDF certificates using Tesseract
 - **Skill Profile Generation**: AI-generated skill profiles from credentials
-- **Learning Roadmap**: Personalized learning paths based on learner credentials
+- **Learning Pathways**: Personalized career roadmap with stackable pathways, future goals, strategic pivots, and job opportunities — powered by Google Gemini
+- **AI Document Comparison**: Compare uploaded documents against IPFS originals using Gemini AI
 - **Employer AI Chatbot**: Query learner profiles, credentials, and skills via AI
-- **Course Recommendations**: AI-powered course suggestions
+- **Candidate Comparison**: AI-powered side-by-side comparison of up to 3 candidates
 
 ### 👔 Employer Features
-- **Candidate Search**: Search learners by skills, NSQF level, location, and credentials
+- **Candidate Search**: Search learners by name, skills, certificate title, issuer, and location
+- **AI Candidate Comparison**: Compare up to 3 candidates with fit scores and skill analysis
 - **AI Chatbot**: Ask questions about learner profiles and get intelligent answers
+- **Credential Verification**: Single and bulk (ZIP) verification with blockchain + AI methods
 - **Profile Viewing**: View detailed learner profiles with credentials and skills
 
 ### 📊 Admin Dashboard

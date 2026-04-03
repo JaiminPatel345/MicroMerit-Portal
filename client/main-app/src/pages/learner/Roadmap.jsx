@@ -22,6 +22,7 @@ import { learnerApi } from '../../services/authServices';
 
 const Roadmap = () => {
     const [loading, setLoading] = useState(true);
+    const [regenerating, setRegenerating] = useState(false);
     const [roadmapData, setRoadmapData] = useState(null);
     const [error, setError] = useState(null);
     const [expandedGoal, setExpandedGoal] = useState(null);
@@ -38,12 +39,25 @@ const Roadmap = () => {
             setError(null);
         } catch (err) {
             console.error('Failed to fetch roadmap:', err);
-            // Only set error if it's not a 404 (which means no data)
             if (err.response && err.response.status !== 404) {
                 setError('Failed to load your personalized roadmap. Please try again later.');
             }
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleRegenerate = async () => {
+        try {
+            setRegenerating(true);
+            setError(null);
+            const response = await learnerApi.regenerateRoadmap();
+            setRoadmapData(response.data.data);
+        } catch (err) {
+            console.error('Failed to regenerate roadmap:', err);
+            setError('Failed to regenerate roadmap. Make sure you have at least one credential.');
+        } finally {
+            setRegenerating(false);
         }
     };
 
@@ -63,13 +77,18 @@ const Roadmap = () => {
             <div className="min-h-screen bg-gray-50 p-6 lg:p-10">
                 <div className="max-w-5xl mx-auto">
                     <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
-                        <h3 className="text-lg font-bold text-gray-900">No roadmap available</h3>
-                        <p className="text-gray-500 mt-1 mb-4">Earn your first credential to unlock your career path.</p>
+                        <Map className="mx-auto text-gray-300 mb-4" size={48} />
+                        <h3 className="text-lg font-bold text-gray-900">{error || 'No roadmap available yet'}</h3>
+                        <p className="text-gray-500 mt-1 mb-6">
+                            {error ? 'Try generating your roadmap again.' : 'Generate your AI-powered career roadmap based on your credentials.'}
+                        </p>
                         <button
-                            onClick={fetchRoadmap}
-                            className="text-blue-chill-600 font-medium hover:underline text-sm"
+                            onClick={handleRegenerate}
+                            disabled={regenerating}
+                            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-chill-600 text-white font-semibold rounded-xl hover:bg-blue-chill-700 transition-colors shadow-lg shadow-blue-chill-600/20 disabled:opacity-50"
                         >
-                            Refresh
+                            <RefreshCw size={16} className={regenerating ? 'animate-spin' : ''} />
+                            {regenerating ? 'Generating Roadmap...' : 'Generate My Roadmap'}
                         </button>
                     </div>
                 </div>
@@ -77,7 +96,7 @@ const Roadmap = () => {
         );
     }
 
-    const { current_status, future_plans, conditional_paths, job_opportunities, stackable_pathways } = roadmapData;
+    const { current_status, future_plans, conditional_paths, job_opportunities, stackable_pathways, title } = roadmapData;
 
     return (
         <div className="min-h-screen bg-gray-50 p-6 lg:p-10 font-sans">
@@ -90,15 +109,25 @@ const Roadmap = () => {
                     className="relative overflow-hidden bg-white rounded-3xl p-8 lg:p-10 shadow-xl shadow-gray-200 border border-gray-100"
                 >
                     <div className="relative z-10">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-blue-chill-50 text-blue-chill-600 rounded-lg">
-                                <Target size={24} />
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-blue-chill-50 text-blue-chill-600 rounded-lg">
+                                    <Target size={24} />
+                                </div>
+                                <span className="font-bold tracking-wide uppercase text-sm text-blue-chill-600">Current Standing</span>
                             </div>
-                            <span className="font-bold tracking-wide uppercase text-sm text-blue-chill-600">Current Standing</span>
+                            <button
+                                onClick={handleRegenerate}
+                                disabled={regenerating}
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                                <RefreshCw size={14} className={regenerating ? 'animate-spin' : ''} />
+                                {regenerating ? 'Regenerating...' : 'Refresh Roadmap'}
+                            </button>
                         </div>
                         <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4 leading-tight">
                             You are currently positioned as <br />
-                            <span className="text-blue-chill-600">an Emerging Professional</span>
+                            <span className="text-blue-chill-600">{title || 'an Emerging Professional'}</span>
                         </h1>
                         <p className="text-gray-600 text-lg leading-relaxed max-w-3xl">
                             {current_status}

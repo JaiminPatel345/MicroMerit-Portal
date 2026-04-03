@@ -139,6 +139,7 @@ const EmployerVerify = () => {
     // Bulk report state
     const [bulkReport, setBulkReport] = useState(null);
     const [resultsFilter, setResultsFilter] = useState('all');
+    const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, currentFile: '' });
 
     // AI Compare state
     const [aiCredentialId, setAiCredentialId] = useState('');
@@ -239,10 +240,14 @@ const EmployerVerify = () => {
             }
 
             const results = [];
+            setBulkProgress({ current: 0, total: pdfEntries.length, currentFile: '' });
 
             // Verify each PDF using the SAME route as /verify: POST /credentials/verify-pdf
+            let fileIndex = 0;
             for (const [name, entry] of pdfEntries) {
                 const fileName = name.split('/').pop() || name;
+                fileIndex++;
+                setBulkProgress({ current: fileIndex, total: pdfEntries.length, currentFile: fileName });
                 try {
                     const blob = await entry.async('blob');
                     const pdfFile = new File([blob], fileName, { type: 'application/pdf' });
@@ -757,10 +762,25 @@ const EmployerVerify = () => {
                                     onClick={() => !loading && document.getElementById('bulk-zip-upload').click()}
                                 >
                                     {loading ? (
-                                        <div className="flex flex-col items-center gap-3">
+                                        <div className="flex flex-col items-center gap-3 w-full px-4">
                                             <Loader className="h-12 w-12 text-blue-chill-600 animate-spin" />
-                                            <p className="text-base font-semibold text-blue-chill-700">Processing certificates...</p>
-                                            <p className="text-sm text-gray-400">Checking PDF integrity and verifying each certificate on the blockchain</p>
+                                            <p className="text-base font-semibold text-blue-chill-700">
+                                                Verifying certificate {bulkProgress.current} of {bulkProgress.total}
+                                            </p>
+                                            {bulkProgress.currentFile && (
+                                                <p className="text-sm text-gray-500 font-mono truncate max-w-xs">{bulkProgress.currentFile}</p>
+                                            )}
+                                            <div className="w-full max-w-sm">
+                                                <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                                                    <div
+                                                        className="bg-blue-chill-600 h-2.5 rounded-full transition-all duration-300"
+                                                        style={{ width: `${bulkProgress.total > 0 ? Math.round((bulkProgress.current / bulkProgress.total) * 100) : 0}%` }}
+                                                    />
+                                                </div>
+                                                <p className="text-xs text-gray-400 mt-1 text-center">
+                                                    {bulkProgress.total > 0 ? Math.round((bulkProgress.current / bulkProgress.total) * 100) : 0}% complete
+                                                </p>
+                                            </div>
                                         </div>
                                     ) : (
                                         <>
