@@ -137,7 +137,7 @@ export async function uploadToFilebase(
                 throw new Error('Failed to retrieve CID from Filebase response - metadata does not contain CID after multiple attempts');
             }
 
-            const gatewayUrl = `${process.env.FILEBASE_GATEWAY_URL || 'https://ipfs.filebase.io/ipfs/'}${cid}`;
+            const gatewayUrl = `https://ipfs.io/ipfs/${cid}`;
 
             logger.info('Filebase upload successful via S3 API', {
                 fileName,
@@ -206,6 +206,5 @@ export async function uploadToFilebase(
  * Get IPFS gateway URL for a CID
  */
 export function getGatewayUrl(cid: string): string {
-    const baseUrl = process.env.FILEBASE_GATEWAY_URL || 'https://ipfs.filebase.io/ipfs/';
-    return `${baseUrl}${cid}`;
+    return `https://ipfs.io/ipfs/${cid}`;
 }

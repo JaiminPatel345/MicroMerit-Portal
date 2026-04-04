@@ -258,7 +258,7 @@ const Home = () => {
                             <div
                                 className="mt-12 pt-8 border-t border-blue-chill-100/50 w-full overflow-hidden">
                                 <p className="text-xs font-bold text-blue-chill-600 uppercase tracking-wider mb-6">Trusted
-                                    Across India's Skilling Ecosystem</p>
+                                    Across World's Skilling Ecosystem</p>
                                 <div
                                     className="w-full inline-flex flex-nowrap overflow-hidden [mask-image:_linear-gradient(to_right,transparent_0,_black_40px,_black_calc(100%-40px),transparent_100%)]">
                                     <div

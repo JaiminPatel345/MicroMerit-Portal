@@ -39,7 +39,7 @@ export class EmployerService {
 
         // Generate and Send OTP
         const { generateOTP, hashOTP, getOTPExpiry } = require('../../utils/otp');
-        // const { sendOTP } = require('../../utils/notification');
+        const { sendOTP } = require('../../utils/notification');
 
         const otp = generateOTP(6);
         const otpHash = await hashOTP(otp);
@@ -53,8 +53,7 @@ export class EmployerService {
             expires_at: expiresAt
         });
 
-        // await sendOTP('email', employer.email, otp);
-        console.log('OTP:', otp);
+        await sendOTP('email', employer.email, otp);
 
         return {
             success: true,
