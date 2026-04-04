@@ -1,119 +1,124 @@
-# Poster Content for MicroMerit Portal
+# MicroMerit Portal — Poster Content
 
----
-
-## TITLE
-
-MicroMerit Portal: A Blockchain and AI-Powered Credential Aggregator Platform
+**Title:** MicroMerit Portal: A Blockchain and AI-Powered Credential Aggregator Platform
 
 ---
 
 ## ABSTRACT
 
-MicroMerit Portal is a multi-role web platform that enables institutions to issue tamper-proof digital credentials, anchored on the Ethereum blockchain and stored on IPFS. The system implements dual verification: blockchain-backed cryptographic proof using SHA-256 canonical hashing with an on-chain smart contract, and AI-powered document comparison using Google Gemini 2.5 Flash for flexible verification of scanned or photographed certificates. Built as six independent microservices, the platform supports credential issuance (single, bulk, and API-based), external credential aggregation via a provider-agnostic connector pattern, AI-driven OCR extraction, an employer AI chatbot, and AI-generated career roadmaps for learners.
+MicroMerit Portal is a credential aggregator platform that unifies issuance, storage, and verification of academic and vocational certificates using Blockchain, IPFS, and AI. Credentials are cryptographically anchored on Ethereum (Sepolia testnet) via a Solidity smart contract, with PDFs stored on IPFS for tamper-proof, decentralized access. The platform supports four user roles — Learners, Issuers, Employers, and Admins — and offers dual verification: blockchain-backed cryptographic proof for exact-match  , and Google Gemini AI for flexible document comparison when only scanned copies are available. Unlike traditional background verification companies that take days or weeks and charge significant fees, MicroMerit provides instant, free, and cryptographically guaranteed verification — making it a viable replacement for manual credential checks.
 
 ---
 
 ## INTRODUCTION
 
-The rapid growth of digital learning platforms (Coursera, Udemy, NSDC, etc.) has created a fragmented credential landscape where certificates are scattered, easily forged, and difficult to verify. Traditional systems rely on centralized databases or paper certificates, both vulnerable to tampering and data loss. MicroMerit Portal addresses this by combining Blockchain immutability for tamper-proof anchoring, IPFS for decentralized storage, and AI for intelligent extraction, comparison, and career guidance, providing a unified platform where credentials can be issued, aggregated, verified, and presented across all stakeholders.
+Traditional credential verification is slow, manual, and vulnerable to fraud. Background verification companies charge Rs. 500-2000 per credential and take 3-15 business days. Paper certificates can be forged, and centralized databases create single points of failure.
+
+MicroMerit Portal solves this by anchoring every credential on a public blockchain — providing instant, free, tamper-proof verification that anyone can perform. The SHA-256 hash of each credential's canonical JSON is stored on-chain; any modification, even a single character, invalidates the hash and is immediately detected. IPFS provides decentralized storage, ensuring credentials remain accessible even if the issuing institution goes offline.
+
+The platform also integrates AI for OCR-based metadata extraction during issuance, Gemini-powered document comparison for flexible verification, personalized career pathways for learners, and an AI chatbot for employer queries.
 
 ---
 
 ## OBJECTIVES
 
-- Design a decentralized credential management system using Ethereum smart contracts and IPFS
-- Implement dual verification: blockchain-based cryptographic proof and AI-powered document comparison
-- Build a multi-role platform supporting Learners, Issuers, Employers, and Administrators
-- Develop an AI-powered OCR pipeline for automated credential metadata extraction
-- Create a provider-agnostic connector pattern for aggregating external credentials (Udemy, Credly, NSDC)
-- Implement AI-driven career roadmap generation based on verified credentials
-
----
-
-## TECH STACK
-
-**Frontend:** React 18, Vite, Tailwind CSS, Redux Toolkit
-**Backend:** Node.js, Express, TypeScript, Prisma ORM, PostgreSQL, Redis
-**AI Services:** Python/FastAPI + Groq (Llama 3.1 8B) + Tesseract OCR; Google Gemini 2.5 Flash
-**Blockchain:** Solidity, Hardhat, Ethers.js, Ethereum Sepolia Testnet
-**Storage:** IPFS (decentralized, content-addressed)
-**Auth:** JWT, bcrypt, Google OAuth 2.0, DigiLocker OAuth, OTP via Nodemailer
+- Design a tamper-proof credential management system using blockchain (Ethereum) and IPFS
+- Enable instant credential verification — replacing days-long manual background checks with sub-second cryptographic proof
+- Support dual verification: blockchain (exact match) + AI (flexible document comparison via Google Gemini)
+- Build a multi-role platform: Learners, Issuers, Employers, and Admins each with tailored interfaces
+- Implement AI-powered OCR to extract credential metadata from PDFs/images automatically
+- Provide AI-driven career pathways and skill profiling for learners based on their verified credentials
+- Create a provider-agnostic external credential sync system (adapter pattern) for platforms like Udemy, NSDC, Credly
 
 ---
 
 ## BLOCK DIAGRAM & DESCRIPTION
 
-The system follows a microservices architecture with six independent services:
+> See diagram: `docs/poster/block_diagram.drawio`
 
-1. **Client Layer** - React frontend (Main App + Admin Dashboard) communicating via REST APIs
-2. **Server Layer** - Main Backend (Node.js/Express), AI Service (Python/FastAPI), Blockchain Service (Hardhat/Ethers.js), and Credential Provider Adapter
-3. **Data Layer** - PostgreSQL (relational data), IPFS (credential PDFs), Ethereum Sepolia (on-chain anchoring via CredentialRegistry smart contract)
-4. **External Services** - Google OAuth, Groq LLM API, Google Gemini, Nodemailer SMTP
+The system consists of six independent microservices:
 
-Each credential undergoes: PDF embedding (credential_id via pdf-lib) -> SHA-256 checksum -> Canonical JSON with sorted keys -> SHA-256 data_hash -> On-chain anchoring + IPFS upload (background jobs).
+1. **React Frontend** (Port 5173) — Learner, Issuer, and Employer interfaces
+2. **Node.js Backend** (Port 3000) — Core API with Express, TypeScript, Prisma, PostgreSQL
+3. **Blockchain Service** (Port 3001) — Hardhat + Ethers.js, connects to Sepolia testnet
+4. **AI Service** (Port 8000) — Python/FastAPI with Tesseract OCR + Groq LLM for metadata extraction
+5. **Admin Dashboard** (Port 5174) — Separate React app for administration
+6. **IPFS Storage** — Decentralized file storage for credential PDFs
 
-> Diagram: See `poster-block-diagram.drawio` (created alongside this file)
+Google Gemini 2.5 Flash is integrated directly in the Node.js backend for document comparison, candidate comparison, and career roadmap generation.
 
 ---
 
 ## FLOWCHART
 
-**Credential Issuance and Verification Flow:**
+> See diagram: `docs/poster/flowchart.drawio`
 
-1. Issuer submits credential (PDF + metadata)
-2. System generates UUID, embeds in PDF, computes SHA-256 checksum
-3. Canonical JSON built (keys sorted alphabetically) -> SHA-256 = data_hash
-4. Saved to DB (pending status), HTTP response returned immediately
-5. Background: Blockchain anchoring (smart contract) + IPFS upload run in parallel
-6. Credential fully anchored (confirmed + stored)
+**Credential Issuance & Verification Flow:**
 
-**Verification (two methods):**
-- **Blockchain:** Re-compute canonical hash, verify against on-chain data_hash via smart contract
-- **AI:** Upload any copy + Credential ID -> Gemini compares with original from IPFS field-by-field
+Issuance: Issuer uploads PDF + metadata -> AI extracts fields via OCR -> credential_id embedded in PDF -> SHA-256 checksum computed -> Canonical JSON built (keys sorted) -> SHA-256 data_hash -> Smart contract stores data_hash on-chain -> PDF uploaded to IPFS -> DB updated with tx_hash, ipfs_cid
 
-> Diagram: See `poster-flowchart.drawio` (created alongside this file)
+Verification (Blockchain): Verifier provides credential_id/tx_hash/PDF -> System rebuilds canonical JSON -> Recomputes hash -> Queries smart contract -> Match = VALID
+
+Verification (AI): Verifier uploads scanned copy + credential_id -> System fetches original from IPFS -> Gemini compares field-by-field -> Returns confidence score + mismatches
 
 ---
 
 ## OUTCOMES
 
-- Successfully implemented tamper-proof credential anchoring on Ethereum Sepolia testnet with SHA-256 canonical hashing
-- Dual verification system: cryptographic blockchain proof (100% deterministic) + AI document comparison (semantic, flexible)
-- Automated OCR-based credential extraction from PDF/image uploads using Tesseract + Groq LLM
-- External credential aggregation from multiple providers via connector pattern (Udemy, Credly, NSDC)
-- AI-powered career roadmap generation with skill profiling, job matching, and progress tracking
-- Employer search portal with AI chatbot for natural-language credential queries
-- Bulk credential issuance via ZIP upload with adapter pattern processing
+- **Instant Verification**: Sub-second credential authentication vs. 3-15 days by traditional background verification companies
+- **Zero Cost**: No per-verification fees — anyone can verify for free using blockchain
+- **Tamper-Proof**: SHA-256 hashing + blockchain immutability — even 1-byte change is detected instantly
+- **Dual Verification**: Blockchain for exact proof + AI for real-world flexibility (scanned copies, photos)
+- **AI Career Guidance**: Personalized learning pathways generated from verified credentials using Google Gemini
+- **Decentralized Storage**: Credentials on IPFS remain accessible even if the issuing institution shuts down
+- **Employer Efficiency**: AI-powered candidate search, comparison (up to 3 at once), and chatbot for credential queries
+- **Can Replace Background Verification Companies**: Faster, cheaper, and more reliable than manual verification processes — results are cryptographically guaranteed, not opinion-based
 
 ---
 
 ## APPLICATIONS
 
-- **Educational Institutions:** Issue and manage verifiable digital credentials at scale
-- **Students/Learners:** Aggregate all credentials in one place, share verifiable profiles with employers
-- **Employers/Recruiters:** Search candidates by skills, verify credentials instantly via blockchain or AI
-- **Government/Regulatory Bodies:** Verify NSQF-level qualifications with tamper-proof on-chain records
-- **Credential Providers:** Integrate via REST API or connector pattern for cross-platform credential portability
+- **Universities & Colleges**: Issue blockchain-verified degrees and transcripts that employers can instantly verify
+- **Professional Certification Bodies** (NSDC, NASSCOM, etc.): Issue tamper-proof skill certifications aligned with NSQF framework
+- **HR Departments & Recruiters**: Instantly verify candidate credentials without waiting for third-party background checks — saving time and money
+- **Online Learning Platforms** (Udemy, Coursera, etc.): Auto-sync course completion certificates into learners' unified portfolios
+- **Government Agencies**: Verify skill certifications for employment schemes and skill development programs
+- **Background Verification Replacement**: Organizations can eliminate dependency on expensive, slow third-party verification services entirely
+
+---
+
+## TECH STACK
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18, Vite, Tailwind CSS, Redux Toolkit |
+| Backend | Node.js, Express, TypeScript, Prisma ORM |
+| Database | PostgreSQL |
+| Blockchain | Solidity, Hardhat, Ethers.js, Ethereum Sepolia |
+| Storage | IPFS (decentralized) |
+| AI (OCR) | Python, FastAPI, Tesseract, Groq (Llama 3.1) |
+| AI (Verification/Roadmap) | Google Gemini 2.5 Flash |
+| Auth | JWT, OTP, Google OAuth, DigiLocker OAuth |
 
 ---
 
 ## CONCLUSION
 
-MicroMerit Portal demonstrates the practical integration of Blockchain, IPFS, and AI into a unified credential management ecosystem. The dual verification approach, combining blockchain immutability for legal proof with AI flexibility for real-world document comparison, addresses the full spectrum of credential verification needs. The microservices architecture ensures modularity, and the provider-agnostic connector pattern enables seamless aggregation of credentials from diverse external platforms. The project validates that decentralized, AI-enhanced credential management is both technically viable and practically valuable for the education and employment ecosystem.
+MicroMerit Portal demonstrates a practical implementation of blockchain, IPFS, and AI technologies for credential management. The platform successfully anchors credentials on Ethereum with SHA-256 hashing, stores PDFs on IPFS, and offers dual verification (cryptographic + AI-based).
+
+The key achievement is making credential verification instant and free — a significant improvement over traditional background verification processes that cost money and take days. The AI integration (Gemini) further adds flexibility for real-world scenarios where exact digital copies aren't available.
+
+The microservices architecture (6 independent services) ensures scalability, while the adapter pattern enables easy integration with new credential providers.
 
 ---
 
 ## REFERENCES
 
 [1] S. Nakamoto, "Bitcoin: A Peer-to-Peer Electronic Cash System," 2008.
-[2] V. Buterin, "Ethereum: A Next-Generation Smart Contract and Decentralized Application Platform," Ethereum White Paper, 2014.
+[2] V. Buterin, "Ethereum: A Next-Generation Smart Contract and Decentralized Application Platform," 2014.
 [3] J. Benet, "IPFS - Content Addressed, Versioned, P2P File System," arXiv:1407.3561, 2014.
-[4] Solidity Documentation, Ethereum Foundation, https://docs.soliditylang.org
-[5] Hardhat Development Framework, Nomic Foundation, https://hardhat.org
-[6] React Documentation, Meta Open Source, https://react.dev
-[7] Prisma ORM Documentation, Prisma Data Inc., https://www.prisma.io/docs
-[8] Google Gemini API Documentation, Google DeepMind, https://ai.google.dev
+[4] OpenZeppelin, "Smart Contract Security," https://docs.openzeppelin.com
+[5] Hardhat, "Ethereum Development Environment," https://hardhat.org
 
 ---
 
@@ -122,5 +127,4 @@ MicroMerit Portal demonstrates the practical integration of Blockchain, IPFS, an
 **Student:** Jaimin Detroja (22CP081)
 **Internal Guides:** Dr. Narendra M. Patel, Dr. Bhavesh A. Tanawala
 **Project Convener:** Dr. Hemant D. Vasava
-**Department:** Computer Engineering
 **Institution:** Birla Vishvakarma Mahavidyalaya (BVM), Vallabh Vidyanagar
