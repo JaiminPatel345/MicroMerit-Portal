@@ -125,6 +125,7 @@ const LearnerHeader = () => {
               <Link to="/dashboard" className={isActive('/dashboard')}>Dashboard</Link>
               <Link to="/wallet" className={isActive('/wallet')}>Wallet</Link>
               <Link to="/roadmap" className={isActive('/roadmap')}>Pathways</Link>
+              <Link to="/skills" className={isActive('/skills')}>Skills</Link>
               <Link to="/verify" className={isActive('/verify')}>Verify</Link>
             </nav>
           </div>
@@ -213,6 +214,7 @@ const LearnerHeader = () => {
             <Link to="/dashboard" className="block text-gray-700 py-2">Dashboard</Link>
             <Link to="/wallet" className="block text-gray-700 py-2">Wallet</Link>
             <Link to="/roadmap" className="block text-gray-700 py-2">Pathways</Link>
+            <Link to="/skills" className="block text-gray-700 py-2">Skills</Link>
             <Link to="/notifications" className="block text-gray-700 py-2">Notifications</Link>
 
             {/* Mobile Language */}
