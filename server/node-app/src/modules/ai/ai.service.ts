@@ -573,6 +573,9 @@ Rules:
             const response = await axios.get(ipfsPdfUrl, {
                 responseType: 'arraybuffer',
                 timeout: 30000,
+                headers: {
+                    'User-Agent': 'MicroMerit-Portal/1.0',
+                },
             });
             originalPdfBuffer = Buffer.from(response.data);
         } catch (err: any) {
