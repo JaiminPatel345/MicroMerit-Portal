@@ -8,7 +8,6 @@ export interface CreateLearnerDTO {
   hashed_password?: string;
   profileFolder?: string;
   profileUrl?: string;
-  external_digilocker_id?: string;
   other_emails?: string[];
   dob?: Date;
   gender?: string;
@@ -20,7 +19,6 @@ export interface UpdateLearnerDTO {
   phone?: string;
   profileFolder?: string;
   profileUrl?: string;
-  external_digilocker_id?: string;
   other_emails?: string[];
   dob?: Date;
   gender?: string;

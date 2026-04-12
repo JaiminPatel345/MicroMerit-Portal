@@ -95,14 +95,6 @@ const Signup = () => {
     }
   };
 
-  const handleDigiLockerSignup = () => {
-    navigate('/profile-builder', {
-      state: {
-        loginMethod: 'digilocker'
-      }
-    });
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-chill-200 to-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">

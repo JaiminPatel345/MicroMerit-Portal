@@ -6,7 +6,7 @@ Complete API documentation for the MicroMerit Portal platform.
 
 MicroMerit Portal is a comprehensive digital credential management system with support for:
 - Multi-role authentication (Issuer, Learner, Admin)
-- OAuth integration (Google, DigiLocker)
+- OAuth integration (Google)
 - Digital credential lifecycle management
 - PDF certificate generation with QR codes
 - Cloud storage with Amazon S3
@@ -33,9 +33,8 @@ MicroMerit Portal is a comprehensive digital credential management system with s
   - **Email Management**: Two-step verified email addition (request OTP → verify OTP)
 
 ### OAuth Authentication
-- **[OAuth API](apis/oauth.openapi.yml)** - Social authentication and DigiLocker integration
+- **[OAuth API](apis/oauth.openapi.yml)** - Social authentication
   - Google OAuth 2.0 sign-in
-  - DigiLocker authentication with certificate fetching
   - Automatic account creation or linking
   - JWT token generation
 
@@ -97,7 +96,6 @@ Obtain tokens from:
 - `/api/learner/login`
 - `/api/admin/login`
 - `/api/learner/oauth/google/callback`
-- `/api/learner/oauth/digilocker/callback`
 - `/api/learner/registration/complete`
 
 Refresh expired tokens at:
@@ -161,7 +159,7 @@ All error responses follow this format:
 ### Learner
 - Individual users who receive credentials
 - Can register via email/phone with OTP
-- Can sign in with Google or DigiLocker
+- Can sign in with Google
 - Can claim and view credentials
 - Public profile with credential portfolio
 
@@ -210,10 +208,6 @@ TWILIO_PHONE_NUMBER=your-phone
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-secret
 GOOGLE_CALLBACK_URL=http://localhost:3000/api/learner/oauth/google/callback
-
-DIGILOCKER_CLIENT_ID=your-digilocker-id
-DIGILOCKER_CLIENT_SECRET=your-digilocker-secret
-DIGILOCKER_CALLBACK_URL=http://localhost:3000/api/learner/oauth/digilocker/callback
 
 # AWS S3
 AWS_REGION=us-east-1
@@ -278,7 +272,7 @@ For questions or issues:
   - Previous features:
     - Authentication system (Issuer, Learner, Admin)
     - Three-step learner registration with OTP
-    - OAuth integration (Google, DigiLocker)
+    - OAuth integration (Google)
     - Credential management system
     - PDF certificate generation with S3 storage
     - API key management

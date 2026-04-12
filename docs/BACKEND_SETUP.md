@@ -43,7 +43,6 @@ Complete guide to set up the backend server for MicroMerit Portal.
 - **Gmail Account**: For email notifications (with App Password)
 - **Twilio Account**: For SMS OTP (optional)
 - **Google OAuth Credentials**: For Google sign-in
-- **DigiLocker API Access**: For DigiLocker integration
 
 ## 📦 Installation
 
@@ -179,11 +178,6 @@ TWILIO_PHONE_NUMBER=+1234567890
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/learner/oauth/google/callback
-
-# DigiLocker
-DIGILOCKER_CLIENT_ID=your-digilocker-client-id
-DIGILOCKER_CLIENT_SECRET=your-digilocker-client-secret
-DIGILOCKER_CALLBACK_URL=http://localhost:3000/api/auth/learner/oauth/digilocker/callback
 
 # ============================================
 # AWS S3 CONFIGURATION

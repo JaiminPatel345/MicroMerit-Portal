@@ -20,10 +20,6 @@ export const oauthGoogleLogin = {
   callback: (code) => api.get(`/auth/learner/oauth/google/callback?code=${code}`),
 };
 
-export const oauthDigilockerLogin = {
-  oauth: () => api.get('/auth/learner/oauth/digilocker'),
-};
-
 // Forgot Password Services
 export const forgotPasswordLearner = {
   start: (payload) => api.post('/auth/learner/forgot-password', payload),

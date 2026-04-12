@@ -14,7 +14,7 @@ const ProfileBuilder = () => {
     const [searchParams] = useSearchParams();
     const dispatch = useDispatch();
 
-    // Check for OAuth data in URL params (for Google/DigiLocker signup)
+    // Check for OAuth data in URL params (for Google signup)
     const urlTempToken = searchParams.get('tempToken');
     const oauthEmail = searchParams.get('email');
     const oauthName = searchParams.get('name');
@@ -40,7 +40,6 @@ const ProfileBuilder = () => {
     });
 
     const [consents, setConsents] = useState({
-        digilockerConsent: loginMethod === 'digilocker',
         autoLinkConsent: false,
         blockchainConsent: true,
     });
@@ -84,7 +83,7 @@ const ProfileBuilder = () => {
     };
 
     useEffect(() => {
-        if (loginMethod === 'google' || loginMethod === 'digilocker') {
+        if (loginMethod === 'google') {
             return;
         }
         if (!identifier || !type) {
@@ -110,7 +109,7 @@ const ProfileBuilder = () => {
         }
 
         // Password validation - optional for OAuth users
-        const isOAuthUser = loginMethod === 'google' || loginMethod === 'digilocker';
+        const isOAuthUser = loginMethod === 'google';
         if (!isOAuthUser || formData.password.trim()) {
             // Only validate if not OAuth user, or if OAuth user has entered a password
             if (!formData.password.trim()) {
@@ -550,25 +549,6 @@ const ProfileBuilder = () => {
                             <h3 className="text-lg font-bold text-gray-900 mb-4">Consent
                                 & Permissions</h3>
                             <div className="space-y-4">
-                                {loginMethod === 'digilocker' && (
-                                    <div className="flex items-start">
-                                        <div className="flex items-center h-5">
-                                            <input
-                                                type="checkbox"
-                                                name="digilockerConsent"
-                                                checked={consents.digilockerConsent}
-                                                onChange={handleConsentChange}
-                                                className="h-5 w-5 text-blue-chill-600 focus:ring-blue-chill-500 border-gray-300 rounded"
-                                            />
-                                        </div>
-                                        <label
-                                            className="ml-3 text-sm text-gray-700">
-                                            I consent to {APP_NAME} fetching my
-                                            documents from DigiLocker
-                                        </label>
-                                    </div>
-                                )}
-
                                 <div
                                     className="flex items-start  p-4 rounded-lg">
                                     <div className="flex items-center h-5">

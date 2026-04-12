@@ -96,7 +96,7 @@ const Home = () => {
         {
             icon: <Wallet className="w-6 h-6 text-blue-chill-200" />,
             title: 'Unified Wallet',
-            description: 'Collect certificates from Skill India, DigiLocker, and Universities in one secure place.',
+            description: 'Collect certificates from Skill India, training providers, and Universities in one secure place.',
         },
         {
             icon: <Database className="w-6 h-6 text-blue-chill-600" />,

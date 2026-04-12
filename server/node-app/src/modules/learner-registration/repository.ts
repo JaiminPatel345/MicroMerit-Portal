@@ -124,7 +124,6 @@ export class RegistrationRepository {
     hashedPassword?: string;
     profileUrl?: string;
     otherEmails?: string[];
-    externalDigilockerId?: string;
     dob?: Date;
     gender?: string;
   }): Promise<any> {
@@ -136,7 +135,6 @@ export class RegistrationRepository {
         hashed_password: data.hashedPassword,
         profileUrl: data.profileUrl,
         other_emails: data.otherEmails || [],
-        external_digilocker_id: data.externalDigilockerId,
         dob: data.dob,
         gender: data.gender,
       },

@@ -20,15 +20,6 @@ export class OAuthRepository {
   }
 
   /**
-   * Find learner by DigiLocker ID
-   */
-  async findLearnerByDigilockerId(digilockerId: string) {
-    return prisma.learner.findFirst({
-      where: { external_digilocker_id: digilockerId },
-    });
-  }
-
-  /**
    * Create a new learner
    */
   async createLearner(data: {
@@ -37,7 +28,6 @@ export class OAuthRepository {
     hashedPassword?: string;
     profileUrl?: string;
     otherEmails?: string[];
-    externalDigilockerId?: string;
     dob?: Date;
     gender?: string;
   }) {
@@ -48,7 +38,6 @@ export class OAuthRepository {
         hashed_password: data.hashedPassword,
         profileUrl: data.profileUrl,
         other_emails: data.otherEmails || [],
-        external_digilocker_id: data.externalDigilockerId,
         dob: data.dob,
         gender: data.gender,
       },
@@ -93,14 +82,12 @@ export class OAuthRepository {
     id: number,
     data: {
       profileUrl?: string;
-      externalDigilockerId?: string;
     }
   ) {
     return prisma.learner.update({
       where: { id },
       data: {
         profileUrl: data.profileUrl,
-        external_digilocker_id: data.externalDigilockerId,
       },
     });
   }

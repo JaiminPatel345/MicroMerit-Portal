@@ -318,7 +318,7 @@ export class RegistrationService {
     // Check if learner has a password (OAuth users might not have passwords)
     if (!learner.hashed_password) {
       throw new ValidationError(
-        'This account was created using OAuth (Google/DigiLocker). Please use that method to sign in.',
+        'This account was created using OAuth (Google). Please use that method to sign in.',
         400,
         'OAUTH_ACCOUNT_NO_PASSWORD'
       );

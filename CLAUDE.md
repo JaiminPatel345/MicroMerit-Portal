@@ -40,7 +40,7 @@ MicroMerit Portal is a **Micro-Credential Aggregator Platform** powered by Block
 ### Working
 - Blockchain anchoring of credentials (Sepolia testnet; mock mode available via `BLOCKCHAIN_MOCK_ENABLED=true`)
 - IPFS storage via Filebase (S3-compatible API) — **in reports/docs always call it "IPFS", never mention Filebase**
-- Multi-role auth: JWT + OTP verification + Google OAuth + DigiLocker OAuth
+- Multi-role auth: JWT + OTP verification + Google OAuth
 - Credential issuance (single, via web), verification by credential_id / tx_hash / ipfs_cid / QR code
 - External credential sync from providers (NSDC, Udemy, Credly-like) via connector pattern
 - AI OCR: extract credential details from PDF/image using Tesseract + Groq
@@ -217,7 +217,7 @@ Blockchain verification is cryptographically absolute but requires the exact ori
 - **AI (Document Comparison)**: Google Gemini 2.5 Flash (via `@google/generative-ai` in Node.js) — used for flexible AI-powered credential verification by comparing original IPFS PDF against user-submitted document
 - **Blockchain**: Hardhat, Ethers.js, Solidity, Ethereum Sepolia Testnet
 - **Storage**: IPFS (decentralized), AWS S3-compatible interface
-- **Auth**: JWT, bcrypt, Nodemailer OTP, Google OAuth 2.0, DigiLocker OAuth
+- **Auth**: JWT, bcrypt, Nodemailer OTP, Google OAuth 2.0
 
 ---
 

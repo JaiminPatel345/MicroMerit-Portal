@@ -15,7 +15,6 @@ export interface LearnerResponse {
   phone?: string | null;
   profileFolder?: string | null;
   profileUrl?: string | null;
-  external_digilocker_id?: string | null;
   status: string;
   other_emails: string[];
   dob?: Date | null;
@@ -66,7 +65,6 @@ export class LearnerService {
       hashed_password,
       profileFolder: data.profileFolder,
       profileUrl: data.profileUrl,
-      external_digilocker_id: data.external_digilocker_id,
       other_emails: data.other_emails || [],
       dob: data.dob,
       gender: data.gender,

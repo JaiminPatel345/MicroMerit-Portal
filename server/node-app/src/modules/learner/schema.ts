@@ -9,7 +9,6 @@ export const learnerRegistrationSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters').max(100),
   profileFolder: z.string().optional(),
   profileUrl: z.string().optional(), // Accept base64 or URL
-  external_digilocker_id: z.string().optional(),
   other_emails: z.array(z.string().email('Invalid email')).optional(),
   dob: z.date().optional(),
   gender: z.enum(['Male', 'Female', 'Others', 'Not to disclose']).optional(),

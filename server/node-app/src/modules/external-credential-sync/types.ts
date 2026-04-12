@@ -91,7 +91,7 @@ export interface CanonicalCredential {
     /** Occupation/job role */
     occupation?: string;
 
-    /** Tags for categorization (e.g., ["nsdc", "digilocker"]) */
+    /** Tags for categorization (e.g., ["nsdc", "udemy"]) */
     tags: string[];
 
     /** Description of the credential */

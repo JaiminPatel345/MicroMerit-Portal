@@ -42,12 +42,8 @@ const faqs = [
         answer: "Revoked credentials are marked in the verification system. Anyone verifying them will see a \"Revoked\" status along with the reason."
     },
     {
-        question: `Does ${APP_NAME} integrate with DigiLocker?`,
-        answer: "Yes. The platform supports DigiLocker integration for storing and fetching government-recognized documents. (Sandbox mode available if real partner API keys are not accessible.)"
-    },
-    {
         question: "Can students store their credentials securely?",
-        answer: "All issued credentials appear in the learner dashboard, where they can download, share, or store them in DigiLocker."
+        answer: "All issued credentials appear in the learner dashboard, where they can download, share, or verify them anytime."
     },
     {
         question: `What technologies does ${APP_NAME} use?`,

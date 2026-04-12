@@ -8,7 +8,7 @@ Micro Credential aggregator platform with Blockchain, IPFS and AI powered skill 
 ### 🔐 Authentication & User Management
 - **Multi-Role Authentication**: Issuer, Learner, Employer, and Admin roles
 - **Two-Step OTP Verification**: For Issuer and Learner registration
-- **OAuth Integration**: Google and DigiLocker sign-in for learners
+- **OAuth Integration**: Google sign-in for learners
 - **API Key Management**: For programmatic issuer access
 - **Email Management**: Verified email addition for learners
 
@@ -54,7 +54,7 @@ MicroMerit-Portal/
 │   ├── node-app/              # Main backend API (Node.js + Express + TypeScript)
 │   ├── ai_groq_service/       # AI service (Python + FastAPI + Groq)
 │   ├── blockchain/            # Blockchain service (TypeScript + Hardhat + Ethers.js)
-│   └── digilocker_handle_server/  # DigiLocker OAuth handler
+│   └── dummy-server/              # Mock credential provider server
 ├── dummy-server/              # Mock credential provider server for development
 ├── docs/                      # API documentation (OpenAPI specs)
 └── README.md                  # This file
@@ -100,7 +100,7 @@ For detailed setup instructions, see [QUICKSTART.md](./QUICKSTART.md)
 - **Framework**: Express.js
 - **Database**: PostgreSQL 14+ with Prisma ORM
 - **Queue**: BullMQ with Redis
-- **Authentication**: JWT, OAuth 2.0 (Google, DigiLocker)
+- **Authentication**: JWT, OAuth 2.0 (Google)
 - **Blockchain**: Ethers.js, Hardhat (Sepolia testnet)
 - **Storage**: Amazon S3, Filebase IPFS
 - **Email**: Nodemailer
